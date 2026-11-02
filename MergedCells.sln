@@ -1,6 +1,6 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SlidingRectangles", "SlidingRectangles.csproj", "{09F2B095-F1F8-4C69-B231-51052EBD92FA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MergedCells", "MergedCells.csproj", "{09F2B095-F1F8-4C69-B231-51052EBD92FA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -10,7 +10,7 @@ config_version=5
 
 [application]
 
-config/name="Sliding Rectangles"
+config/name="Merged Cells"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "C#", "GL Compatibility")
 config/icon="res://icon.svg"
@@ -27,9 +27,10 @@ window/handheld/orientation=1
 
 [dotnet]
 
-project/assembly_name="SlidingRectangles"
+project/assembly_name="MergedCells"
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+textures/vram_compression/import_etc2_astc=true

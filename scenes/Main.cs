@@ -1,11 +1,11 @@
 using Godot;
 
-namespace SlidingRectangles;
+namespace MergedCells;
 
 public partial class Main : Control
 {
     public override void _Ready()
     {
-        GD.Print("Sliding Rectangles started (C#).");
+        GD.Print("Merged Cells started (C#).");
     }
 }
