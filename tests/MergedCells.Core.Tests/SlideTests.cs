@@ -23,21 +23,6 @@ public class SlideTests
         new(0, 0),
         new(2, 2));
 
-    // Every row is one strip except the 1x1 end at (99,99)
-    private static Map Large()
-    {
-        var regions = new int[100, 100];
-        for (var row = 0; row < 100; row++)
-        {
-            for (var column = 0; column < 100; column++)
-            {
-                regions[row, column] = row;
-            }
-        }
-        regions[99, 99] = 100;
-        return Map.Create(regions, new(0, 0), new(99, 99));
-    }
-
     [Fact]
     public void Example_down_down_right_reaches_the_end()
     {
@@ -203,6 +188,6 @@ public class SlideTests
     [InlineData(99, 0, 99, 99, true)]
     public void Full_width_slides_work_on_a_100_by_100_map(int row, int column, int stopRow, int stopColumn, bool reachedEnd)
     {
-        Assert.Equal(new SlideResult(new(stopRow, stopColumn), reachedEnd), Large().Slide(new(row, column), Direction.Right));
+        Assert.Equal(new SlideResult(new(stopRow, stopColumn), reachedEnd), RowStrips100().Slide(new(row, column), Direction.Right));
     }
 }

@@ -18,6 +18,21 @@ internal static class TestMaps
 
     public static int[,] AllSingles3x3() => Grid("ABC", "DEF", "GHI");
 
+    // Every row is one strip except the 1x1 end at [99, 99]
+    public static Map RowStrips100()
+    {
+        var regions = new int[100, 100];
+        for (var row = 0; row < 100; row++)
+        {
+            for (var column = 0; column < 100; column++)
+            {
+                regions[row, column] = row;
+            }
+        }
+        regions[99, 99] = 100;
+        return Map.Create(regions, new(0, 0), new(99, 99));
+    }
+
     // Draws a region grid as rows of letters, one per square; squares with the same letter share a region.
     // Tests that depend on the ID values themselves use number grids instead.
     public static int[,] Grid(params string[] rows)
