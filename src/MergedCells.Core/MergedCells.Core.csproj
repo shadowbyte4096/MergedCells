@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MergedCells.Core</RootNamespace>
+  </PropertyGroup>
+  <!-- Godot builds referenced projects with its own configuration names, which the plain SDK doesn't know; this mirrors Godot.NET.Sdk -->
+  <PropertyGroup Condition=" '$(Configuration)' == 'ExportDebug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+    <DefineConstants>$(DefineConstants);DEBUG</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'ExportRelease' ">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+</Project>
