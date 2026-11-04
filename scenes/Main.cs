@@ -30,15 +30,30 @@ public partial class Main : Node2D
             DemoBoard.Grid50 => DemoMaps.Tiled(5),
             _ => DemoMaps.Tiled(10),
         };
-        var player = Board == DemoBoard.Sketch ? new Cell(2, 2) : new Cell(map.Rows / 2, map.Columns / 2);
         board.Map = map;
         board.GetNode<StartMarker>("StartMarker").Cell = map.Start;
-        board.GetNode<PlayerView>("Player").Cell = player;
+
+        // A stand-in until chunk 6's play loop: moves snap the player, with no animation or HUD
+        var player = board.GetNode<PlayerView>("Player");
+        var attempt = new Attempt(map);
+        player.Cell = attempt.Position;
+        GetNode<MoveInput>("Input").MoveRequested += direction =>
+        {
+            var outcome = attempt.Move(direction);
+            if (outcome == MoveOutcome.Ignored)
+            {
+                return;
+            }
+            player.Cell = attempt.Position;
+            var won = outcome == MoveOutcome.Won ? ", won" : "";
+            GD.Print($"Move {direction} to [{attempt.Position.Row}, {attempt.Position.Column}]{won}");
+        };
 
         if (Board == DemoBoard.Grid100CloseUp)
         {
             var size = new Vector2(7, 12) * BoardView.CellSize;
-            camera.Fit(new Rect2(board.CellCentre(player) - size / 2, size));
+            var middle = board.CellCentre(new Cell(map.Rows / 2, map.Columns / 2));
+            camera.Fit(new Rect2(middle - size / 2, size));
         }
         else
         {

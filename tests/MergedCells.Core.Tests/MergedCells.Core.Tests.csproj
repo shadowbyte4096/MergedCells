@@ -18,4 +18,7 @@
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\config\game_config.json" Link="game_config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>
