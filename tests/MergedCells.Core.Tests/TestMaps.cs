@@ -33,6 +33,28 @@ internal static class TestMaps
         return Map.Create(regions, new(0, 0), new(99, 99));
     }
 
+    public static Map Singles100()
+    {
+        var regions = new int[100, 100];
+        for (var row = 0; row < 100; row++)
+        {
+            for (var column = 0; column < 100; column++)
+            {
+                regions[row, column] = row * 100 + column;
+            }
+        }
+        return Map.Create(regions, new(0, 0), new(99, 99));
+    }
+
+    // The developer's sketch level from the chunk 4 spec
+    public static Map Sketch() => Map.Create(
+        Grid("SAAAAA", "BCCDDD", "BCCDDD", "BCCEEE", "BCCFFF", "BGHFFF", "IJHKLM", "IJHOOO", "QQQOOO", "PPPPPZ"),
+        new(0, 0),
+        new(9, 5));
+
+    // X touches all of A, B, C, D and F, which form a ring of five, so the map needs four colours
+    public static Map OddWheel() => Map.Create(Grid("ABCC", "AXXD", "AFFD"), new(0, 0), new(0, 1));
+
     // Draws a region grid as rows of letters, one per square; squares with the same letter share a region.
     // Tests that depend on the ID values themselves use number grids instead.
     public static int[,] Grid(params string[] rows)

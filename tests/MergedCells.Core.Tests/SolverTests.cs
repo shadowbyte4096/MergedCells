@@ -38,19 +38,6 @@ public class SolverTests
 
     private static MapCase Case(string name) => Cases.Single(c => c.Name == name);
 
-    private static Map Singles100()
-    {
-        var regions = new int[100, 100];
-        for (var row = 0; row < 100; row++)
-        {
-            for (var column = 0; column < 100; column++)
-            {
-                regions[row, column] = row * 100 + column;
-            }
-        }
-        return Map.Create(regions, new(0, 0), new(99, 99));
-    }
-
     private static Direction[] Directions(string letters) => letters.Select(letter => letter switch
     {
         'U' => Direction.Up,

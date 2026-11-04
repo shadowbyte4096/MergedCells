@@ -1,0 +1,19 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/board/BoardView.cs" id="1_board"]
+[ext_resource type="Resource" path="res://themes/default_board_theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://scenes/board/StartMarker.cs" id="3_start"]
+[ext_resource type="Resource" path="res://themes/default_player_look.tres" id="4_look"]
+[ext_resource type="Script" path="res://scenes/board/PlayerView.cs" id="5_player"]
+
+[node name="Board" type="Node2D"]
+script = ExtResource("1_board")
+Theme = ExtResource("2_theme")
+
+[node name="StartMarker" type="Node2D" parent="."]
+script = ExtResource("3_start")
+Look = ExtResource("4_look")
+
+[node name="Player" type="Node2D" parent="."]
+script = ExtResource("5_player")
+Look = ExtResource("4_look")

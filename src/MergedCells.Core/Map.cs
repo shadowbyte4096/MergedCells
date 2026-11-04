@@ -4,12 +4,13 @@ public sealed class Map
 {
     private readonly int[] regions;
 
-    private Map(int[,] regions, Cell start, Cell end)
+    private Map(int[,] regions, Cell start, Cell end, Rectangle[] rectangles)
     {
         Rows = regions.GetLength(0);
         Columns = regions.GetLength(1);
         Start = start;
         End = end;
+        Rectangles = Array.AsReadOnly(rectangles);
         this.regions = new int[Rows * Columns];
         for (var row = 0; row < Rows; row++)
         {
@@ -27,6 +28,9 @@ public sealed class Map
     public Cell Start { get; }
 
     public Cell End { get; }
+
+    /// <summary>One rectangle per region, in reading order of their top-left squares.</summary>
+    public IReadOnlyList<Rectangle> Rectangles { get; }
 
     /// <summary>
     /// Checks a region grid, start and end against the map rules. Returns every problem found,
@@ -49,7 +53,8 @@ public sealed class Map
         {
             throw new InvalidMapException(problems);
         }
-        return new Map(copy, start, end);
+        var bounds = RegionBounds.Measure(copy, out var firstSeenOrder);
+        return new Map(copy, start, end, firstSeenOrder.Select(id => bounds[id].ToRectangle(id)).ToArray());
     }
 
     public bool Contains(Cell cell) => IsInside(cell, Rows, Columns);

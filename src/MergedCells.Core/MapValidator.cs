@@ -13,7 +13,7 @@ internal static class MapValidator
         }
 
         var problems = new List<MapProblem>();
-        var bounds = MeasureRegions(regions, out var firstSeenOrder);
+        var bounds = RegionBounds.Measure(regions, out var firstSeenOrder);
         AddRegionProblems(problems, bounds, firstSeenOrder);
         AddStartAndEndProblems(problems, regions, bounds, start, end);
         return problems;
@@ -67,40 +67,5 @@ internal static class MapValidator
         }
     }
 
-    private static Dictionary<int, RegionBounds> MeasureRegions(int[,] regions, out List<int> firstSeenOrder)
-    {
-        var bounds = new Dictionary<int, RegionBounds>();
-        firstSeenOrder = [];
-        for (var row = 0; row < regions.GetLength(0); row++)
-        {
-            for (var column = 0; column < regions.GetLength(1); column++)
-            {
-                var id = regions[row, column];
-                if (bounds.TryGetValue(id, out var region))
-                {
-                    bounds[id] = region.Include(row, column);
-                }
-                else
-                {
-                    bounds[id] = new RegionBounds(row, row, column, column, 1);
-                    firstSeenOrder.Add(id);
-                }
-            }
-        }
-        return bounds;
-    }
-
     private static string Describe(Cell cell) => $"[{cell.Row}, {cell.Column}]";
-
-    private readonly record struct RegionBounds(int MinRow, int MaxRow, int MinColumn, int MaxColumn, int Count)
-    {
-        public int Area => (MaxRow - MinRow + 1) * (MaxColumn - MinColumn + 1);
-
-        public RegionBounds Include(int row, int column) => new(
-            Math.Min(MinRow, row),
-            Math.Max(MaxRow, row),
-            Math.Min(MinColumn, column),
-            Math.Max(MaxColumn, column),
-            Count + 1);
-    }
 }
