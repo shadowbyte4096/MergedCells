@@ -1,0 +1,156 @@
+name: Playtest build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - README.md
+      - LICENSE
+  workflow_dispatch:
+
+# A newer push replaces a build still in progress, so the release always matches the latest commit
+concurrency:
+  group: playtest-build
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.2
+  BUILD: ${{ github.run_number }}
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  # Lingering MSBuild and compiler servers keep the step's output open and stall it after Godot exits
+  MSBUILDDISABLENODEREUSE: 1
+  DOTNET_CLI_USE_MSBUILD_SERVER: 0
+  UseSharedCompilation: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          # 8 runs the net8.0 tests; 10 is the SDK that dotnet test's Testing Platform mode needs
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Run the tests
+        run: dotnet test
+
+      - name: Unpack the playtest signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PLAYTEST_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.PLAYTEST_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::error::Add the PLAYTEST_KEYSTORE_BASE64 and PLAYTEST_KEYSTORE_PASSWORD repository secrets first"
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/playtest.keystore"
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Godot and its export templates
+        id: godot-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-mono-windows-android
+
+      - name: Download Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          mkdir -p ~/godot
+          curl -fsSL -o "$RUNNER_TEMP/godot.zip" "$base/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          unzip -q "$RUNNER_TEMP/godot.zip" -d ~/godot
+          curl -fsSL -o "$RUNNER_TEMP/templates.tpz" "$base/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
+          # The full template set is over 1 GB; only Windows and Android are exported
+          unzip -q "$RUNNER_TEMP/templates.tpz" 'templates/version.txt' 'templates/windows_*_x86_64*' 'templates/android_*' -d "$RUNNER_TEMP"
+          dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
+          mkdir -p "$dest"
+          mv "$RUNNER_TEMP"/templates/* "$dest"/
+          ls -l "$dest"
+
+      - name: Set up Godot
+        run: |
+          godot=~/godot/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64/Godot_v${GODOT_VERSION}-stable_mono_linux.x86_64
+          chmod +x "$godot"
+          echo "GODOT=$godot" >> "$GITHUB_ENV"
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          EOF
+
+      - name: Install Android SDK parts
+        run: |
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "build-tools;35.0.1" "platforms;android-35" > /dev/null
+          # Started here, detached, so Godot doesn't start its own adb server holding the step's output open
+          "$ANDROID_HOME/platform-tools/adb" start-server > /dev/null 2>&1 < /dev/null
+
+      - name: Set the build number and drop the emulator architecture
+        run: |
+          sed -i \
+            -e 's|^architectures/x86_64=true$|architectures/x86_64=false|' \
+            -e "s|^version/code=.*|version/code=${BUILD}|" \
+            -e "s|^version/name=.*|version/name=\"playtest-${BUILD}\"|" \
+            export_presets.cfg
+          grep -E '^(architectures|version)/' export_presets.cfg
+
+      - name: Import the project
+        run: '"$GODOT" --headless --path . --import'
+
+      - name: Export Android and Windows
+        env:
+          GODOT_ANDROID_KEYSTORE_RELEASE_PATH: ${{ runner.temp }}/playtest.keystore
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: playtest
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.PLAYTEST_KEYSTORE_PASSWORD }}
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: ${{ runner.temp }}/playtest.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: playtest
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: ${{ secrets.PLAYTEST_KEYSTORE_PASSWORD }}
+        run: |
+          mkdir -p builds/android builds/windows
+          "$GODOT" --headless --path . --export-release "Android" builds/android/MergedCells.apk
+          "$GODOT" --headless --path . --export-release "Windows Desktop" builds/windows/MergedCells.exe
+          test -f builds/android/MergedCells.apk
+          test -f builds/windows/MergedCells.exe
+
+      - name: Package the files
+        run: |
+          name="MergedCells-playtest-${BUILD}"
+          mkdir -p out/stage
+          cp builds/android/MergedCells.apk "out/${name}.apk"
+          cp -r builds/windows "out/stage/${name}"
+          (cd out/stage && zip -qr "../${name}-windows.zip" "${name}")
+          rm -rf out/stage
+          ls -l out
+
+      - name: Replace the playtest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete playtest --cleanup-tag --yes || true
+          gh release create playtest out/* \
+            --target "$GITHUB_SHA" \
+            --prerelease \
+            --title "Playtest build ${BUILD}" \
+            --notes "Built from ${GITHUB_SHA::7}: $(git log -1 --format=%s)"
+
+      - name: Stop adb
+        if: always()
+        run: '"$ANDROID_HOME/platform-tools/adb" kill-server || true'
