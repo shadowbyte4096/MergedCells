@@ -4,14 +4,26 @@
 [ext_resource type="Script" path="res://scenes/board/BoardCamera.cs" id="2_camera"]
 [ext_resource type="PackedScene" path="res://scenes/board/board.tscn" id="3_board"]
 [ext_resource type="Script" path="res://scenes/input/MoveInput.cs" id="4_input"]
-[ext_resource type="Theme" path="res://themes/default_ui_theme.tres" id="5_theme"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="5_theme"]
 [ext_resource type="Texture2D" path="res://themes/icons/undo.svg" id="6_undo"]
 [ext_resource type="Texture2D" path="res://themes/icons/restart.svg" id="7_restart"]
 [ext_resource type="Script" path="res://scenes/play/ResultsScreen.cs" id="8_results"]
 [ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="9_stars"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="10_back"]
+[ext_resource type="Resource" path="res://themes/light_board_theme.tres" id="11_light_board"]
+[ext_resource type="Resource" path="res://themes/dark_board_theme.tres" id="12_dark_board"]
+[ext_resource type="Resource" path="res://themes/light_player_look.tres" id="13_light_look"]
+[ext_resource type="Resource" path="res://themes/dark_player_look.tres" id="14_dark_look"]
+[ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="15_dark_ui"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
+LightBoard = ExtResource("11_light_board")
+DarkBoard = ExtResource("12_dark_board")
+LightLook = ExtResource("13_light_look")
+DarkLook = ExtResource("14_dark_look")
+LightUi = ExtResource("5_theme")
+DarkUi = ExtResource("15_dark_ui")
 
 [node name="Camera" type="Camera2D" parent="."]
 script = ExtResource("2_camera")
@@ -45,16 +57,38 @@ theme_type_variation = &"Bar"
 layout_mode = 2
 mouse_filter = 2
 
-[node name="MovesLabel" type="Label" parent="Hud/Root/TopBar/Row"]
+[node name="Back" type="Button" parent="Hud/Root/TopBar/Row"]
 layout_mode = 2
-size_flags_horizontal = 3
-text = "Moves 0"
+size_flags_vertical = 0
+focus_mode = 0
+theme_type_variation = &"BackButton"
+disabled = true
+icon = ExtResource("10_back")
+icon_alignment = 1
 
-[node name="ParLabel" type="Label" parent="Hud/Root/TopBar/Row"]
+[node name="Heading" type="VBoxContainer" parent="Hud/Root/TopBar/Row"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Par 0"
-horizontal_alignment = 2
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="Hud/Root/TopBar/Row/Heading"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Level"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="MovesLabel" type="Label" parent="Hud/Root/TopBar/Row/Heading"]
+layout_mode = 2
+theme_type_variation = &"MovesLine"
+text = "0 moves · par 0"
+horizontal_alignment = 1
+
+[node name="Spacer" type="Control" parent="Hud/Root/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="BottomBar" type="MarginContainer" parent="Hud/Root"]
 layout_mode = 1
@@ -117,84 +151,116 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("8_results")
 
-[node name="Dim" type="Panel" parent="Hud/Root/Results"]
+[node name="Wash" type="Panel" parent="Hud/Root/Results"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_type_variation = &"Dim"
+theme_type_variation = &"Wash"
 
-[node name="Centre" type="CenterContainer" parent="Hud/Root/Results"]
+[node name="TitleBar" type="MarginContainer" parent="Hud/Root/Results"]
 layout_mode = 1
-anchors_preset = 15
+anchors_preset = 10
 anchor_right = 1.0
-anchor_bottom = 1.0
 grow_horizontal = 2
-grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Hud/Root/Results/TitleBar"]
+layout_mode = 2
 mouse_filter = 2
 
-[node name="Panel" type="PanelContainer" parent="Hud/Root/Results/Centre"]
+[node name="LeftSpacer" type="Control" parent="Hud/Root/Results/TitleBar/Row"]
+custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
-theme_type_variation = &"ResultsPanel"
+mouse_filter = 2
 
-[node name="Column" type="VBoxContainer" parent="Hud/Root/Results/Centre/Panel"]
+[node name="TitleLabel" type="Label" parent="Hud/Root/Results/TitleBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 0
+theme_type_variation = &"Title"
+text = "Level"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="RightSpacer" type="Control" parent="Hud/Root/Results/TitleBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Sheet" type="PanelContainer" parent="Hud/Root/Results"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Hud/Root/Results/Sheet"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ResultsColumn"
 
-[node name="Stars" type="Control" parent="Hud/Root/Results/Centre/Panel/Column"]
-layout_mode = 2
-mouse_filter = 2
-script = ExtResource("9_stars")
-
-[node name="MovesLabel" type="Label" parent="Hud/Root/Results/Centre/Panel/Column"]
+[node name="MovesLabel" type="Label" parent="Hud/Root/Results/Sheet/Column"]
 layout_mode = 2
 theme_type_variation = &"Headline"
 text = "0 moves"
 horizontal_alignment = 1
 
-[node name="ParLabel" type="Label" parent="Hud/Root/Results/Centre/Panel/Column"]
+[node name="Stars" type="Control" parent="Hud/Root/Results/Sheet/Column"]
 layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9_stars")
+
+[node name="ParLabel" type="Label" parent="Hud/Root/Results/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
 text = "Par 0"
 horizontal_alignment = 1
 
-[node name="Leaderboard" type="PanelContainer" parent="Hud/Root/Results/Centre/Panel/Column"]
+[node name="Leaderboard" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]
 custom_minimum_size = Vector2(520, 220)
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Placeholder"
 
-[node name="Title" type="Label" parent="Hud/Root/Results/Centre/Panel/Column/Leaderboard"]
+[node name="Title" type="Label" parent="Hud/Root/Results/Sheet/Column/Leaderboard"]
 layout_mode = 2
 size_flags_vertical = 0
-theme_type_variation = &"Muted"
+theme_type_variation = &"PlaceholderTitle"
 text = "Everyone's best moves"
 horizontal_alignment = 1
 
-[node name="Buttons" type="HBoxContainer" parent="Hud/Root/Results/Centre/Panel/Column"]
+[node name="Buttons" type="HBoxContainer" parent="Hud/Root/Results/Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"PillRow"
-alignment = 1
 
-[node name="Retry" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+[node name="Retry" type="Button" parent="Hud/Root/Results/Sheet/Column/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Retry"
 
-[node name="Menu" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+[node name="Menu" type="Button" parent="Hud/Root/Results/Sheet/Column/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 0
 theme_type_variation = &"PillButton"
 disabled = true
 text = "Menu"
 
-[node name="Next" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+[node name="Next" type="Button" parent="Hud/Root/Results/Sheet/Column/Buttons"]
 layout_mode = 2
+size_flags_horizontal = 3
 focus_mode = 0
-theme_type_variation = &"PillButton"
+theme_type_variation = &"PillPrimary"
 disabled = true
 text = "Next"

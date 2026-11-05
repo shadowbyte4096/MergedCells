@@ -15,6 +15,8 @@ public partial class BoardView : Node2D
     private IReadOnlyList<int> colors;
     private int colorCount;
     private CellRange? visible;
+    private StyleBoxFlat[] fillBoxes;
+    private StyleBoxFlat dotBox;
 
     public event Action ThemeChanged;
 
@@ -25,9 +27,13 @@ public partial class BoardView : Node2D
         set
         {
             theme = value;
-            if (theme != null && (colors == null || theme.Fills.Length != colorCount))
+            if (theme != null)
             {
-                Recolor();
+                BuildBoxes();
+                if (colors == null || theme.Fills.Length != colorCount)
+                {
+                    Recolor();
+                }
             }
             QueueRedraw();
             ThemeChanged?.Invoke();
@@ -104,10 +110,6 @@ public partial class BoardView : Node2D
         }
 
         var half = Gap / 2;
-        if (Gap > 0)
-        {
-            DrawRect(new Rect2(-half, -half, map.Columns * CellSize + Gap, map.Rows * CellSize + Gap), theme.Gap);
-        }
         for (var index = 0; index < map.Rectangles.Count; index++)
         {
             var rectangle = map.Rectangles[index];
@@ -115,15 +117,62 @@ public partial class BoardView : Node2D
             {
                 continue;
             }
-            var fill = rectangle.TopLeft == map.End ? theme.End : theme.Fills[colors[index]];
-            DrawRect(
-                new Rect2(
-                    rectangle.TopLeft.Column * CellSize + half,
-                    rectangle.TopLeft.Row * CellSize + half,
-                    rectangle.Columns * CellSize - Gap,
-                    rectangle.Rows * CellSize - Gap),
-                fill);
+            var area = new Rect2(
+                rectangle.TopLeft.Column * CellSize + half,
+                rectangle.TopLeft.Row * CellSize + half,
+                rectangle.Columns * CellSize - Gap,
+                rectangle.Rows * CellSize - Gap);
+            var isEnd = rectangle.TopLeft == map.End;
+            if (Gap > 0)
+            {
+                DrawStyleBox(fillBoxes[colors[index]], area);
+                if (isEnd)
+                {
+                    DrawEndDots();
+                }
+            }
+            else
+            {
+                DrawRect(area, isEnd ? theme.End : theme.Fills[colors[index]]);
+            }
         }
+    }
+
+    private void DrawEndDots()
+    {
+        var centre = CellCentre(map.End);
+        var side = theme.EndDotFraction * CellSize;
+        var spacing = theme.EndDotSpacing * CellSize;
+        for (var row = -1; row <= 1; row++)
+        {
+            for (var column = -1; column <= 1; column++)
+            {
+                var dotCentre = centre + new Vector2(column * spacing, row * spacing);
+                DrawStyleBox(dotBox, new Rect2(dotCentre - new Vector2(side, side) / 2, side, side));
+            }
+        }
+    }
+
+    // StyleBoxFlat takes whole-number borders and corners, in board units
+    private void BuildBoxes()
+    {
+        var border = Mathf.RoundToInt(theme.OutlineFraction * CellSize);
+        var corner = Mathf.RoundToInt(theme.CornerFraction * CellSize);
+        fillBoxes = new StyleBoxFlat[theme.Fills.Length];
+        for (var i = 0; i < fillBoxes.Length; i++)
+        {
+            fillBoxes[i] = RoundedBox(theme.Fills[i], corner);
+            fillBoxes[i].BorderColor = theme.Outline;
+            fillBoxes[i].SetBorderWidthAll(border);
+        }
+        dotBox = RoundedBox(theme.End, Mathf.RoundToInt(theme.EndDotCornerFraction * theme.EndDotFraction * CellSize));
+    }
+
+    private static StyleBoxFlat RoundedBox(Color fill, int corner)
+    {
+        var box = new StyleBoxFlat { BgColor = fill, AntiAliasing = true };
+        box.SetCornerRadiusAll(corner);
+        return box;
     }
 
     private void Recolor()

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="BoardTheme" format=3]
+
+[ext_resource type="Script" path="res://themes/BoardTheme.cs" id="1_theme"]
+
+[resource]
+script = ExtResource("1_theme")
+Background = Color(0.89019608, 0.94509804, 0.92941176, 1)
+Outline = Color(0.1372549, 0.36862745, 0.3372549, 1)
+Fills = PackedColorArray(0.94901961, 0.96078431, 0.96078431, 1, 0.87843137, 0.90980392, 0.90588235, 1, 0.81176471, 0.8627451, 0.85490196, 1, 0.74117647, 0.81176471, 0.8, 1, 0.67058824, 0.76078431, 0.74901961, 1)
+End = Color(0.1372549, 0.36862745, 0.3372549, 1)
+GapFraction = 0.16
+OutlineFraction = 0.07
+CornerFraction = 0.2
+EndDotFraction = 0.13
+EndDotSpacing = 0.2
+EndDotCornerFraction = 0.3
+MinGapPixels = 1.5

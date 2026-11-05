@@ -31,14 +31,18 @@ public partial class StartMarker : Node2D
 
     public override void _Draw()
     {
-        if (look == null)
+        if (look == null || GetParent<BoardView>().Gap == 0)
         {
             return;
         }
 
-        // The stroke is centred on the square's edge, so the square is shrunk by half a stroke on each side
         var width = look.StartOutlineWidth * BoardView.CellSize;
-        var side = BoardView.CellSize - GetParent<BoardView>().Gap - width;
-        DrawRect(new Rect2(-side / 2, -side / 2, side, side), look.StartOutline, filled: false, width: width);
+        var dash = look.StartDashFraction * BoardView.CellSize;
+        var half = look.StartSideFraction * BoardView.CellSize / 2;
+        Vector2[] corners = [new(-half, -half), new(half, -half), new(half, half), new(-half, half)];
+        for (var i = 0; i < corners.Length; i++)
+        {
+            DrawDashedLine(corners[i], corners[(i + 1) % corners.Length], look.StartOutline, width, dash, antialiased: true);
+        }
     }
 }

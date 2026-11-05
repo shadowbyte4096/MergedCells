@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="PlayerLook" format=3]
+
+[ext_resource type="Script" path="res://themes/PlayerLook.cs" id="1_look"]
+
+[resource]
+script = ExtResource("1_look")
+Color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+SideFraction = 0.56
+StrokeFraction = 0.1
+CornerFraction = 0.1
+TrailAlpha = 0.22
+TrailFadeSeconds = 0.5
+StartOutline = Color(0.1372549, 0.36862745, 0.3372549, 0.55)
+StartSideFraction = 0.42
+StartOutlineWidth = 0.05
+StartDashFraction = 0.07

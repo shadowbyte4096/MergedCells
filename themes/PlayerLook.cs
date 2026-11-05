@@ -5,24 +5,25 @@ namespace MergedCells;
 [GlobalClass]
 public partial class PlayerLook : Resource
 {
-    [Export] public Color Face { get; set; } = new("#00a2e8");
+    [Export] public Color Color { get; set; } = new("#235e56");
 
-    [Export] public Color Top { get; set; } = new("#4dbeef");
+    // Fractions of a square's side
+    [Export] public float SideFraction { get; set; } = 0.56f;
 
-    [Export] public Color Right { get; set; } = new("#26b0eb");
+    [Export] public float StrokeFraction { get; set; } = 0.1f;
 
-    [Export] public Color Left { get; set; } = new("#0085be");
+    [Export] public float CornerFraction { get; set; } = 0.1f;
 
-    [Export] public Color Bottom { get; set; } = new("#005c84");
+    [Export] public float TrailAlpha { get; set; } = 0.22f;
 
-    // From the cell's fill edge, as a fraction of a square's side
-    [Export] public float Inset { get; set; } = 0.14f;
+    [Export] public float TrailFadeSeconds { get; set; } = 0.5f;
 
-    // As a fraction of the tile's side
-    [Export] public float Bevel { get; set; } = 0.26f;
+    [Export] public Color StartOutline { get; set; } = new(0.13725491f, 0.36862746f, 0.3372549f, 0.55f);
 
-    [Export] public Color StartOutline { get; set; } = new("#00a2e8");
+    // Fractions of a square's side
+    [Export] public float StartSideFraction { get; set; } = 0.42f;
 
-    // As a fraction of a square's side
-    [Export] public float StartOutlineWidth { get; set; } = 0.09f;
+    [Export] public float StartOutlineWidth { get; set; } = 0.05f;
+
+    [Export] public float StartDashFraction { get; set; } = 0.07f;
 }

@@ -9,11 +9,12 @@ public partial class Play : Node2D
 {
     private BoardView board;
     private PlayerView player;
+    private TrailView trail;
     private BoardCamera camera;
     private Control topBar;
     private Control bottomBar;
+    private Label titleLabel;
     private Label movesLabel;
-    private Label parLabel;
     private ResultsScreen results;
 
     private PlaySession session;
@@ -22,16 +23,42 @@ public partial class Play : Node2D
     private PlayerSlide? sliding;
     private double elapsed;
     private double duration;
+    private bool dark;
+
+    [Export] public BoardTheme LightBoard { get; set; }
+
+    [Export] public BoardTheme DarkBoard { get; set; }
+
+    [Export] public PlayerLook LightLook { get; set; }
+
+    [Export] public PlayerLook DarkLook { get; set; }
+
+    [Export] public Theme LightUi { get; set; }
+
+    [Export] public Theme DarkUi { get; set; }
+
+    public bool Dark
+    {
+        get => dark;
+        set
+        {
+            if (value != dark)
+            {
+                ApplyAppearance(value);
+            }
+        }
+    }
 
     public override void _Ready()
     {
         board = GetNode<BoardView>("Board");
         player = board.GetNode<PlayerView>("Player");
+        trail = board.GetNode<TrailView>("Trail");
         camera = GetNode<BoardCamera>("Camera");
         topBar = GetNode<Control>("Hud/Root/TopBar");
         bottomBar = GetNode<Control>("Hud/Root/BottomBar");
-        movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/MovesLabel");
-        parLabel = GetNode<Label>("Hud/Root/TopBar/Row/ParLabel");
+        titleLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/TitleLabel");
+        movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
         results = GetNode<ResultsScreen>("Hud/Root/Results");
 
         GetNode<MoveInput>("Input").MoveRequested += OnMoveRequested;
@@ -44,12 +71,25 @@ public partial class Play : Node2D
         topBar.Resized += UpdateInsets;
         bottomBar.Resized += UpdateInsets;
         board.ThemeChanged += SetClearColor;
+        ApplyAppearance(false);
     }
 
-    public void Start(Map map, int par)
+    private void ApplyAppearance(bool toDark)
+    {
+        dark = toDark;
+        var look = dark ? DarkLook : LightLook;
+        board.Theme = dark ? DarkBoard : LightBoard;
+        board.GetNode<StartMarker>("StartMarker").Look = look;
+        trail.Look = look;
+        player.Look = look;
+        GetNode<Control>("Hud/Root").Theme = dark ? DarkUi : LightUi;
+    }
+
+    public void Start(Map map, int par, string title)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
+        ArgumentException.ThrowIfNullOrEmpty(title);
 
         this.par = par;
         session = new PlaySession(map);
@@ -58,7 +98,8 @@ public partial class Play : Node2D
         StopSlide();
         results.Hide();
         player.Cell = session.Position;
-        parLabel.Text = $"Par {par}";
+        titleLabel.Text = title;
+        results.Title = title;
         RefreshMoves();
         SetClearColor();
         UpdateInsets();
@@ -77,6 +118,8 @@ public partial class Play : Node2D
         while (sliding is { } current && elapsed >= duration)
         {
             player.Cell = current.To;
+            trail.Stretch(board.CellCentre(current.To));
+            trail.Release();
             var leftover = elapsed - duration;
             sliding = null;
             if (session.FinishSlide() is { } next)
@@ -94,6 +137,7 @@ public partial class Play : Node2D
         {
             var progress = (float)(elapsed / duration);
             player.Position = board.CellCentre(moving.From).Lerp(board.CellCentre(moving.To), progress);
+            trail.Stretch(player.Position);
         }
     }
 
@@ -166,6 +210,7 @@ public partial class Play : Node2D
         duration = SlideTiming.Seconds(slide.Squares, GameConfigFile.Current.Slide);
         sliding = slide;
         elapsed = 0;
+        trail.Begin(board.CellCentre(slide.From));
         RefreshMoves();
         var won = slide.Wins ? ", won" : "";
         GD.Print($"Move {DirectionOf(slide)} to {Format(slide.To)}{won}");
@@ -175,6 +220,7 @@ public partial class Play : Node2D
     {
         sliding = null;
         elapsed = 0;
+        trail.Clear();
     }
 
     private void Finish()
@@ -185,7 +231,7 @@ public partial class Play : Node2D
         GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(stars, "star")}");
     }
 
-    private void RefreshMoves() => movesLabel.Text = $"Moves {session.Moves}";
+    private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
 
     private void UpdateInsets() => camera.SetInsets(topBar.Size.Y, bottomBar.Size.Y);
 

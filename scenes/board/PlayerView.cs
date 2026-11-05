@@ -6,6 +6,7 @@ namespace MergedCells;
 public partial class PlayerView : Node2D
 {
     private PlayerLook look;
+    private StyleBoxFlat outline;
     private Cell cell;
 
     [Export]
@@ -15,6 +16,12 @@ public partial class PlayerView : Node2D
         set
         {
             look = value;
+            if (look != null)
+            {
+                outline = new StyleBoxFlat { DrawCenter = false, BorderColor = look.Color, AntiAliasing = true };
+                outline.SetBorderWidthAll(Mathf.RoundToInt(look.StrokeFraction * BoardView.CellSize));
+                outline.SetCornerRadiusAll(Mathf.RoundToInt(look.CornerFraction * BoardView.CellSize));
+            }
             QueueRedraw();
         }
     }
@@ -36,13 +43,16 @@ public partial class PlayerView : Node2D
             return;
         }
 
-        var tile = BoardView.CellSize - GetParent<BoardView>().Gap - 2 * look.Inset * BoardView.CellSize;
-        var outer = tile / 2;
-        var inner = outer - look.Bevel * tile;
-        DrawColoredPolygon(new Vector2[] { new(-outer, -outer), new(outer, -outer), new(inner, -inner), new(-inner, -inner) }, look.Top);
-        DrawColoredPolygon(new Vector2[] { new(outer, -outer), new(outer, outer), new(inner, inner), new(inner, -inner) }, look.Right);
-        DrawColoredPolygon(new Vector2[] { new(outer, outer), new(-outer, outer), new(-inner, inner), new(inner, inner) }, look.Bottom);
-        DrawColoredPolygon(new Vector2[] { new(-outer, outer), new(-outer, -outer), new(-inner, -inner), new(-inner, inner) }, look.Left);
-        DrawRect(new Rect2(-inner, -inner, 2 * inner, 2 * inner), look.Face);
+        var side = look.SideFraction * BoardView.CellSize;
+        var square = new Rect2(-side / 2, -side / 2, side, side);
+        // Zoomed out, a hollow square would vanish
+        if (GetParent<BoardView>().Gap > 0)
+        {
+            DrawStyleBox(outline, square);
+        }
+        else
+        {
+            DrawRect(square, look.Color);
+        }
     }
 }
