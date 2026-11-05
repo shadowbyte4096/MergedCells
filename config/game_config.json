@@ -1,5 +1,15 @@
 {
   "input": {
     "swipeThreshold": 40
+  },
+  "slide": {
+    "squaresPerSecond": 15,
+    "maxSeconds": 0.4
+  },
+  "stars": {
+    "twoStarMinExtraMoves": 2,
+    "twoStarExtraParPercent": 50,
+    "oneStarMinExtraMoves": 4,
+    "oneStarExtraParPercent": 100
   }
 }

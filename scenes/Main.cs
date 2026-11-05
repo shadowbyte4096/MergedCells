@@ -1,9 +1,11 @@
+using System;
 using Godot;
 using MergedCells.Core;
 
 namespace MergedCells;
 
-public partial class Main : Node2D
+// A stand-in until chunk 7 loads levels from files: picks a demo board, solves it for par and starts Play
+public partial class Main : Node
 {
     public enum DemoBoard
     {
@@ -19,45 +21,23 @@ public partial class Main : Node2D
     {
         GD.Print("Merged Cells started (C#).");
 
-        var board = GetNode<BoardView>("Board");
-        var camera = GetNode<BoardCamera>("Camera");
-        RenderingServer.SetDefaultClearColor(board.Theme.Background);
-        board.ThemeChanged += () => RenderingServer.SetDefaultClearColor(board.Theme.Background);
-
         var map = Board switch
         {
             DemoBoard.Sketch => DemoMaps.Sketch(),
             DemoBoard.Grid50 => DemoMaps.Tiled(5),
             _ => DemoMaps.Tiled(10),
         };
-        board.Map = map;
-        board.GetNode<StartMarker>("StartMarker").Cell = map.Start;
+        var par = Solver.Solve(map).Par ?? throw new InvalidOperationException($"The {Board} demo map can't be solved.");
 
-        // A stand-in until chunk 6's play loop: moves snap the player, with no animation or HUD
-        var player = board.GetNode<PlayerView>("Player");
-        var attempt = new Attempt(map);
-        player.Cell = attempt.Position;
-        GetNode<MoveInput>("Input").MoveRequested += direction =>
-        {
-            var outcome = attempt.Move(direction);
-            if (outcome == MoveOutcome.Ignored)
-            {
-                return;
-            }
-            player.Cell = attempt.Position;
-            var won = outcome == MoveOutcome.Won ? ", won" : "";
-            GD.Print($"Move {direction} to [{attempt.Position.Row}, {attempt.Position.Column}]{won}");
-        };
+        var play = GetNode<Play>("Play");
+        play.Start(map, par);
 
         if (Board == DemoBoard.Grid100CloseUp)
         {
+            var board = play.GetNode<BoardView>("Board");
             var size = new Vector2(7, 12) * BoardView.CellSize;
             var middle = board.CellCentre(new Cell(map.Rows / 2, map.Columns / 2));
-            camera.Fit(new Rect2(middle - size / 2, size));
-        }
-        else
-        {
-            camera.Fit(board.Bounds);
+            play.GetNode<BoardCamera>("Camera").Fit(new Rect2(middle - size / 2, size));
         }
     }
 }

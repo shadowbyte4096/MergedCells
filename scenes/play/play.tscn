@@ -1,0 +1,200 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/play/Play.cs" id="1_play"]
+[ext_resource type="Script" path="res://scenes/board/BoardCamera.cs" id="2_camera"]
+[ext_resource type="PackedScene" path="res://scenes/board/board.tscn" id="3_board"]
+[ext_resource type="Script" path="res://scenes/input/MoveInput.cs" id="4_input"]
+[ext_resource type="Theme" path="res://themes/default_ui_theme.tres" id="5_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/undo.svg" id="6_undo"]
+[ext_resource type="Texture2D" path="res://themes/icons/restart.svg" id="7_restart"]
+[ext_resource type="Script" path="res://scenes/play/ResultsScreen.cs" id="8_results"]
+[ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="9_stars"]
+
+[node name="Play" type="Node2D"]
+script = ExtResource("1_play")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("2_camera")
+
+[node name="Board" parent="." instance=ExtResource("3_board")]
+
+[node name="Input" type="Node" parent="."]
+script = ExtResource("4_input")
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("5_theme")
+
+[node name="TopBar" type="MarginContainer" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Hud/Root/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="MovesLabel" type="Label" parent="Hud/Root/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Moves 0"
+
+[node name="ParLabel" type="Label" parent="Hud/Root/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Par 0"
+horizontal_alignment = 2
+
+[node name="BottomBar" type="MarginContainer" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Hud/Root/BottomBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ButtonRow"
+alignment = 1
+
+[node name="Undo" type="VBoxContainer" parent="Hud/Root/BottomBar/Row"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="UndoButton" type="Button" parent="Hud/Root/BottomBar/Row/Undo"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+icon = ExtResource("6_undo")
+icon_alignment = 1
+
+[node name="Caption" type="Button" parent="Hud/Root/BottomBar/Row/Undo"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Undo"
+
+[node name="Restart" type="VBoxContainer" parent="Hud/Root/BottomBar/Row"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="RestartButton" type="Button" parent="Hud/Root/BottomBar/Row/Restart"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+icon = ExtResource("7_restart")
+icon_alignment = 1
+
+[node name="Caption" type="Button" parent="Hud/Root/BottomBar/Row/Restart"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Restart"
+
+[node name="Results" type="Control" parent="Hud/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_results")
+
+[node name="Dim" type="Panel" parent="Hud/Root/Results"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Dim"
+
+[node name="Centre" type="CenterContainer" parent="Hud/Root/Results"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Panel" type="PanelContainer" parent="Hud/Root/Results/Centre"]
+layout_mode = 2
+theme_type_variation = &"ResultsPanel"
+
+[node name="Column" type="VBoxContainer" parent="Hud/Root/Results/Centre/Panel"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Stars" type="Control" parent="Hud/Root/Results/Centre/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9_stars")
+
+[node name="MovesLabel" type="Label" parent="Hud/Root/Results/Centre/Panel/Column"]
+layout_mode = 2
+theme_type_variation = &"Headline"
+text = "0 moves"
+horizontal_alignment = 1
+
+[node name="ParLabel" type="Label" parent="Hud/Root/Results/Centre/Panel/Column"]
+layout_mode = 2
+text = "Par 0"
+horizontal_alignment = 1
+
+[node name="Leaderboard" type="PanelContainer" parent="Hud/Root/Results/Centre/Panel/Column"]
+custom_minimum_size = Vector2(520, 220)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Placeholder"
+
+[node name="Title" type="Label" parent="Hud/Root/Results/Centre/Panel/Column/Leaderboard"]
+layout_mode = 2
+size_flags_vertical = 0
+theme_type_variation = &"Muted"
+text = "Everyone's best moves"
+horizontal_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="Hud/Root/Results/Centre/Panel/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PillRow"
+alignment = 1
+
+[node name="Retry" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Retry"
+
+[node name="Menu" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+disabled = true
+text = "Menu"
+
+[node name="Next" type="Button" parent="Hud/Root/Results/Centre/Panel/Column/Buttons"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+disabled = true
+text = "Next"
