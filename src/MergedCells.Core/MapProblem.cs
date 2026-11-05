@@ -4,7 +4,7 @@ namespace MergedCells.Core;
 public enum MapProblemKind
 {
     EmptyGrid,
-    RegionNotRectangle,
+    RegionNotConnected,
     StartOutsideMap,
     EndOutsideMap,
     EndNotSingleSquare,

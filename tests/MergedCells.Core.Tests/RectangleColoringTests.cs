@@ -12,6 +12,8 @@ public class RectangleColoringTests
         ["OddWheel"] = OddWheel,
         ["RowStrips100"] = RowStrips100,
         ["Singles100"] = Singles100,
+        // A is a ring round C, and the L-shaped B shares an edge with it
+        ["Irregular"] = () => Map.Create(Grid("AAABB", "ACADB", "AAADE", "FFFFZ"), new(0, 0), new(3, 4)),
     };
 
     public static TheoryData<string, int> MapsAndColorCounts

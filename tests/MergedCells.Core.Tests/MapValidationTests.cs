@@ -45,18 +45,31 @@ public class MapValidationTests
         Assert.Equal(new[] { EmptyGrid }, Kinds(new int[rows, columns], new(0, 0), new(0, 0)));
     }
 
-    public static TheoryData<int[,], Cell, Cell> NonRectangularRegions => new()
+    public static TheoryData<int[,], Cell, Cell> IrregularRegions => new()
     {
         { Grid("ABB", "AAC"), new(0, 0), new(1, 2) }, // L-shape
         { Grid("AAAB", "ACAB", "AAAB", "DDDE"), new(0, 0), new(3, 3) }, // ring
-        { Grid("ABA", "CCD"), new(0, 0), new(1, 2) }, // one region in two places
+        { Grid("ABBE", "AABE", "CAAE", "DDDF"), new(0, 0), new(3, 3) }, // zigzag
     };
 
     [Theory]
-    [MemberData(nameof(NonRectangularRegions))]
-    public void Region_that_is_not_a_rectangle_is_reported(int[,] regions, Cell start, Cell end)
+    [MemberData(nameof(IrregularRegions))]
+    public void Irregular_connected_region_is_valid(int[,] regions, Cell start, Cell end)
     {
-        Assert.Equal(new[] { RegionNotRectangle }, Kinds(regions, start, end));
+        Assert.Empty(Map.Validate(regions, start, end));
+    }
+
+    public static TheoryData<int[,], Cell, Cell> DisconnectedRegions => new()
+    {
+        { Grid("ABA", "CCD"), new(0, 0), new(1, 2) }, // two pieces
+        { Grid("ABD", "CAE"), new(0, 0), new(1, 2) }, // touching itself only at a corner
+    };
+
+    [Theory]
+    [MemberData(nameof(DisconnectedRegions))]
+    public void Region_in_more_than_one_piece_is_reported(int[,] regions, Cell start, Cell end)
+    {
+        Assert.Equal(new[] { RegionNotConnected }, Kinds(regions, start, end));
     }
 
     [Fact]
@@ -121,20 +134,20 @@ public class MapValidationTests
     public static TheoryData<int[,], Cell, Cell, MapProblemKind[]> ProblemCombinations => new()
     {
         {
-            Grid("AAAB", "ACAB", "AAAB", "DDDE"), new(5, 5), new(3, 3),
-            new[] { RegionNotRectangle, StartOutsideMap, StartRightOfEnd, StartBelowEnd }
+            Grid("ABAC", "DDDC", "EEEC", "FFFG"), new(5, 5), new(3, 3),
+            new[] { RegionNotConnected, StartOutsideMap, StartRightOfEnd, StartBelowEnd }
         },
         {
-            Grid("AAAB", "ACAB", "AAAB", "DDDE"), new(9, 9), new(4, 4),
-            new[] { RegionNotRectangle, StartOutsideMap, EndOutsideMap, StartRightOfEnd, StartBelowEnd }
+            Grid("ABAC", "DDDC", "EEEC", "FFFG"), new(9, 9), new(4, 4),
+            new[] { RegionNotConnected, StartOutsideMap, EndOutsideMap, StartRightOfEnd, StartBelowEnd }
         },
         {
             Grid("AAAA", "BCBD"), new(5, 5), new(0, 2),
-            new[] { RegionNotRectangle, StartOutsideMap, EndNotSingleSquare, StartRightOfEnd, StartBelowEnd }
+            new[] { RegionNotConnected, StartOutsideMap, EndNotSingleSquare, StartRightOfEnd, StartBelowEnd }
         },
         {
             Grid("AAAA", "BCBD"), new(0, 2), new(0, 2),
-            new[] { RegionNotRectangle, EndNotSingleSquare, StartOnEnd }
+            new[] { RegionNotConnected, EndNotSingleSquare, StartOnEnd }
         },
     };
 

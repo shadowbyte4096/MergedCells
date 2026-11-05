@@ -11,8 +11,10 @@ public partial class Play : Node2D
     private PlayerView player;
     private TrailView trail;
     private BoardCamera camera;
+    private Control hudRoot;
     private Control topBar;
     private Control bottomBar;
+    private Control resultsTitleBar;
     private Label titleLabel;
     private Label movesLabel;
     private ResultsScreen results;
@@ -24,6 +26,8 @@ public partial class Play : Node2D
     private double elapsed;
     private double duration;
     private bool dark;
+
+    public event Action NextPressed;
 
     [Export] public BoardTheme LightBoard { get; set; }
 
@@ -55,8 +59,10 @@ public partial class Play : Node2D
         player = board.GetNode<PlayerView>("Player");
         trail = board.GetNode<TrailView>("Trail");
         camera = GetNode<BoardCamera>("Camera");
+        hudRoot = GetNode<Control>("Hud/Root");
         topBar = GetNode<Control>("Hud/Root/TopBar");
         bottomBar = GetNode<Control>("Hud/Root/BottomBar");
+        resultsTitleBar = GetNode<Control>("Hud/Root/Results/TitleBar");
         titleLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/TitleLabel");
         movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
         results = GetNode<ResultsScreen>("Hud/Root/Results");
@@ -68,10 +74,13 @@ public partial class Play : Node2D
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/RestartButton").Pressed += Restart;
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
         results.RetryPressed += Retry;
+        results.NextPressed += () => NextPressed?.Invoke();
         topBar.Resized += UpdateInsets;
         bottomBar.Resized += UpdateInsets;
+        GetViewport().SizeChanged += ApplySafeArea;
         board.ThemeChanged += SetClearColor;
         ApplyAppearance(false);
+        ApplySafeArea();
     }
 
     private void ApplyAppearance(bool toDark)
@@ -85,7 +94,7 @@ public partial class Play : Node2D
         GetNode<Control>("Hud/Root").Theme = dark ? DarkUi : LightUi;
     }
 
-    public void Start(Map map, int par, string title)
+    public void Start(Map map, int par, string title, bool hasNext)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
@@ -100,10 +109,14 @@ public partial class Play : Node2D
         player.Cell = session.Position;
         titleLabel.Text = title;
         results.Title = title;
+        results.HasNext = hasNext;
         RefreshMoves();
         SetClearColor();
         UpdateInsets();
         camera.Fit(board.Bounds);
+        // The camera applies a new fit to the canvas on its next update, which the board would otherwise read a frame late
+        camera.ForceUpdateScroll();
+        board.UpdateView();
     }
 
     public override void _Process(double delta)
@@ -233,7 +246,38 @@ public partial class Play : Node2D
 
     private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
 
-    private void UpdateInsets() => camera.SetInsets(topBar.Size.Y, bottomBar.Size.Y);
+    private void UpdateInsets() => camera.SetInsets(topBar.GetRect().End.Y, hudRoot.Size.Y - bottomBar.Position.Y);
+
+    // The game draws under Android's camera hole, so the bars move into the safe area. The results sheet stays
+    // flush with the bottom edge, as its own padding already clears a gesture bar.
+    private void ApplySafeArea()
+    {
+        var (top, bottom) = SafeInsets();
+        foreach (var bar in new[] { topBar, resultsTitleBar })
+        {
+            bar.OffsetTop = top;
+            bar.OffsetBottom = top + bar.GetCombinedMinimumSize().Y;
+        }
+        bottomBar.OffsetBottom = -bottom;
+        bottomBar.OffsetTop = -bottom - bottomBar.GetCombinedMinimumSize().Y;
+        UpdateInsets();
+    }
+
+    // In viewport units. Desktop windows aren't cut into, and there the safe area is only the screen's usable rect.
+    private (float Top, float Bottom) SafeInsets()
+    {
+        if (!OS.HasFeature("mobile"))
+        {
+            return (0, 0);
+        }
+        var safe = DisplayServer.GetDisplaySafeArea();
+        var window = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
+        var scale = GetTree().Root.GetFinalTransform().Scale.Y;
+        var top = Math.Max(0, safe.Position.Y - window.Position.Y) / scale;
+        var bottom = Math.Max(0, window.End.Y - safe.End.Y) / scale;
+        GD.Print($"Safe area: top {top:0.#}, bottom {bottom:0.#}");
+        return (top, bottom);
+    }
 
     private void SetClearColor() => RenderingServer.SetDefaultClearColor(board.Theme.Background);
 

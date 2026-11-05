@@ -100,6 +100,17 @@ public class SlideTests
         Assert.Equal(new SlideResult(new(stopRow, stopColumn), false), Lanes().Slide(new(row, column), direction));
     }
 
+    [Theory]
+    [InlineData(2, 0, Direction.Up, 0, 0)]
+    [InlineData(0, 0, Direction.Right, 0, 3)]
+    public void Slide_along_an_arm_of_an_L_shaped_region_stops_on_the_next_region(
+        int row, int column, Direction direction, int stopRow, int stopColumn)
+    {
+        var map = Map.Create(Grid("AAAB", "ACCB", "ADDE"), new(0, 0), new(2, 3));
+
+        Assert.Equal(new SlideResult(new(stopRow, stopColumn), false), map.Slide(new(row, column), direction));
+    }
+
     [Fact]
     public void Ladder_of_side_by_side_strips_moves_one_square_per_slide()
     {

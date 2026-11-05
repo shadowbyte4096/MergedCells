@@ -3,14 +3,16 @@ namespace MergedCells.Core;
 public sealed class Map
 {
     private readonly int[] regions;
+    private readonly Dictionary<int, bool> filled;
 
-    private Map(int[,] regions, Cell start, Cell end, Rectangle[] rectangles)
+    private Map(int[,] regions, Cell start, Cell end, Rectangle[] rectangles, Dictionary<int, bool> filled)
     {
         Rows = regions.GetLength(0);
         Columns = regions.GetLength(1);
         Start = start;
         End = end;
         Rectangles = Array.AsReadOnly(rectangles);
+        this.filled = filled;
         this.regions = new int[Rows * Columns];
         for (var row = 0; row < Rows; row++)
         {
@@ -29,8 +31,20 @@ public sealed class Map
 
     public Cell End { get; }
 
-    /// <summary>One rectangle per region, in reading order of their top-left squares.</summary>
+    /// <summary>
+    /// One entry per region, in reading order of each region's first square: the region itself when it's a rectangle,
+    /// otherwise the smallest rectangle round it.
+    /// </summary>
     public IReadOnlyList<Rectangle> Rectangles { get; }
+
+    /// <summary>
+    /// True when the region fills its entry in <see cref="Rectangles"/>. Throws <see cref="ArgumentException"/> for an ID
+    /// that isn't on the map.
+    /// </summary>
+    public bool IsRectangle(int regionId) =>
+        filled.TryGetValue(regionId, out var isRectangle)
+            ? isRectangle
+            : throw new ArgumentException($"Region {regionId} isn't on the map.", nameof(regionId));
 
     /// <summary>
     /// Checks a region grid, start and end against the map rules. Returns every problem found,
@@ -54,7 +68,12 @@ public sealed class Map
             throw new InvalidMapException(problems);
         }
         var bounds = RegionBounds.Measure(copy, out var firstSeenOrder);
-        return new Map(copy, start, end, firstSeenOrder.Select(id => bounds[id].ToRectangle(id)).ToArray());
+        return new Map(
+            copy,
+            start,
+            end,
+            firstSeenOrder.Select(id => bounds[id].ToRectangle(id)).ToArray(),
+            bounds.ToDictionary(pair => pair.Key, pair => pair.Value.Count == pair.Value.Area));
     }
 
     public bool Contains(Cell cell) => IsInside(cell, Rows, Columns);

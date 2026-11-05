@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Godot;
 using MergedCells.Core;
 
@@ -10,6 +11,9 @@ public partial class BoardView : Node2D
     // Board units per square. Not tunable: the camera scales the whole board
     public const float CellSize = 64f;
 
+    // Points per rounded corner of an irregular region: a drawing detail, not a style
+    private const int ArcSegments = 8;
+
     private BoardTheme theme;
     private Map map;
     private IReadOnlyList<int> colors;
@@ -17,6 +21,8 @@ public partial class BoardView : Node2D
     private CellRange? visible;
     private StyleBoxFlat[] fillBoxes;
     private StyleBoxFlat dotBox;
+    // One entry per Map.Rectangles index; null for regions that are rectangles
+    private IrregularShape[] irregular;
 
     public event Action ThemeChanged;
 
@@ -35,6 +41,7 @@ public partial class BoardView : Node2D
                     Recolor();
                 }
             }
+            BuildIrregularShapes();
             QueueRedraw();
             ThemeChanged?.Invoke();
         }
@@ -47,6 +54,7 @@ public partial class BoardView : Node2D
         {
             map = value;
             Recolor();
+            BuildIrregularShapes();
             QueueRedraw();
         }
     }
@@ -69,7 +77,11 @@ public partial class BoardView : Node2D
     public Rect2 CellFillRect(Cell cell) =>
         new(cell.Column * CellSize + Gap / 2, cell.Row * CellSize + Gap / 2, CellSize - Gap, CellSize - Gap);
 
-    public override void _Process(double delta)
+    public override void _Process(double delta) => UpdateView();
+
+    // Works out the visible range and whether gaps show. Also called straight after the camera fits a new map,
+    // so the first frame of a new level doesn't draw the previous level's range.
+    public void UpdateView()
     {
         if (map == null || theme == null)
         {
@@ -110,6 +122,9 @@ public partial class BoardView : Node2D
         }
 
         var half = Gap / 2;
+        // By ID: an irregular region's bounding rectangle can start on the end square
+        var endRegion = map.RegionAt(map.End);
+        // In Map.Rectangles order, so a ring is drawn before the regions inside it
         for (var index = 0; index < map.Rectangles.Count; index++)
         {
             var rectangle = map.Rectangles[index];
@@ -117,12 +132,17 @@ public partial class BoardView : Node2D
             {
                 continue;
             }
+            if (irregular?[index] is { } shape)
+            {
+                DrawIrregular(rectangle, shape, theme.Fills[colors[index]], range);
+                continue;
+            }
             var area = new Rect2(
                 rectangle.TopLeft.Column * CellSize + half,
                 rectangle.TopLeft.Row * CellSize + half,
                 rectangle.Columns * CellSize - Gap,
                 rectangle.Rows * CellSize - Gap);
-            var isEnd = rectangle.TopLeft == map.End;
+            var isEnd = rectangle.Id == endRegion;
             if (Gap > 0)
             {
                 DrawStyleBox(fillBoxes[colors[index]], area);
@@ -137,6 +157,86 @@ public partial class BoardView : Node2D
             }
         }
     }
+
+    private void DrawIrregular(Rectangle bounds, IrregularShape shape, Color fill, CellRange range)
+    {
+        if (Gap > 0)
+        {
+            for (var loop = 0; loop < shape.Loops.Length; loop++)
+            {
+                if (!shape.Holes[loop])
+                {
+                    DrawColoredPolygon(shape.Loops[loop], fill);
+                }
+            }
+            // A hole shows the background, and whatever lies inside it is drawn later
+            for (var loop = 0; loop < shape.Loops.Length; loop++)
+            {
+                if (shape.Holes[loop])
+                {
+                    DrawColoredPolygon(shape.Loops[loop], theme.Background);
+                }
+            }
+            foreach (var outline in shape.Closed)
+            {
+                DrawPolyline(outline, theme.Outline, shape.OutlineWidth, true);
+            }
+            return;
+        }
+
+        // Zoomed out: flat squares edge to edge, like the flat rectangles
+        var top = Math.Max(bounds.TopLeft.Row, range.Top);
+        var bottom = Math.Min(bounds.BottomRight.Row, range.Bottom);
+        var left = Math.Max(bounds.TopLeft.Column, range.Left);
+        var right = Math.Min(bounds.BottomRight.Column, range.Right);
+        for (var row = top; row <= bottom; row++)
+        {
+            for (var column = left; column <= right; column++)
+            {
+                if (map.RegionAt(new Cell(row, column)) == bounds.Id)
+                {
+                    DrawRect(new Rect2(column * CellSize, row * CellSize, CellSize, CellSize), fill);
+                }
+            }
+        }
+    }
+
+    // The outline's centre line serves as the fill's edge too, so the fill's unsmoothed edge sits under the antialiased
+    // outline. The band runs from half a gap to half a gap plus the outline width in from the grid line, and its outer
+    // corner radius matches the StyleBoxFlat rectangles, whose sizes are rounded the same way (see BuildBoxes).
+    private void BuildIrregularShapes()
+    {
+        irregular = null;
+        if (map == null || theme == null)
+        {
+            return;
+        }
+        var gapHalf = theme.GapFraction / 2;
+        var outline = Mathf.RoundToInt(theme.OutlineFraction * CellSize) / CellSize;
+        var corner = Mathf.Min(Mathf.RoundToInt(theme.CornerFraction * CellSize) / CellSize, 0.5f - gapHalf);
+        irregular = new IrregularShape[map.Rectangles.Count];
+        for (var index = 0; index < irregular.Length; index++)
+        {
+            var id = map.Rectangles[index].Id;
+            if (map.IsRectangle(id))
+            {
+                continue;
+            }
+            var loops = RegionOutline.Trace(map, id);
+            var points = loops
+                .Select(loop => RegionOutline.Inset(loop, gapHalf + outline / 2, Mathf.Max(0, corner - outline / 2), ArcSegments)
+                    .Select(point => new Vector2(point.X, point.Y) * CellSize)
+                    .ToArray())
+                .ToArray();
+            irregular[index] = new IrregularShape(
+                points,
+                loops.Select(loop => loop.IsHole).ToArray(),
+                points.Select(loop => loop.Append(loop[0]).ToArray()).ToArray(),
+                outline * CellSize);
+        }
+    }
+
+    private sealed record IrregularShape(Vector2[][] Loops, bool[] Holes, Vector2[][] Closed, float OutlineWidth);
 
     private void DrawEndDots()
     {

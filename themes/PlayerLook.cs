@@ -16,7 +16,7 @@ public partial class PlayerLook : Resource
 
     [Export] public float TrailAlpha { get; set; } = 0.22f;
 
-    [Export] public float TrailFadeSeconds { get; set; } = 0.5f;
+    [Export] public float TrailFadeSeconds { get; set; } = 0.3f;
 
     [Export] public Color StartOutline { get; set; } = new(0.13725491f, 0.36862746f, 0.3372549f, 0.55f);
 

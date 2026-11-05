@@ -13,25 +13,65 @@ internal static class MapValidator
         }
 
         var problems = new List<MapProblem>();
-        var bounds = RegionBounds.Measure(regions, out var firstSeenOrder);
-        AddRegionProblems(problems, bounds, firstSeenOrder);
+        var bounds = RegionBounds.Measure(regions, out _);
+        AddRegionProblems(problems, regions, bounds);
         AddStartAndEndProblems(problems, regions, bounds, start, end);
         return problems;
     }
 
-    private static void AddRegionProblems(List<MapProblem> problems, Dictionary<int, RegionBounds> bounds, List<int> firstSeenOrder)
+    // Regions are visited in reading order of their first square, so problems come out in first-seen order
+    private static void AddRegionProblems(List<MapProblem> problems, int[,] regions, Dictionary<int, RegionBounds> bounds)
     {
-        foreach (var id in firstSeenOrder)
+        var reached = new bool[regions.GetLength(0), regions.GetLength(1)];
+        var flooded = new HashSet<int>();
+        for (var row = 0; row < regions.GetLength(0); row++)
         {
-            var region = bounds[id];
-            if (region.Count != region.Area)
+            for (var column = 0; column < regions.GetLength(1); column++)
             {
-                problems.Add(new MapProblem(
-                    MapProblemKind.RegionNotRectangle,
-                    $"Region {id} is not a rectangle: its squares span rows {region.MinRow}-{region.MaxRow} and columns {region.MinColumn}-{region.MaxColumn}."));
+                var id = regions[row, column];
+                if (!flooded.Add(id))
+                {
+                    continue;
+                }
+                var region = bounds[id];
+                if (Flood(regions, reached, new Cell(row, column)) != region.Count)
+                {
+                    problems.Add(new MapProblem(
+                        MapProblemKind.RegionNotConnected,
+                        $"Region {id} is in more than one piece: its squares span rows {region.MinRow}-{region.MaxRow} and columns {region.MinColumn}-{region.MaxColumn}."));
+                }
             }
         }
     }
+
+    // Counts the squares joined edge to edge to the first one with the same region ID
+    private static int Flood(int[,] regions, bool[,] reached, Cell first)
+    {
+        var id = regions[first.Row, first.Column];
+        var rows = regions.GetLength(0);
+        var columns = regions.GetLength(1);
+        var queue = new Queue<Cell>();
+        reached[first.Row, first.Column] = true;
+        queue.Enqueue(first);
+        var count = 0;
+        while (queue.Count > 0)
+        {
+            var cell = queue.Dequeue();
+            count++;
+            foreach (var direction in Directions)
+            {
+                var next = cell.Step(direction);
+                if (Map.IsInside(next, rows, columns) && !reached[next.Row, next.Column] && regions[next.Row, next.Column] == id)
+                {
+                    reached[next.Row, next.Column] = true;
+                    queue.Enqueue(next);
+                }
+            }
+        }
+        return count;
+    }
+
+    private static readonly Direction[] Directions = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
 
     private static void AddStartAndEndProblems(
         List<MapProblem> problems, int[,] regions, Dictionary<int, RegionBounds> bounds, Cell start, Cell end)

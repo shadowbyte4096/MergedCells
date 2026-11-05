@@ -66,6 +66,32 @@ public class MapRectanglesTests
         Assert.Equal(2, map.Rectangles.Count);
     }
 
+    private static Map LShape() => Map.Create(Grid("AB", "AA"), new(0, 0), new(0, 1));
+
+    [Fact]
+    public void IsRectangle_is_true_for_a_rectangle_region()
+    {
+        Assert.True(Example().IsRectangle(1));
+    }
+
+    [Fact]
+    public void IsRectangle_is_false_for_an_L_shape()
+    {
+        Assert.False(LShape().IsRectangle('A'));
+    }
+
+    [Fact]
+    public void IsRectangle_throws_for_an_id_not_on_the_map()
+    {
+        Assert.Throws<ArgumentException>(() => Example().IsRectangle(99));
+    }
+
+    [Fact]
+    public void Irregular_region_gets_its_bounding_rectangle()
+    {
+        Assert.Equal(new Rectangle('A', new(0, 0), 2, 2), LShape().Rectangles[0]);
+    }
+
     [Fact]
     public void BottomRight_is_the_last_square()
     {
