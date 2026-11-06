@@ -224,6 +224,7 @@ PlaceholderTitle/font_sizes/font_size = 28
 Placeholder/styles/panel = SubResource("StyleBoxFlat_placeholder")
 Play/colors/star_empty = Color(0.89803922, 0.9254902, 0.92156863, 1)
 Play/colors/star_filled = Color(0.1372549, 0.36862745, 0.3372549, 1)
+Play/constants/bar_fade = 24
 Play/constants/star_gap = 24
 Play/constants/star_inner_percent = 45
 Play/constants/star_size = 88

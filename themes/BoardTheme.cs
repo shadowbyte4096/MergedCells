@@ -31,5 +31,5 @@ public partial class BoardTheme : Resource
     [Export] public float EndDotCornerFraction { get; set; } = 0.3f;
 
     // In viewport units (the 720x1280 base). Narrower gaps aren't drawn, and the board switches to flat fills
-    [Export] public float MinGapPixels { get; set; } = 1.5f;
+    [Export] public float MinGapPixels { get; set; } = 3f;
 }

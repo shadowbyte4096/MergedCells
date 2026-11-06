@@ -14,4 +14,4 @@ CornerFraction = 0.2
 EndDotFraction = 0.13
 EndDotSpacing = 0.2
 EndDotCornerFraction = 0.3
-MinGapPixels = 1.5
+MinGapPixels = 3.0

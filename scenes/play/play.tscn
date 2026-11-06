@@ -15,6 +15,7 @@
 [ext_resource type="Resource" path="res://themes/light_player_look.tres" id="13_light_look"]
 [ext_resource type="Resource" path="res://themes/dark_player_look.tres" id="14_dark_look"]
 [ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="15_dark_ui"]
+[ext_resource type="Script" path="res://scenes/play/BarBackdrop.cs" id="16_backdrop"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
@@ -44,6 +45,16 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("5_theme")
+
+[node name="BarBackdrop" type="Control" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("16_backdrop")
 
 [node name="TopBar" type="MarginContainer" parent="Hud/Root"]
 layout_mode = 1

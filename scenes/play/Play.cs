@@ -14,6 +14,7 @@ public partial class Play : Node2D
     private Control hudRoot;
     private Control topBar;
     private Control bottomBar;
+    private BarBackdrop backdrop;
     private Control resultsTitleBar;
     private Label titleLabel;
     private Label movesLabel;
@@ -62,6 +63,7 @@ public partial class Play : Node2D
         hudRoot = GetNode<Control>("Hud/Root");
         topBar = GetNode<Control>("Hud/Root/TopBar");
         bottomBar = GetNode<Control>("Hud/Root/BottomBar");
+        backdrop = GetNode<BarBackdrop>("Hud/Root/BarBackdrop");
         resultsTitleBar = GetNode<Control>("Hud/Root/Results/TitleBar");
         titleLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/TitleLabel");
         movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
@@ -113,9 +115,9 @@ public partial class Play : Node2D
         RefreshMoves();
         SetClearColor();
         UpdateInsets();
-        camera.Fit(board.Bounds);
-        // The camera applies a new fit to the canvas on its next update, which the board would otherwise read a frame late
-        camera.ForceUpdateScroll();
+        camera.InputEnabled = true;
+        // Open applies the view to the canvas at once, which the board would otherwise read a frame late
+        camera.Open(board.Bounds, board.CellCentre(map.Start));
         board.UpdateView();
     }
 
@@ -190,6 +192,7 @@ public partial class Play : Node2D
         }
         StopSlide();
         player.Cell = session.Position;
+        camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
         GD.Print($"Undo {undone}, back to {Format(session.Position)}");
     }
@@ -205,6 +208,7 @@ public partial class Play : Node2D
     private void Retry()
     {
         results.Hide();
+        camera.InputEnabled = true;
         RestartLevel();
     }
 
@@ -213,6 +217,7 @@ public partial class Play : Node2D
         session.Restart();
         StopSlide();
         player.Cell = session.Position;
+        camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
         GD.Print("Restart");
     }
@@ -224,6 +229,7 @@ public partial class Play : Node2D
         sliding = slide;
         elapsed = 0;
         trail.Begin(board.CellCentre(slide.From));
+        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.To));
         RefreshMoves();
         var won = slide.Wins ? ", won" : "";
         GD.Print($"Move {DirectionOf(slide)} to {Format(slide.To)}{won}");
@@ -240,13 +246,18 @@ public partial class Play : Node2D
     {
         var config = GameConfigFile.Current.Stars;
         var stars = Stars.Earned(session.Moves, par, config);
+        camera.InputEnabled = false;
         results.ShowResults(session.Moves, par, stars, Stars.TwoStarLimit(par, config), Stars.OneStarLimit(par, config));
         GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(stars, "star")}");
     }
 
     private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
 
-    private void UpdateInsets() => camera.SetInsets(topBar.GetRect().End.Y, hudRoot.Size.Y - bottomBar.Position.Y);
+    private void UpdateInsets()
+    {
+        camera.SetInsets(topBar.GetRect().End.Y, hudRoot.Size.Y - bottomBar.Position.Y);
+        backdrop.SetEdges(topBar.GetRect().End.Y, bottomBar.Position.Y);
+    }
 
     // The game draws under Android's camera hole, so the bars move into the safe area. The results sheet stays
     // flush with the bottom edge, as its own padding already clears a gesture bar.
@@ -279,7 +290,11 @@ public partial class Play : Node2D
         return (top, bottom);
     }
 
-    private void SetClearColor() => RenderingServer.SetDefaultClearColor(board.Theme.Background);
+    private void SetClearColor()
+    {
+        RenderingServer.SetDefaultClearColor(board.Theme.Background);
+        backdrop.Color = board.Theme.Background;
+    }
 
     private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 

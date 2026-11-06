@@ -14,6 +14,8 @@ public sealed record GameConfig
 
     public required StarsConfig Stars { get; init; }
 
+    public required CameraConfig Camera { get; init; }
+
     /// <summary>
     /// Parses the config file's text. Throws <see cref="JsonException"/>, naming the problem, when a group or value
     /// is missing, null or of the wrong type, when a key is unknown, or when the text isn't JSON.
@@ -36,6 +38,10 @@ public sealed record GameConfig
         if (config.Stars is null)
         {
             throw new JsonException("The config's \"stars\" group is null.");
+        }
+        if (config.Camera is null)
+        {
+            throw new JsonException("The config's \"camera\" group is null.");
         }
         return config;
     }
@@ -66,6 +72,28 @@ public sealed record StarsConfig
     public required int OneStarMinExtraMoves { get; init; }
 
     public required int OneStarExtraParPercent { get; init; }
+}
+
+public sealed record CameraConfig
+{
+    // In viewport units. A level whose whole map would show smaller squares opens zoomed in to this size
+    public required float ReadableSquareSize { get; init; }
+
+    // In viewport units: the closest zoom
+    public required float ClosestSquareSize { get; init; }
+
+    // The middle part of the screen, on each axis, inside which a stop doesn't move the camera
+    public required float FollowZonePercent { get; init; }
+
+    public required double GlideSeconds { get; init; }
+
+    public required double OpeningSeconds { get; init; }
+
+    // On the whole map, before the opening zoom starts
+    public required double OpeningHoldSeconds { get; init; }
+
+    // The zoom factor for one mouse-wheel notch or zoom-key press
+    public required float ZoomStep { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

@@ -11,5 +11,14 @@
     "twoStarExtraParPercent": 50,
     "oneStarMinExtraMoves": 4,
     "oneStarExtraParPercent": 100
+  },
+  "camera": {
+    "readableSquareSize": 45,
+    "closestSquareSize": 130,
+    "followZonePercent": 50,
+    "glideSeconds": 0.5,
+    "openingSeconds": 0.8,
+    "openingHoldSeconds": 0,
+    "zoomStep": 1.25
   }
 }
