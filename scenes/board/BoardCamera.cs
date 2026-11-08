@@ -6,13 +6,18 @@ using Numerics = System.Numerics;
 namespace MergedCells;
 
 // Applies Core's CameraSpace to the Camera2D: big levels open with a zoom in on the start, the camera glides after
-// the player, and a pinch, the mouse wheel or the zoom keys zoom the board.
+// the player, two fingers pan and pinch, a left-mouse drag pans, and the mouse wheel or the zoom keys zoom the board.
 public partial class BoardCamera : Camera2D
 {
     private static readonly StringName ZoomInAction = "zoom_in";
     private static readonly StringName ZoomOutAction = "zoom_out";
 
-    private readonly PinchTracker pinch = new();
+    private PinchTracker pinch;
+    private DragTracker drag;
+    // A two-finger gesture or mouse drag has moved the view since it began
+    private bool gestureMoved;
+    // This frame's gesture steps, joined, applied once in _Process: one finger's step at a time would wobble the zoom
+    private GestureStep? pendingStep;
     private CameraConfig config;
     private Rect2 bounds;
     private float topInset;
@@ -34,6 +39,8 @@ public partial class BoardCamera : Camera2D
     public override void _Ready()
     {
         config = GameConfigFile.Current.Camera;
+        pinch = new PinchTracker(config.GestureSlop);
+        drag = new DragTracker(config.GestureSlop);
         GetViewport().SizeChanged += Rebuild;
     }
 
@@ -72,24 +79,25 @@ public partial class BoardCamera : Camera2D
         Apply();
     }
 
-    // A slide has started, between two square centres in board units
-    public void Follow(Vector2 from, Vector2 to)
+    // A slide has started, between two square centres in board units, lasting slideSeconds. A gesture that has moved the
+    // view holds the camera, so a move made during it (a key, or a remembered move starting) plans no glide
+    public void Follow(Vector2 from, Vector2 to, double slideSeconds)
     {
-        if (space == null)
+        if (space == null || gestureMoved)
         {
             return;
         }
         FinishOpening();
-        if (space.PlanFollow(view, Heading, playerZoom, ToCore(from), ToCore(to)) is { } plan)
+        if (space.PlanFollow(view, Heading, playerZoom, ToCore(from), ToCore(to), slideSeconds) is { } plan)
         {
             Begin(plan);
         }
     }
 
-    // The player snapped to a square (undo, restart), in board units
+    // The player snapped to a square (undo, restart), in board units. Held by a moving gesture, as Follow is
     public void Recentre(Vector2 at)
     {
-        if (space == null)
+        if (space == null || gestureMoved)
         {
             return;
         }
@@ -103,6 +111,11 @@ public partial class BoardCamera : Camera2D
     // Runs before BoardView's _Process (tree order), which reads the canvas transform this sets
     public override void _Process(double delta)
     {
+        if (pinch?.TakeStep() is { } step)
+        {
+            Queue(step);
+        }
+        FlushGesture();
         if (glide == null || space == null)
         {
             return;
@@ -125,11 +138,14 @@ public partial class BoardCamera : Camera2D
             case InputEventScreenTouch touch:
                 HandleTouch(touch);
                 break;
-            case InputEventScreenDrag drag:
-                if (pinch.Drag(drag.Index, drag.Position.X, drag.Position.Y) is { } step)
-                {
-                    ZoomBy(step.Scale, new Vector2(step.Focal.X, step.Focal.Y));
-                }
+            case InputEventScreenDrag screenDrag:
+                pinch.Drag(screenDrag.Index, screenDrag.Position.X, screenDrag.Position.Y);
+                break;
+            // Android also sends a mouse event for every touch; those must never pan
+            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press
+                when press.Device != InputEvent.DeviceIdEmulation:
+                drag.Press(press.Position.X, press.Position.Y);
+                GetViewport().SetInputAsHandled();
                 break;
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.WheelUp or MouseButton.WheelDown } wheel:
                 if (InputEnabled && space != null)
@@ -147,12 +163,39 @@ public partial class BoardCamera : Camera2D
         }
     }
 
+    // A drag's motion and release are read here, before the HUD, so a drag carries on over a button and its release
+    // there still ends it. The press stays unhandled-only, so a press on a button never starts one.
+    public override void _Input(InputEvent @event)
+    {
+        if (drag is not { IsDown: true } || @event.Device == InputEvent.DeviceIdEmulation)
+        {
+            return;
+        }
+        switch (@event)
+        {
+            case InputEventMouseMotion motion:
+                if (drag.Move(motion.Position.X, motion.Position.Y) is { } step)
+                {
+                    Queue(step);
+                }
+                break;
+            case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+                drag.Release();
+                FlushGesture();
+                EndGesture();
+                break;
+        }
+    }
+
     public override void _Notification(int what)
     {
-        // The OS may never send the releases for touches held while the app loses focus
+        // The OS may never send the releases for touches or buttons held while the app loses focus
         if (what == NotificationApplicationFocusOut || what == NotificationApplicationPaused)
         {
-            pinch.Reset();
+            pinch?.Reset();
+            drag?.Release();
+            pendingStep = null;
+            gestureMoved = false;
         }
     }
 
@@ -161,6 +204,11 @@ public partial class BoardCamera : Camera2D
     private void HandleTouch(InputEventScreenTouch touch)
     {
         var wasPinching = pinch.IsPinching;
+        // This frame's drags so far count before a finger lifts
+        if (wasPinching && pinch.TakeStep() is { } last)
+        {
+            Queue(last);
+        }
         if (touch.Pressed)
         {
             pinch.Press(touch.Index, touch.Position.X, touch.Position.Y);
@@ -170,15 +218,50 @@ public partial class BoardCamera : Camera2D
             pinch.Release(touch.Index);
         }
 
-        if (!wasPinching && pinch.IsPinching && space != null)
+        if (wasPinching && !pinch.IsPinching)
         {
-            FinishOpening();
-            glide = null;
+            FlushGesture();
+            EndGesture();
         }
-        else if (wasPinching && !pinch.IsPinching)
+    }
+
+    private void Queue(GestureStep step) => pendingStep = pendingStep is { } pending ? pending.Then(step) : step;
+
+    private void FlushGesture()
+    {
+        if (pendingStep is { } step)
         {
-            LogZoom();
+            pendingStep = null;
+            ApplyGesture(step);
         }
+    }
+
+    // A pinch or drag step. Every step takes over from any glide, including one a move started mid-gesture, and the zoom
+    // it leaves becomes the player's zoom
+    private void ApplyGesture(GestureStep step)
+    {
+        if (space == null || !InputEnabled)
+        {
+            return;
+        }
+        FinishOpening();
+        glide = null;
+        gestureMoved = true;
+        var bandTop = new Numerics.Vector2(0, topInset);
+        view = space.PanZoom(view, step.Scale, step.From - bandTop, step.To - bandTop);
+        playerZoom = view.Zoom;
+        Apply();
+    }
+
+    private void EndGesture()
+    {
+        if (!gestureMoved)
+        {
+            return;
+        }
+        gestureMoved = false;
+        var centre = new Vector2I(Mathf.FloorToInt(view.Focus.Y / BoardView.CellSize), Mathf.FloorToInt(view.Focus.X / BoardView.CellSize));
+        GD.Print($"View: {SquaresAcross(view.Zoom):0.0} squares across, centred on [{centre.X}, {centre.Y}]");
     }
 
     private void HandleKey(InputEventKey key)
@@ -256,7 +339,8 @@ public partial class BoardCamera : Camera2D
         if (glide != null)
         {
             // A glide heading for the old whole map should end on the new one
-            glide = new CameraGlide(glide.From, space.Resized(glide.To, previous), glide.HalfwayZoom, glide.Seconds, glide.Delay);
+            glide = new CameraGlide(
+                glide.From, space.Resized(glide.To, previous), glide.HalfwayZoom, glide.Seconds, glide.Delay, glide.Offsets);
         }
         Apply();
     }

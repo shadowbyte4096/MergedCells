@@ -19,6 +19,7 @@
     "glideSeconds": 0.5,
     "openingSeconds": 0.8,
     "openingHoldSeconds": 0,
-    "zoomStep": 1.25
+    "zoomStep": 1.25,
+    "gestureSlop": 14
   }
 }

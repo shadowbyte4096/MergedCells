@@ -14,6 +14,7 @@ public class CameraSpaceTests
         OpeningSeconds = 0.8,
         OpeningHoldSeconds = 0,
         ZoomStep = 1.25f,
+        GestureSlop = 14,
     };
 
     internal static CameraSpace Space(
@@ -116,6 +117,40 @@ public class CameraSpaceTests
         Assert.Equal(expected, Space(3200, 3200).ZoomAt(V(1600, 1600, 1), factor, new Vector2(360, 500)).Zoom, 0.0001f);
     }
 
+    [Fact]
+    public void PanZoom_keeps_the_board_point_under_the_first_point_under_the_second()
+    {
+        var moved = Space(3200, 3200).PanZoom(V(1600, 1600, 1), 1.5f, new Vector2(540, 250), new Vector2(440, 300));
+
+        AssertView(V(1726.667f, 1483.333f, 1.5f), moved);
+    }
+
+    [Fact]
+    public void PanZoom_with_a_factor_of_1_pans_without_zooming()
+    {
+        var moved = Space(3200, 3200).PanZoom(V(1600, 1600, 1), 1, new Vector2(360, 500), new Vector2(460, 450));
+
+        AssertView(V(1500, 1650, 1), moved);
+    }
+
+    [Fact]
+    public void PanZoom_stops_at_the_board_edge()
+    {
+        var moved = Space(3200, 3200).PanZoom(V(500, 1600, 1), 1, new Vector2(360, 500), new Vector2(660, 500));
+
+        AssertView(V(336, 1600, 1), moved);
+    }
+
+    [Theory]
+    [InlineData(100, 2.03125f)]
+    [InlineData(0.001f, 0.21f)]
+    public void PanZoom_keeps_the_zoom_within_the_limits(float factor, float expected)
+    {
+        var moved = Space(3200, 3200).PanZoom(V(1600, 1600, 1), factor, new Vector2(360, 500), new Vector2(400, 520));
+
+        Assert.Equal(expected, moved.Zoom, 0.0001f);
+    }
+
     [Theory]
     [InlineData(1, 1.25f)]
     [InlineData(-1, 0.8f)]
@@ -152,7 +187,7 @@ public class CameraSpaceTests
     {
         var view = V(1600, 1600, 1);
 
-        Assert.Null(Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(1700, 1650)));
+        Assert.Null(Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(1700, 1650), 0.4));
     }
 
     [Fact]
@@ -160,7 +195,7 @@ public class CameraSpaceTests
     {
         var view = V(1600, 1600, 1);
 
-        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(1900, 1600));
+        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(1900, 1600), 0.4);
 
         Assert.NotNull(glide);
         AssertView(V(1900, 1600, 1), glide.To);
@@ -172,7 +207,7 @@ public class CameraSpaceTests
     {
         var view = V(1600, 1600, 1);
 
-        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(2600, 1600));
+        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(1600, 1600), new Vector2(2600, 1600), 0.4);
 
         Assert.NotNull(glide);
         AssertView(V(2600, 1600, 1), glide.To);
@@ -184,7 +219,7 @@ public class CameraSpaceTests
     {
         var view = V(1600, 1600, 1);
 
-        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(100, 1600), new Vector2(3100, 1600));
+        var glide = Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(100, 1600), new Vector2(3100, 1600), 0.4);
 
         Assert.Equal(0.21f, glide!.HalfwayZoom!.Value, 0.0001f);
     }
@@ -195,7 +230,7 @@ public class CameraSpaceTests
         var space = Space(3200, 3200);
         var view = V(1600, 1600, 1);
 
-        var glide = space.PlanFollow(view, view, 1.5f, new Vector2(1600, 1600), new Vector2(2600, 1600));
+        var glide = space.PlanFollow(view, view, 1.5f, new Vector2(1600, 1600), new Vector2(2600, 1600), 0.4);
 
         AssertView(space.Centre(new Vector2(2600, 1600), 1.5f), glide!.To);
     }
@@ -205,7 +240,7 @@ public class CameraSpaceTests
     {
         var view = V(336, 1600, 1);
 
-        Assert.Null(Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(336, 1600), new Vector2(10, 1600)));
+        Assert.Null(Space(3200, 3200).PlanFollow(view, view, 1, new Vector2(336, 1600), new Vector2(10, 1600), 0.4));
     }
 
     [Theory]
@@ -214,19 +249,31 @@ public class CameraSpaceTests
     public void Follow_checks_the_view_it_is_heading_to(float stopX, bool glides)
     {
         var glide = Space(3200, 3200).PlanFollow(
-            V(1600, 1600, 1), V(2600, 1600, 1), 1, new Vector2(1600, 1600), new Vector2(stopX, 1600));
+            V(1600, 1600, 1), V(2600, 1600, 1), 1, new Vector2(1600, 1600), new Vector2(stopX, 1600), 0.4);
 
         Assert.Equal(glides, glide is not null);
     }
 
+    // The halfway fit takes the current view's middle (1600) and the player (100) round the glide's middle
     [Fact]
-    public void Recentre_never_zooms_out()
+    public void Recentre_zooms_out_for_a_player_off_screen()
     {
         var view = V(1600, 1600, 1);
 
         var glide = Space(3200, 3200).PlanRecentre(view, view, 1, new Vector2(100, 1600));
 
-        Assert.Null(glide!.HalfwayZoom);
+        Assert.Equal(672f / 1800, glide!.HalfwayZoom!.Value, 0.0001f);
+    }
+
+    [Fact]
+    public void Recentre_glides_without_a_zoom_out_to_a_player_still_on_screen()
+    {
+        var view = V(1600, 1600, 1);
+
+        var glide = Space(3200, 3200).PlanRecentre(view, view, 1, new Vector2(1900, 1600));
+
+        Assert.NotNull(glide);
+        Assert.Null(glide.HalfwayZoom);
     }
 
     [Fact]

@@ -94,6 +94,9 @@ public sealed record CameraConfig
 
     // The zoom factor for one mouse-wheel notch or zoom-key press
     public required float ZoomStep { get; init; }
+
+    // In viewport units: how far a two-finger gesture or a mouse drag must move before it moves the view
+    public required float GestureSlop { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

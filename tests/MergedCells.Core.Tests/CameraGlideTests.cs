@@ -95,6 +95,37 @@ public class CameraGlideTests
             new CameraGlide(start with { Zoom = fromZoom }, end with { Zoom = toZoom }, halfway, seconds, delay));
     }
 
+    [Theory]
+    [AutoData]
+    public void Planned_offsets_leave_the_start_and_end_views_alone(CameraView start, CameraView end, double seconds)
+    {
+        var glide = new CameraGlide(start, end, null, seconds, offsets: [Vector2.Zero, new Vector2(50, 20), Vector2.Zero]);
+
+        Assert.Equal((start, end), (glide.Sample(0), glide.Sample(seconds)));
+    }
+
+    // Offsets are viewport units, so at zoom 2 an offset of 64 moves the focus 32 board units
+    [Theory]
+    [AutoData]
+    public void Planned_offset_is_added_over_the_zoom(Vector2 from, Vector2 to, double seconds)
+    {
+        var glide = new CameraGlide(
+            new CameraView(from, 2), new CameraView(to, 2), null, seconds, offsets: [Vector2.Zero, new Vector2(64, 0), Vector2.Zero]);
+
+        var focus = glide.Sample(seconds / 2).Focus;
+
+        var expected = Vector2.Lerp(from, to, 0.5f) + new Vector2(32, 0);
+        Assert.Equal(expected.X, focus.X, 0.001f);
+        Assert.Equal(expected.Y, focus.Y, 0.001f);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Fewer_than_two_offsets_throws(CameraView start, CameraView end, double seconds)
+    {
+        Assert.Throws<ArgumentException>(() => new CameraGlide(start, end, null, seconds, offsets: [Vector2.Zero]));
+    }
+
     // 61 samples from the start to the end
     private static IEnumerable<CameraView> Samples(CameraGlide glide) =>
         Enumerable.Range(0, 61).Select(i => glide.Sample(glide.Seconds * i / 60));

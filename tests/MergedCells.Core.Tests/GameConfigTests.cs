@@ -8,7 +8,7 @@ public class GameConfigTests
 {
     // Every group with a value of 1, so each invalid case below breaks exactly one thing
     private const string CameraGroup =
-        """{"readableSquareSize":1,"closestSquareSize":1,"followZonePercent":1,"glideSeconds":1,"openingSeconds":1,"openingHoldSeconds":1,"zoomStep":1}""";
+        """{"readableSquareSize":1,"closestSquareSize":1,"followZonePercent":1,"glideSeconds":1,"openingSeconds":1,"openingHoldSeconds":1,"zoomStep":1,"gestureSlop":1}""";
 
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":{"squaresPerSecond":1,"maxSeconds":1},"stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
@@ -28,10 +28,11 @@ public class GameConfigTests
         double glide = 1,
         double opening = 1,
         double hold = 1,
-        float zoomStep = 1) =>
+        float zoomStep = 1,
+        float slop = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -68,6 +69,7 @@ public class GameConfigTests
         Valid.Replace(""","openingSeconds":1""", ""),
         Valid.Replace(""","openingHoldSeconds":1""", ""),
         Valid.Replace(""","zoomStep":1""", ""),
+        Valid.Replace(""","gestureSlop":1""", ""),
         Valid.Replace("\"zoomStep\":1", "\"zoomStep\":1,\"extra\":1"),
         Valid.Replace("\"zoomStep\":1", "\"zoomStep\":\"1\""),
         "null",
@@ -106,7 +108,7 @@ public class GameConfigTests
     [Theory]
     [AutoData]
     public void Parse_reads_the_camera_group(
-        float readable, float closest, float zonePercent, double glide, double opening, double hold, float zoomStep)
+        float readable, float closest, float zonePercent, double glide, double opening, double hold, float zoomStep, float slop)
     {
         var camera = GameConfig.Parse(ConfigText(
             readable: readable,
@@ -115,12 +117,13 @@ public class GameConfigTests
             glide: glide,
             opening: opening,
             hold: hold,
-            zoomStep: zoomStep)).Camera;
+            zoomStep: zoomStep,
+            slop: slop)).Camera;
 
         Assert.Equal(
-            (readable, closest, zonePercent, glide, opening, hold, zoomStep),
+            (readable, closest, zonePercent, glide, opening, hold, zoomStep, slop),
             (camera.ReadableSquareSize, camera.ClosestSquareSize, camera.FollowZonePercent, camera.GlideSeconds,
-                camera.OpeningSeconds, camera.OpeningHoldSeconds, camera.ZoomStep));
+                camera.OpeningSeconds, camera.OpeningHoldSeconds, camera.ZoomStep, camera.GestureSlop));
     }
 
     [Fact]
@@ -155,6 +158,15 @@ public class GameConfigTests
 
         Assert.Null(Record.Exception(() =>
             new CameraSpace(new BoardRect(0, 0, 64, 64), new System.Numerics.Vector2(720, 1280), 24, 64, config.Camera)));
+    }
+
+    [Fact]
+    public void Shipped_gesture_dead_zone_is_accepted()
+    {
+        var config = Shipped();
+
+        Assert.Null(Record.Exception(() =>
+            (new PinchTracker(config.Camera.GestureSlop), new DragTracker(config.Camera.GestureSlop))));
     }
 
     [Theory]

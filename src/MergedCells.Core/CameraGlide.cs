@@ -12,8 +12,15 @@ public sealed class CameraGlide
     /// would have there anyway, so a glide never zooms in past its ends.</param>
     /// <param name="seconds">How long the move takes, after the delay.</param>
     /// <param name="delay">Seconds spent on the from view first.</param>
-    public CameraGlide(CameraView from, CameraView to, float? halfwayZoom, double seconds, double delay = 0)
+    /// <param name="offsets">Planned offsets that keep the view on the board, in viewport units, at evenly spaced
+    /// moments over <paramref name="seconds"/>; the first and last are zero. Null for none.</param>
+    public CameraGlide(
+        CameraView from, CameraView to, float? halfwayZoom, double seconds, double delay = 0, IReadOnlyList<Vector2>? offsets = null)
     {
+        if (offsets is { Count: < 2 })
+        {
+            throw new ArgumentException("Needs at least two planned offsets, one at each end.", nameof(offsets));
+        }
         RequirePositiveFinite(from.Zoom, nameof(from));
         RequirePositiveFinite(to.Zoom, nameof(to));
         if (halfwayZoom is { } halfway)
@@ -31,6 +38,7 @@ public sealed class CameraGlide
         HalfwayZoom = halfwayZoom;
         Seconds = seconds;
         Delay = delay;
+        Offsets = offsets;
     }
 
     public CameraView From { get; }
@@ -42,6 +50,8 @@ public sealed class CameraGlide
     public double Seconds { get; }
 
     public double Delay { get; }
+
+    public IReadOnlyList<Vector2>? Offsets { get; }
 
     /// <summary>The view at this many seconds since the glide started, the delay included.</summary>
     public CameraView Sample(double elapsed)
@@ -68,7 +78,15 @@ public sealed class CameraGlide
                 logZoom += depth * Math.Sin(Math.PI * t);
             }
         }
-        return new CameraView(Vector2.Lerp(From.Focus, To.Focus, (float)eased), (float)Math.Exp(logZoom));
+        var zoom = (float)Math.Exp(logZoom);
+        var focus = Vector2.Lerp(From.Focus, To.Focus, (float)eased);
+        if (Offsets is { } offsets)
+        {
+            var position = t * (offsets.Count - 1);
+            var index = Math.Min((int)position, offsets.Count - 2);
+            focus += Vector2.Lerp(offsets[index], offsets[index + 1], (float)(position - index)) / zoom;
+        }
+        return new CameraView(focus, zoom);
     }
 
     public bool IsDone(double elapsed) => elapsed >= Delay + Seconds;

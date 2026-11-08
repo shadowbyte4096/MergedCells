@@ -229,7 +229,7 @@ public partial class Play : Node2D
         sliding = slide;
         elapsed = 0;
         trail.Begin(board.CellCentre(slide.From));
-        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.To));
+        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.To), duration);
         RefreshMoves();
         var won = slide.Wins ? ", won" : "";
         GD.Print($"Move {DirectionOf(slide)} to {Format(slide.To)}{won}");
