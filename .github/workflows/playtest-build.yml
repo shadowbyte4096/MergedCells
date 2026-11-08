@@ -18,6 +18,8 @@ permissions:
 
 env:
   GODOT_VERSION: 4.7.2
+  # unzip patterns for the export templates to fetch (the full set is over 1 GB). Part of the cache key, so editing this re-downloads.
+  GODOT_TEMPLATES: windows_*_x86_64* android_*
   BUILD: ${{ github.run_number }}
   DOTNET_NOLOGO: true
   DOTNET_CLI_TELEMETRY_OPTOUT: true
@@ -66,7 +68,7 @@ jobs:
           path: |
             ~/godot
             ~/.local/share/godot/export_templates
-          key: godot-${{ env.GODOT_VERSION }}-mono-windows-android
+          key: godot-${{ env.GODOT_VERSION }}-mono-${{ env.GODOT_TEMPLATES }}
 
       - name: Download Godot
         if: steps.godot-cache.outputs.cache-hit != 'true'
@@ -76,8 +78,9 @@ jobs:
           curl -fsSL -o "$RUNNER_TEMP/godot.zip" "$base/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
           unzip -q "$RUNNER_TEMP/godot.zip" -d ~/godot
           curl -fsSL -o "$RUNNER_TEMP/templates.tpz" "$base/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
-          # The full template set is over 1 GB; only Windows and Android are exported
-          unzip -q "$RUNNER_TEMP/templates.tpz" 'templates/version.txt' 'templates/windows_*_x86_64*' 'templates/android_*' -d "$RUNNER_TEMP"
+          # read -a splits without globbing, so the patterns reach unzip intact
+          read -ra wanted <<< "$GODOT_TEMPLATES"
+          unzip -q "$RUNNER_TEMP/templates.tpz" 'templates/version.txt' "${wanted[@]/#/templates/}" -d "$RUNNER_TEMP"
           dest=~/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono
           mkdir -p "$dest"
           mv "$RUNNER_TEMP"/templates/* "$dest"/

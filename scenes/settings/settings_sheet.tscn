@@ -1,0 +1,88 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/settings/SettingsSheet.cs" id="1_sheet"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_appearance"]
+
+[node name="SettingsSheet" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_sheet")
+
+[node name="Wash" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Settings"
+horizontal_alignment = 1
+
+[node name="AppearanceLabel" type="Label" parent="Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "Appearance"
+
+[node name="Switch" type="HBoxContainer" parent="Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"SegmentRow"
+
+[node name="System" type="Button" parent="Sheet/Column/Switch"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentLeft"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_appearance")
+text = "System"
+
+[node name="Light" type="Button" parent="Sheet/Column/Switch"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentMiddle"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_appearance")
+text = "Light"
+
+[node name="Dark" type="Button" parent="Sheet/Column/Switch"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"SegmentRight"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_appearance")
+text = "Dark"
+
+[node name="Done" type="Button" parent="Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Done"

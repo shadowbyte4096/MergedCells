@@ -19,9 +19,11 @@ public partial class Play : Node2D
     private Label titleLabel;
     private Label movesLabel;
     private ResultsScreen results;
+    private SettingsSheet settings;
 
     private PlaySession session;
     private int par;
+    private Func<int, LevelFinish> recordFinish;
 
     private PlayerSlide? sliding;
     private double elapsed;
@@ -29,6 +31,11 @@ public partial class Play : Node2D
     private bool dark;
 
     public event Action NextPressed;
+
+    public event Action<Appearance> AppearanceChosen;
+
+    // The saved choice, set by the caller, so the settings sheet opens on it
+    public Appearance Appearance { get; set; }
 
     [Export] public BoardTheme LightBoard { get; set; }
 
@@ -68,6 +75,7 @@ public partial class Play : Node2D
         titleLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/TitleLabel");
         movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
         results = GetNode<ResultsScreen>("Hud/Root/Results");
+        settings = GetNode<SettingsSheet>("Hud/Root/Settings");
 
         GetNode<MoveInput>("Input").MoveRequested += OnMoveRequested;
         // Each caption is a flat button too, so tapping the word works like tapping the icon
@@ -77,6 +85,20 @@ public partial class Play : Node2D
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
         results.RetryPressed += Retry;
         results.NextPressed += () => NextPressed?.Invoke();
+        GetNode<Button>("Hud/Root/TopBar/Row/SettingsButton").Pressed += OpenSettings;
+        settings.AppearanceChosen += choice =>
+        {
+            Appearance = choice;
+            AppearanceChosen?.Invoke(choice);
+        };
+        // Never under the results card: a winning move remembered before the sheet opened can finish the level
+        settings.Closed += () =>
+        {
+            if (Playing)
+            {
+                camera.InputEnabled = true;
+            }
+        };
         topBar.Resized += UpdateInsets;
         bottomBar.Resized += UpdateInsets;
         GetViewport().SizeChanged += ApplySafeArea;
@@ -96,18 +118,22 @@ public partial class Play : Node2D
         GetNode<Control>("Hud/Root").Theme = dark ? DarkUi : LightUi;
     }
 
-    public void Start(Map map, int par, string title, bool hasNext)
+    // recordFinish is called with the move count when the level is won, and returns how the finish compares with the
+    // saved best. Play never sees level IDs or the save. Null (test boards) records nothing.
+    public void Start(Map map, int par, string title, bool hasNext, Func<int, LevelFinish> recordFinish = null)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
         ArgumentException.ThrowIfNullOrEmpty(title);
 
         this.par = par;
+        this.recordFinish = recordFinish;
         session = new PlaySession(map);
         board.Map = map;
         board.GetNode<StartMarker>("StartMarker").Cell = map.Start;
         StopSlide();
         results.Hide();
+        settings.Close();
         player.Cell = session.Position;
         titleLabel.Text = title;
         results.Title = title;
@@ -178,15 +204,26 @@ public partial class Play : Node2D
 
     private void OnMoveRequested(Direction direction)
     {
-        if (Playing && session.Request(direction) is { } slide)
+        if (Playing && !settings.IsOpen && session.Request(direction) is { } slide)
         {
             Begin(slide);
         }
     }
 
+    private void OpenSettings()
+    {
+        // Once the winning move has started, the results are on their way
+        if (session is null || session.IsWon || settings.IsOpen)
+        {
+            return;
+        }
+        settings.Open(Appearance);
+        camera.InputEnabled = false;
+    }
+
     private void Undo()
     {
-        if (!Playing || session.Undo() is not { } undone)
+        if (!Playing || settings.IsOpen || session.Undo() is not { } undone)
         {
             return;
         }
@@ -199,7 +236,7 @@ public partial class Play : Node2D
 
     private void Restart()
     {
-        if (Playing)
+        if (Playing && !settings.IsOpen)
         {
             RestartLevel();
         }
@@ -246,8 +283,10 @@ public partial class Play : Node2D
     {
         var config = GameConfigFile.Current.Stars;
         var stars = Stars.Earned(session.Moves, par, config);
+        var finish = recordFinish?.Invoke(session.Moves);
+        settings.Close();
         camera.InputEnabled = false;
-        results.ShowResults(session.Moves, par, stars, Stars.TwoStarLimit(par, config), Stars.OneStarLimit(par, config));
+        results.ShowResults(session.Moves, par, stars, Stars.TwoStarLimit(par, config), Stars.OneStarLimit(par, config), finish);
         GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(stars, "star")}");
     }
 

@@ -8,14 +8,6 @@ namespace MergedCells;
 // Plays the level files in order, a stand-in until chunk 11's menus replace it
 public partial class Main : Node
 {
-    // System follows the device. Chunk 10's saved setting sets this; until then the editor export is a test override
-    public enum AppearanceChoice
-    {
-        System,
-        Light,
-        Dark,
-    }
-
     // The frame-time log's window on test boards: a test detail, not a tunable number
     private const double FrameLogSeconds = 5;
 
@@ -29,8 +21,6 @@ public partial class Main : Node
     private double frameWorst;
     private int frameCount;
     private int framesToSkip;
-
-    [Export] public AppearanceChoice Appearance { get; set; } = AppearanceChoice.System;
 
     // A 1-based position in the level list, then the test boards, for starting later ones while testing.
     // It goes with Main in chunk 11
@@ -49,7 +39,11 @@ public partial class Main : Node
     public override void _Ready()
     {
         GD.Print("Merged Cells started (C#).");
+        // Read first, so the first frame is already in the saved appearance
+        _ = SaveGameFile.Current;
         play = GetNode<Play>("Play");
+        play.Appearance = SaveGameFile.Current.Appearance;
+        play.AppearanceChosen += OnAppearanceChosen;
         ApplyAppearance();
         // Not every platform reports theme changes, so focus changes re-check too
         DisplayServer.SetSystemThemeChangeCallback(Callable.From(ApplyAppearance));
@@ -92,8 +86,12 @@ public partial class Main : Node
         if (!onTestBoard)
         {
             var level = levels[index];
-            GD.Print($"Level {index + 1}: {level.Name} (id {level.Id}, par {level.Par})");
-            play.Start(level.Map, level.Par, $"{index + 1} · {level.Name}", hasNext);
+            var save = SaveGameFile.Current;
+            var played = save.BestMoves(level) is { } best
+                ? $"best {best}, {Plural(save.Stars(level, GameConfigFile.Current.Stars) ?? 0, "star")}"
+                : "not played";
+            GD.Print($"Level {index + 1}: {level.Name} (id {level.Id}, par {level.Par}, {played})");
+            play.Start(level.Map, level.Par, $"{index + 1} · {level.Name}", hasNext, moves => RecordFinish(level, moves));
             return;
         }
 
@@ -109,11 +107,34 @@ public partial class Main : Node
         play.Start(map, par, title, hasNext);
     }
 
+    // Asks the save at each finish, so a Retry compares with the best saved a moment ago
+    private static LevelFinish RecordFinish(Level level, int moves)
+    {
+        var finish = SaveGameFile.Current.RecordFinish(level, moves, GameConfigFile.Current.Stars);
+        if (finish.IsNewBest)
+        {
+            SaveGameFile.Save();
+            var was = finish.PreviousBest is { } previous ? $"was {previous}" : "first finish";
+            GD.Print($"New best: {Plural(moves, "move")} ({was})");
+        }
+        return finish;
+    }
+
+    private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
+
     private void ResetFrameLog()
     {
         frameWindow = 0;
         frameWorst = 0;
         frameCount = 0;
+    }
+
+    private void OnAppearanceChosen(Appearance choice)
+    {
+        SaveGameFile.Current.Appearance = choice;
+        SaveGameFile.Save();
+        GD.Print($"Setting: appearance {choice.ToString().ToLowerInvariant()}");
+        ApplyAppearance();
     }
 
     private void ApplyAppearance()
@@ -122,10 +143,11 @@ public partial class Main : Node
         {
             return;
         }
-        var dark = Appearance switch
+        // The saved choice wins over the device unless it's System
+        var dark = SaveGameFile.Current.Appearance switch
         {
-            AppearanceChoice.Light => false,
-            AppearanceChoice.Dark => true,
+            Appearance.Light => false,
+            Appearance.Dark => true,
             _ => DisplayServer.IsDarkModeSupported() && DisplayServer.IsDarkMode(),
         };
         if (appliedDark == dark)

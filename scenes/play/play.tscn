@@ -16,6 +16,8 @@
 [ext_resource type="Resource" path="res://themes/dark_player_look.tres" id="14_dark_look"]
 [ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="15_dark_ui"]
 [ext_resource type="Script" path="res://scenes/play/BarBackdrop.cs" id="16_backdrop"]
+[ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="17_settings"]
+[ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="18_settings_sheet"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
@@ -96,10 +98,14 @@ theme_type_variation = &"MovesLine"
 text = "0 moves · par 0"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Hud/Root/TopBar/Row"]
+[node name="SettingsButton" type="Button" parent="Hud/Root/TopBar/Row"]
 custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
-mouse_filter = 2
+size_flags_vertical = 0
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("17_settings")
+icon_alignment = 1
 
 [node name="BottomBar" type="MarginContainer" parent="Hud/Root"]
 layout_mode = 1
@@ -235,6 +241,12 @@ theme_type_variation = &"Muted"
 text = "Par 0"
 horizontal_alignment = 1
 
+[node name="BestLabel" type="Label" parent="Hud/Root/Results/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"BestLine"
+text = "Your best · 0 moves"
+horizontal_alignment = 1
+
 [node name="Leaderboard" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]
 custom_minimum_size = Vector2(520, 220)
 layout_mode = 2
@@ -275,3 +287,6 @@ focus_mode = 0
 theme_type_variation = &"PillPrimary"
 disabled = true
 text = "Next"
+
+[node name="Settings" parent="Hud/Root" instance=ExtResource("18_settings_sheet")]
+layout_mode = 1
