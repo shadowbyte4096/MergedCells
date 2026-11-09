@@ -46,4 +46,21 @@ public class ShippedCampaignTests
 
         Assert.All(config.Campaign.ChapterStars.Keys, chapter => Assert.InRange(chapter, 1, Campaign().Chapters.Count));
     }
+
+    [Fact]
+    public void Every_chapterGatePercent_key_is_a_shipped_chapter()
+    {
+        var config = GameConfig.Parse(File.ReadAllText(Shipped("game_config.json")));
+
+        Assert.All(config.Campaign.ChapterGatePercent.Keys, chapter => Assert.InRange(chapter, 1, Campaign().Chapters.Count));
+    }
+
+    [Fact]
+    public void Every_levelStars_key_is_a_shipped_level()
+    {
+        var config = GameConfig.Parse(File.ReadAllText(Shipped("game_config.json")));
+        var ids = Campaign().Levels.Select(level => level.Id).ToHashSet();
+
+        Assert.All(config.Campaign.LevelStars.Keys, id => Assert.Contains(id, ids));
+    }
 }

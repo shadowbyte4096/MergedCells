@@ -38,7 +38,7 @@ public sealed class Campaign
     /// Reads the chapter file's text against the level files. Throws <see cref="JsonException"/>, naming the problem,
     /// when a value is missing, null or blank, when a key is unknown, when a chapter has no levels, when an ID is listed
     /// twice or has no level file, when a level file is in no chapter or its "chapter" isn't the chapter that lists it,
-    /// or when the text isn't JSON.
+    /// when an "intro" has no lines, more than two or a blank one, or when the text isn't JSON.
     /// </summary>
     public static Campaign Parse(string json, IReadOnlyList<Level> levels)
     {
@@ -98,7 +98,7 @@ public sealed class Campaign
                 }
                 chapterLevels.Add(level);
             }
-            chapters.Add(new Chapter(number, entry.Name, chapterLevels));
+            chapters.Add(new Chapter(number, entry.Name, chapterLevels, Intro(entry.Intro, number)));
         }
 
         if (levels.FirstOrDefault(level => !listed.Contains(level.Id)) is { } missing)
@@ -106,6 +106,20 @@ public sealed class Campaign
             throw new JsonException($"Level {missing.Id} isn't in any chapter.");
         }
         return new Campaign(chapters);
+    }
+
+    // One or two lines, neither blank, as a level's tutorial lines are
+    private static string[] Intro(string[]? lines, int number)
+    {
+        if (lines is null)
+        {
+            return [];
+        }
+        if (lines.Length is < 1 or > 2 || lines.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new JsonException($"Chapter {number}'s \"intro\" needs one or two lines, neither blank.");
+        }
+        return lines;
     }
 
     private (Chapter Chapter, int Number) Place(Level level)
@@ -127,6 +141,8 @@ internal sealed record ChapterJson
     public required string Name { get; init; }
 
     public required int[] Levels { get; init; }
+
+    public string[]? Intro { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

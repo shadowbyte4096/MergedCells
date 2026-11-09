@@ -21,10 +21,14 @@ public class ShippedLevelsTests
 
     [Theory]
     [MemberData(nameof(LevelFiles))]
-    public void File_name_is_the_level_id(string file)
+    public void File_name_is_the_level_s_name(string file)
     {
-        Assert.Equal(int.Parse(Path.GetFileNameWithoutExtension(file)), Load(file).Id);
+        Assert.Equal(FileNameFor(Load(file).Name), file);
     }
+
+    // "Over the Top" is over-the-top.json: lowercase, with each run of other characters a single hyphen
+    private static string FileNameFor(string name) =>
+        System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-') + ".json";
 
     [Theory]
     [MemberData(nameof(LevelFiles))]
@@ -44,8 +48,8 @@ public class ShippedLevelsTests
     }
 
     [Fact]
-    public void There_are_five_to_ten_levels()
+    public void There_are_at_most_a_hundred_levels()
     {
-        Assert.InRange(Files().Length, 5, 10);
+        Assert.InRange(Files().Length, 1, 100);
     }
 }

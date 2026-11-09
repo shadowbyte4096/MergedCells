@@ -5,10 +5,12 @@
 [ext_resource type="PackedScene" path="res://scenes/menus/mode_select.tscn" id="3_mode"]
 [ext_resource type="PackedScene" path="res://scenes/menus/level_select.tscn" id="4_select"]
 [ext_resource type="PackedScene" path="res://scenes/menus/credits.tscn" id="5_credits"]
+[ext_resource type="PackedScene" path="res://scenes/menus/chapter_card.tscn" id="6_card"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
 ModeSelectScene = ExtResource("3_mode")
 LevelSelectScene = ExtResource("4_select")
 CreditsScene = ExtResource("5_credits")
+ChapterCardScene = ExtResource("6_card")
 PlayScene = ExtResource("2_play")

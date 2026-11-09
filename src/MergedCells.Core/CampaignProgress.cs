@@ -17,40 +17,54 @@ public sealed class CampaignProgress
         this.starsById = starsById;
         this.gateByChapter = gateByChapter;
         TotalStars = starsById.Values.Sum(stars => stars ?? 0);
-        OpenChapters = campaign.Chapters.Where(chapter => gateByChapter[chapter.Number] <= TotalStars).ToArray();
+        OpenChapters = campaign.Chapters.TakeWhile(chapter => gateByChapter[chapter.Number] <= TotalStars).ToArray();
     }
 
     public int TotalStars { get; }
 
-    // Always the first few chapters, because gates only grow from one chapter to the next
+    // Always the first few chapters: a chapter opens only once the one before it has, as a chapter's own gate
+    // percentage can make its gate lower than an earlier one's
     public IReadOnlyList<Chapter> OpenChapters { get; }
 
     public Chapter Furthest => OpenChapters[^1];
 
-    /// <summary>Throws <see cref="ArgumentOutOfRangeException"/> when the config's gate percentage is outside 0 to 100.</summary>
+    /// <summary>
+    /// Throws <see cref="ArgumentOutOfRangeException"/> when the config's gate percentage, or any chapter's own, is
+    /// outside 0 to 100.
+    /// </summary>
     public static CampaignProgress Of(Campaign campaign, SaveGame save, GameConfig config)
     {
         ArgumentNullException.ThrowIfNull(campaign);
         ArgumentNullException.ThrowIfNull(save);
         ArgumentNullException.ThrowIfNull(config);
-        var percent = config.Campaign.GatePercent;
-        ArgumentOutOfRangeException.ThrowIfNegative(percent, nameof(config.Campaign.GatePercent));
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(percent, 100, nameof(config.Campaign.GatePercent));
+        CheckPercent(config.Campaign.GatePercent, nameof(config.Campaign.GatePercent));
+        foreach (var (number, own) in config.Campaign.ChapterGatePercent)
+        {
+            CheckPercent(own, $"{nameof(config.Campaign.ChapterGatePercent)}[{number}]");
+        }
 
         var starsById = new Dictionary<int, int?>();
         var gateByChapter = new Dictionary<int, int>();
         var earlierLevels = 0;
         foreach (var chapter in campaign.Chapters)
         {
+            var percent = config.Campaign.ChapterGatePercent.TryGetValue(chapter.Number, out var own)
+                ? own
+                : config.Campaign.GatePercent;
             gateByChapter[chapter.Number] = (percent * 3 * earlierLevels + 99) / 100;
-            var stars = config.StarsFor(chapter.Number);
             foreach (var level in chapter.Levels)
             {
-                starsById[level.Id] = save.Stars(level, stars);
+                starsById[level.Id] = save.Stars(level, config.StarsFor(level));
             }
             earlierLevels += chapter.Levels.Count;
         }
         return new CampaignProgress(campaign, starsById, gateByChapter);
+    }
+
+    private static void CheckPercent(int percent, string name)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(percent, name);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(percent, 100, name);
     }
 
     // Null when the level hasn't been finished as it is now; a 0-star finish is 0
@@ -64,7 +78,7 @@ public sealed class CampaignProgress
 
     public int Gate(Chapter chapter) => gateByChapter[chapter.Number];
 
-    public bool IsOpen(Chapter chapter) => Gate(chapter) <= TotalStars;
+    public bool IsOpen(Chapter chapter) => chapter.Number <= OpenChapters.Count;
 
     // The first level in the chapter's order without a finish, or null when every level in it is finished
     public Level? Current(Chapter chapter) => chapter.Levels.FirstOrDefault(level => starsById[level.Id] is null);

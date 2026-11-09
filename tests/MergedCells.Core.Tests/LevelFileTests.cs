@@ -20,6 +20,10 @@ public class LevelFileTests
     // AutoFixture ints mapped into the range a level accepts
     private static int Positive(int value) => Math.Abs(value % 1000) + 1;
 
+    private static string WithTutorial(string tutorial) => Valid.Replace("\"par\":3}", "\"par\":3,\"tutorial\":" + tutorial + "}");
+
+    private static string Lines(params string[] lines) => JsonSerializer.Serialize(lines);
+
     public static TheoryData<string> InvalidTexts => new()
     {
         Valid.Replace("\"id\":3,", ""),
@@ -46,6 +50,17 @@ public class LevelFileTests
         Valid.Replace("\"id\":3", "\"id\":0"),
         Valid.Replace("\"chapter\":1", "\"chapter\":0"),
         Valid.Replace("\"par\":3", "\"par\":0"),
+        WithTutorial("{}"),
+        WithTutorial("{\"lines\":null}"),
+        WithTutorial("{\"lines\":[]}"),
+        WithTutorial("{\"lines\":[\"a\",\"b\",\"c\"]}"),
+        WithTutorial("{\"lines\":[null]}"),
+        WithTutorial("{\"lines\":[\" \"]}"),
+        WithTutorial("{\"lines\":[\"a\"],\"keyboardLines\":[]}"),
+        WithTutorial("{\"lines\":[\"a\"],\"keyboardLines\":[\"\"]}"),
+        WithTutorial("{\"lines\":[\"a\"],\"swipeHint\":\"Right\"}"),
+        WithTutorial("{\"lines\":[\"a\"],\"swipeHint\":\"north\"}"),
+        WithTutorial("{\"lines\":[\"a\"],\"text\":\"a\"}"),
         "null",
         "not json",
         "",
@@ -82,6 +97,62 @@ public class LevelFileTests
     public void Twist_fields_may_be_null_or_left_out(string text)
     {
         Assert.Null(Record.Exception(() => LevelFile.Parse(text)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_a_tutorial_s_lines(string first, string second)
+    {
+        var tutorial = LevelFile.Parse(WithTutorial($"{{\"lines\":{Lines(first, second)}}}")).Tutorial!;
+
+        Assert.Equal([first, second], tutorial.Lines);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Keyboard_lines_default_to_the_lines(string line)
+    {
+        var tutorial = LevelFile.Parse(WithTutorial($"{{\"lines\":{Lines(line)},\"keyboardLines\":null}}")).Tutorial!;
+
+        Assert.Equal([line], tutorial.KeyboardLines);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_keyboard_lines(string line, string keyboardLine)
+    {
+        var tutorial = LevelFile.Parse(WithTutorial($"{{\"lines\":{Lines(line)},\"keyboardLines\":{Lines(keyboardLine)}}}")).Tutorial!;
+
+        Assert.Equal([keyboardLine], tutorial.KeyboardLines);
+    }
+
+    [Theory]
+    [InlineData("up", Direction.Up)]
+    [InlineData("down", Direction.Down)]
+    [InlineData("left", Direction.Left)]
+    [InlineData("right", Direction.Right)]
+    public void Parse_reads_the_swipe_hint(string word, Direction expected)
+    {
+        var tutorial = LevelFile.Parse(WithTutorial($"{{\"lines\":[\"a\"],\"swipeHint\":\"{word}\"}}")).Tutorial!;
+
+        Assert.Equal(expected, tutorial.SwipeHint);
+    }
+
+    [Fact]
+    public void A_tutorial_without_a_swipe_hint_has_none()
+    {
+        var tutorial = LevelFile.Parse(WithTutorial("{\"lines\":[\"a\"],\"swipeHint\":null}")).Tutorial!;
+
+        Assert.Null(tutorial.SwipeHint);
+    }
+
+    public static TheoryData<string> TutorialNullOrLeftOut => new() { Valid, WithTutorial("null") };
+
+    [Theory]
+    [MemberData(nameof(TutorialNullOrLeftOut))]
+    public void A_level_without_a_tutorial_has_none(string text)
+    {
+        Assert.Null(LevelFile.Parse(text).Tutorial);
     }
 
     [Fact]

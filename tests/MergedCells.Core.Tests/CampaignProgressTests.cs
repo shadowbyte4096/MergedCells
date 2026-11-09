@@ -11,11 +11,22 @@ public class CampaignProgressTests
         OneStarExtraParPercent = 100,
     };
 
-    private static GameConfig Config(int gatePercent = 55, IReadOnlyDictionary<int, StarsConfig>? chapterStars = null) =>
+    private static GameConfig Config(
+        int gatePercent = 55,
+        IReadOnlyDictionary<int, StarsConfig>? chapterStars = null,
+        IReadOnlyDictionary<int, int>? chapterGatePercent = null,
+        IReadOnlyDictionary<int, StarsConfig>? levelStars = null) =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json"))) with
         {
             Stars = ShippedStars,
-            Campaign = new CampaignConfig { GatePercent = gatePercent, ChapterStars = chapterStars ?? new Dictionary<int, StarsConfig>() },
+            Campaign = new CampaignConfig
+            {
+                GatePercent = gatePercent,
+                ChapterGatePercent = chapterGatePercent ?? new Dictionary<int, int>(),
+                ChapterStars = chapterStars ?? new Dictionary<int, StarsConfig>(),
+                LevelStars = levelStars ?? new Dictionary<int, StarsConfig>(),
+                UndoLimit = 5,
+            },
         };
 
     private static Level LevelWith(int id, int chapter, int par = 3) => new(id, $"Level {id}", chapter, TestMaps.Example(), par);
@@ -212,5 +223,58 @@ public class CampaignProgressTests
     public void Gate_percentage_out_of_range_throws(int percent)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => CampaignProgress.Of(Campaign(), new SaveGame(), Config(percent)));
+    }
+
+    [Fact]
+    public void Default_gate_is_two_thirds_of_earlier_stars()
+    {
+        var campaign = Campaign();
+
+        var progress = CampaignProgress.Of(campaign, new SaveGame(), Config(66));
+
+        Assert.Equal((4, 8), (progress.Gate(campaign.Chapters[1]), progress.Gate(campaign.Chapters[2])));
+    }
+
+    [Fact]
+    public void Gate_uses_the_chapter_s_own_percentage()
+    {
+        var campaign = Campaign();
+
+        var progress = CampaignProgress.Of(campaign, new SaveGame(), Config(55, chapterGatePercent: new Dictionary<int, int> { [3] = 100 }));
+
+        Assert.Equal((4, 12), (progress.Gate(campaign.Chapters[1]), progress.Gate(campaign.Chapters[2])));
+    }
+
+    [Fact]
+    public void A_chapter_stays_shut_while_the_one_before_it_is_shut()
+    {
+        var campaign = Campaign();
+        var config = Config(55, chapterGatePercent: new Dictionary<int, int> { [2] = 100, [3] = 0 });
+
+        var progress = CampaignProgress.Of(campaign, new SaveGame(), config);
+
+        Assert.Equal((false, "1"), (progress.IsOpen(campaign.Chapters[2]), Numbers(progress.OpenChapters)));
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(101)]
+    public void A_chapter_percentage_out_of_range_throws(int percent)
+    {
+        var config = Config(55, chapterGatePercent: new Dictionary<int, int> { [2] = percent });
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => CampaignProgress.Of(Campaign(), new SaveGame(), config));
+    }
+
+    [Fact]
+    public void A_level_s_own_thresholds_change_its_stars_and_the_total()
+    {
+        var campaign = Campaign();
+        var save = Finished(campaign, (1, 4));
+        var strict = new StarsConfig { TwoStarMinExtraMoves = 0, TwoStarExtraParPercent = 0, OneStarMinExtraMoves = 9, OneStarExtraParPercent = 0 };
+
+        var progress = CampaignProgress.Of(campaign, save, Config(levelStars: new Dictionary<int, StarsConfig> { [1] = strict }));
+
+        Assert.Equal((1, 1), (progress.Stars(Level(campaign, 1)), progress.TotalStars));
     }
 }

@@ -23,7 +23,21 @@
     "gestureSlop": 14
   },
   "campaign": {
-    "gatePercent": 55,
-    "chapterStars": {}
+    "gatePercent": 66,
+    "chapterGatePercent": {},
+    "chapterStars": {},
+    "levelStars": {
+      "18": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "19": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "20": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "21": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "7": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "22": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "23": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "24": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "25": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "8": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 }
+    },
+    "undoLimit": 5
   }
 }

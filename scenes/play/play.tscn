@@ -14,6 +14,7 @@
 [ext_resource type="Script" path="res://scenes/play/BarBackdrop.cs" id="16_backdrop"]
 [ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="17_settings"]
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="18_settings_sheet"]
+[ext_resource type="Script" path="res://scenes/play/SwipeHint.cs" id="19_swipe_hint"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
@@ -125,6 +126,28 @@ focus_mode = 0
 icon = ExtResource("6_undo")
 icon_alignment = 1
 
+[node name="Badge" type="PanelContainer" parent="Hud/Root/BottomBar/Row/Undo/UndoButton"]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -36.0
+offset_top = -16.0
+offset_right = 16.0
+offset_bottom = 36.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_type_variation = &"UndoBadge"
+
+[node name="Count" type="Label" parent="Hud/Root/BottomBar/Row/Undo/UndoButton/Badge"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"UndoBadgeText"
+text = "5"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Caption" type="Button" parent="Hud/Root/BottomBar/Row/Undo"]
 layout_mode = 2
 focus_mode = 0
@@ -147,6 +170,44 @@ layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"CaptionButton"
 text = "Restart"
+
+[node name="Tutorial" type="MarginContainer" parent="Hud/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"TutorialBlock"
+
+[node name="Lines" type="VBoxContainer" parent="Hud/Root/Tutorial"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Line" type="Label" parent="Hud/Root/Tutorial/Lines"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TutorialLine"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Detail" type="Label" parent="Hud/Root/Tutorial/Lines"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TutorialDetail"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="SwipeHint" type="Control" parent="Hud/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("19_swipe_hint")
 
 [node name="Results" type="Control" parent="Hud/Root"]
 visible = false

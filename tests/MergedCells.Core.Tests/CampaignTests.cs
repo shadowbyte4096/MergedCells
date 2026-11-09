@@ -83,6 +83,24 @@ public class CampaignTests
         Assert.Equal(name, campaign.Chapters[0].Name);
     }
 
+    [Theory]
+    [AutoData]
+    public void Parse_reads_a_chapter_s_intro(string first, string second)
+    {
+        var text = Valid.Replace("\"levels\":[2]", $"\"levels\":[2],\"intro\":{JsonSerializer.Serialize(new[] { first, second })}");
+
+        Assert.Equal([first, second], Campaign.Parse(text, TwoLevels).Chapters[1].Intro);
+    }
+
+    public static TheoryData<string> IntroNullOrLeftOut => new() { Valid, Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":null") };
+
+    [Theory]
+    [MemberData(nameof(IntroNullOrLeftOut))]
+    public void A_chapter_without_an_intro_has_no_lines(string text)
+    {
+        Assert.Empty(Campaign.Parse(text, TwoLevels).Chapters[1].Intro);
+    }
+
     [Fact]
     public void Valid_text_used_by_the_invalid_cases_parses()
     {
@@ -110,6 +128,10 @@ public class CampaignTests
         """{"chapters":[{"name":"A","levels":[1]}]}""",
         """{"chapters":[{"name":"A","levels":[1,2]}]}""",
         Valid.Replace("\"levels\":[1]", "\"levels\":[\"1\"]"),
+        Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[]"),
+        Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[\"a\",\"b\",\"c\"]"),
+        Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[null]"),
+        Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[\" \"]"),
         "null",
         "not json",
         "",

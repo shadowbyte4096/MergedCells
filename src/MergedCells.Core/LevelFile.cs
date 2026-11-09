@@ -11,8 +11,9 @@ public static class LevelFile
     /// <summary>
     /// Parses a level file's text. Throws <see cref="JsonException"/>, naming the problem, when a value is missing, null,
     /// of the wrong type or out of range, when a key is unknown, when the grid's rows differ in length, when twist tiles or
-    /// teleporters are given (not supported yet), or when the text isn't JSON. Throws <see cref="InvalidMapException"/>
-    /// when the map breaks a map rule.
+    /// teleporters are given (not supported yet), when a tutorial has no lines, more than two or a blank one, or an
+    /// unknown swipe direction, or when the text isn't JSON. Throws <see cref="InvalidMapException"/> when the map breaks
+    /// a map rule.
     /// </summary>
     public static Level Parse(string json)
     {
@@ -44,8 +45,47 @@ public static class LevelFile
         }
 
         var map = Map.Create(Grid(file.Regions), Coordinate(file.Start, "start"), Coordinate(file.End, "end"));
-        return new Level(file.Id, file.Name, file.Chapter, map, file.Par);
+        return new Level(file.Id, file.Name, file.Chapter, map, file.Par, ReadTutorial(file.Tutorial));
     }
+
+    private static Tutorial? ReadTutorial(TutorialJson? tutorial)
+    {
+        if (tutorial is null)
+        {
+            return null;
+        }
+        var lines = TutorialLines(tutorial.Lines, "lines");
+        var keyboardLines = tutorial.KeyboardLines is null ? lines : TutorialLines(tutorial.KeyboardLines, "keyboardLines");
+        return new Tutorial(lines, keyboardLines, SwipeHint(tutorial.SwipeHint));
+    }
+
+    private static string[] TutorialLines(string[]? lines, string key)
+    {
+        if (lines is null)
+        {
+            throw new JsonException($"The level's tutorial \"{key}\" is null.");
+        }
+        if (lines.Length is < 1 or > 2)
+        {
+            throw new JsonException($"The level's tutorial \"{key}\" has {lines.Length} lines; it needs one or two.");
+        }
+        if (lines.Any(string.IsNullOrWhiteSpace))
+        {
+            throw new JsonException($"The level's tutorial \"{key}\" has a null or blank line.");
+        }
+        return lines;
+    }
+
+    // Exact lowercase words, never numbers, as the save file's appearance words are
+    private static Direction? SwipeHint(string? word) => word switch
+    {
+        null => null,
+        "up" => Direction.Up,
+        "down" => Direction.Down,
+        "left" => Direction.Left,
+        "right" => Direction.Right,
+        _ => throw new JsonException($"The level's tutorial \"swipeHint\" is \"{word}\"; it must be up, down, left or right."),
+    };
 
     private static void RequireValue(object? value, string key)
     {
@@ -103,6 +143,17 @@ internal sealed record LevelJson
     public required int[] End { get; init; }
 
     public required int Par { get; init; }
+
+    public TutorialJson? Tutorial { get; init; }
+}
+
+internal sealed record TutorialJson
+{
+    public required string[] Lines { get; init; }
+
+    public string[]? KeyboardLines { get; init; }
+
+    public string? SwipeHint { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

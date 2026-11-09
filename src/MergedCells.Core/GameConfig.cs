@@ -18,9 +18,16 @@ public sealed record GameConfig
 
     public required CampaignConfig Campaign { get; init; }
 
-    // The one place a chapter's star thresholds are resolved: its own entry, otherwise the top-level group
-    public StarsConfig StarsFor(int chapterNumber) =>
-        Campaign.ChapterStars.TryGetValue(chapterNumber, out var stars) ? stars : Stars;
+    // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
+    public StarsConfig StarsFor(Level level)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        if (Campaign.LevelStars.TryGetValue(level.Id, out var own))
+        {
+            return own;
+        }
+        return Campaign.ChapterStars.TryGetValue(level.Chapter, out var chapter) ? chapter : Stars;
+    }
 
     /// <summary>
     /// Parses the config file's text. Throws <see cref="JsonException"/>, naming the problem, when a group or value
@@ -66,6 +73,32 @@ public sealed record GameConfig
             if (stars is null)
             {
                 throw new JsonException($"The config's \"chapterStars\" entry for chapter {chapter} is null.");
+            }
+        }
+        if (config.Campaign.ChapterGatePercent is null)
+        {
+            throw new JsonException("The config's \"chapterGatePercent\" is null.");
+        }
+        foreach (var chapter in config.Campaign.ChapterGatePercent.Keys)
+        {
+            if (chapter < 1)
+            {
+                throw new JsonException($"The config's \"chapterGatePercent\" key {chapter} must be at least 1.");
+            }
+        }
+        if (config.Campaign.LevelStars is null)
+        {
+            throw new JsonException("The config's \"levelStars\" is null.");
+        }
+        foreach (var (id, stars) in config.Campaign.LevelStars)
+        {
+            if (id < 1)
+            {
+                throw new JsonException($"The config's \"levelStars\" key {id} must be at least 1.");
+            }
+            if (stars is null)
+            {
+                throw new JsonException($"The config's \"levelStars\" entry for level {id} is null.");
             }
         }
         return config;
@@ -129,8 +162,17 @@ public sealed record CampaignConfig
     // A chapter's gate is this percentage of the stars in all earlier chapters, rounded up
     public required int GatePercent { get; init; }
 
+    // Gate percentages for chapters that don't use gatePercent, keyed by chapter number
+    public required IReadOnlyDictionary<int, int> ChapterGatePercent { get; init; }
+
     // Star thresholds for chapters that don't use the top-level "stars" group, keyed by chapter number
     public required IReadOnlyDictionary<int, StarsConfig> ChapterStars { get; init; }
+
+    // Star thresholds for levels that don't use their chapter's, keyed by level ID
+    public required IReadOnlyDictionary<int, StarsConfig> LevelStars { get; init; }
+
+    // Undos per attempt; a restart gives them all back
+    public required int UndoLimit { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

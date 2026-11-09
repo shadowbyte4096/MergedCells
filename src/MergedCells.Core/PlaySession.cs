@@ -2,21 +2,29 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// One play of a level as the player sees it: an <see cref="Attempt"/>, the slide being animated, and at most one move
-/// remembered from during that slide. It applies the campaign's rules: unlimited undo, but none once the level is won.
+/// remembered from during that slide. It applies the undo limit in its <see cref="PlayRules"/>, and the campaign's rule
+/// of no undo once the level is won.
 /// </summary>
 public sealed class PlaySession
 {
     private Attempt attempt;
     private Direction? remembered;
 
-    public PlaySession(Map map)
+    public PlaySession(Map map, PlayRules? rules = null)
     {
         ArgumentNullException.ThrowIfNull(map);
         Map = map;
+        Rules = rules ?? PlayRules.Unlimited;
         attempt = new Attempt(map);
+        UndosLeft = Rules.UndoLimit;
     }
 
     public Map Map { get; }
+
+    public PlayRules Rules { get; }
+
+    // Null when undo is unlimited
+    public int? UndosLeft { get; private set; }
 
     // Where the player is, or is sliding to: a move counts the moment its slide starts
     public Cell Position => attempt.Position;
@@ -62,11 +70,12 @@ public sealed class PlaySession
 
     /// <summary>
     /// Takes back the last move, including the one in flight, stops the slide and drops any remembered move. Returns
-    /// the undone direction, or null when there's nothing to undo or the level is won (a win is final in the campaign).
+    /// the undone direction, or null when there's nothing to undo, no undos are left, or the level is won (a win is final
+    /// in the campaign). Only a move taken back uses an undo.
     /// </summary>
     public Direction? Undo()
     {
-        if (IsWon)
+        if (IsWon || UndosLeft == 0)
         {
             return null;
         }
@@ -74,15 +83,20 @@ public sealed class PlaySession
         var undone = attempt.Undo();
         Current = null;
         remembered = null;
+        if (undone is not null && UndosLeft is { } left)
+        {
+            UndosLeft = left - 1;
+        }
         return undone;
     }
 
-    // A new Attempt: back to the start with no moves, no history, no slide and no remembered move
+    // A new Attempt: back to the start with no moves, no history, no slide, no remembered move and every undo back
     public void Restart()
     {
         attempt = new Attempt(Map);
         Current = null;
         remembered = null;
+        UndosLeft = Rules.UndoLimit;
     }
 
     private PlayerSlide? Start(Direction direction)

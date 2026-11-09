@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using Godot;
 using MergedCells.Core;
 
@@ -18,6 +19,14 @@ public partial class Play : Node2D, IScreen
     private Control resultsTitleBar;
     private Label titleLabel;
     private Label movesLabel;
+    private Button undoButton;
+    private Button undoCaption;
+    private PanelContainer undoBadge;
+    private Label undoCount;
+    private Control tutorialBlock;
+    private Label tutorialLine;
+    private Label tutorialDetail;
+    private SwipeHint swipeHint;
     private ResultsScreen results;
     private SettingsSheet settings;
 
@@ -26,6 +35,7 @@ public partial class Play : Node2D, IScreen
     private StarsConfig stars;
     private Func<bool> hasNext;
     private Func<int, LevelFinish> recordFinish;
+    private Tutorial tutorial;
 
     private PlayerSlide? sliding;
     private double elapsed;
@@ -71,11 +81,21 @@ public partial class Play : Node2D, IScreen
         movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
         results = GetNode<ResultsScreen>("Hud/Root/Results");
         settings = GetNode<SettingsSheet>("Hud/Root/Settings");
+        undoButton = GetNode<Button>("Hud/Root/BottomBar/Row/Undo/UndoButton");
+        undoCaption = GetNode<Button>("Hud/Root/BottomBar/Row/Undo/Caption");
+        undoBadge = GetNode<PanelContainer>("Hud/Root/BottomBar/Row/Undo/UndoButton/Badge");
+        undoCount = GetNode<Label>("Hud/Root/BottomBar/Row/Undo/UndoButton/Badge/Count");
+        tutorialBlock = GetNode<Control>("Hud/Root/Tutorial");
+        tutorialLine = GetNode<Label>("Hud/Root/Tutorial/Lines/Line");
+        tutorialDetail = GetNode<Label>("Hud/Root/Tutorial/Lines/Detail");
+        swipeHint = GetNode<SwipeHint>("Hud/Root/SwipeHint");
 
         GetNode<MoveInput>("Input").MoveRequested += OnMoveRequested;
         // Each caption is a flat button too, so tapping the word works like tapping the icon
-        GetNode<Button>("Hud/Root/BottomBar/Row/Undo/UndoButton").Pressed += Undo;
-        GetNode<Button>("Hud/Root/BottomBar/Row/Undo/Caption").Pressed += Undo;
+        undoButton.Pressed += Undo;
+        undoCaption.Pressed += Undo;
+        undoButton.GuiInput += OnGreyedUndoInput;
+        undoCaption.GuiInput += OnGreyedUndoInput;
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/RestartButton").Pressed += Restart;
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
         results.RetryPressed += Retry;
@@ -98,6 +118,7 @@ public partial class Play : Node2D, IScreen
         };
         topBar.Resized += UpdateInsets;
         bottomBar.Resized += UpdateInsets;
+        tutorialBlock.Resized += UpdateInsets;
         GetViewport().SizeChanged += ApplySafeArea;
         board.ThemeChanged += SetClearColor;
         ApplyAppearance(false);
@@ -125,8 +146,16 @@ public partial class Play : Node2D, IScreen
     // stars are the level's thresholds (its chapter's in the campaign). hasNext is asked when the results card appears,
     // so a finish that opens the next chapter enables Next. recordFinish is called with the move count when the level is
     // won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
-    // boards) records nothing.
-    public void Start(Map map, int par, string title, StarsConfig stars, Func<bool> hasNext, Func<int, LevelFinish> recordFinish = null)
+    // boards) records nothing. Null rules mean unlimited undo; a null tutorial shows no text.
+    public void Start(
+        Map map,
+        int par,
+        string title,
+        StarsConfig stars,
+        Func<bool> hasNext,
+        Func<int, LevelFinish> recordFinish = null,
+        PlayRules rules = null,
+        Tutorial tutorial = null)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
@@ -138,7 +167,8 @@ public partial class Play : Node2D, IScreen
         this.stars = stars;
         this.hasNext = hasNext;
         this.recordFinish = recordFinish;
-        session = new PlaySession(map);
+        this.tutorial = tutorial;
+        session = new PlaySession(map, rules);
         board.Map = map;
         board.GetNode<StartMarker>("StartMarker").Cell = map.Start;
         StopSlide();
@@ -148,6 +178,8 @@ public partial class Play : Node2D, IScreen
         titleLabel.Text = title;
         results.Title = title;
         RefreshMoves();
+        RefreshUndo();
+        ShowTutorial();
         SetClearColor();
         UpdateInsets();
         camera.InputEnabled = true;
@@ -158,6 +190,7 @@ public partial class Play : Node2D, IScreen
 
     public override void _Process(double delta)
     {
+        UpdateSwipeHint();
         if (sliding is null)
         {
             return;
@@ -232,15 +265,34 @@ public partial class Play : Node2D, IScreen
 
     private void Undo()
     {
-        if (!Playing || settings.IsOpen || session.Undo() is not { } undone)
+        if (!Playing || settings.IsOpen)
         {
+            return;
+        }
+        if (session.Undo() is not { } undone)
+        {
+            if (session.UndosLeft == 0 && !session.IsWon)
+            {
+                GD.Print("Undo: none left");
+            }
             return;
         }
         StopSlide();
         player.Cell = session.Position;
         camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
-        GD.Print($"Undo {undone}, back to {Format(session.Position)}");
+        RefreshUndo();
+        var left = session.UndosLeft is { } count ? $" ({count} left)" : "";
+        GD.Print($"Undo {undone}, back to {Format(session.Position)}{left}");
+    }
+
+    // A disabled button sends no Pressed, so a tap on the greyed Undo is caught here, for its "none left" log line
+    private void OnGreyedUndoInput(InputEvent @event)
+    {
+        if (undoButton.Disabled && @event is InputEventMouseButton { ButtonIndex: MouseButton.Left, Pressed: false })
+        {
+            Undo();
+        }
     }
 
     private void Restart()
@@ -254,6 +306,7 @@ public partial class Play : Node2D, IScreen
     private void Retry()
     {
         results.Hide();
+        tutorialBlock.Modulate = Colors.White;
         camera.InputEnabled = true;
         RestartLevel();
     }
@@ -265,6 +318,7 @@ public partial class Play : Node2D, IScreen
         player.Cell = session.Position;
         camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
+        RefreshUndo();
         GD.Print("Restart");
     }
 
@@ -292,6 +346,8 @@ public partial class Play : Node2D, IScreen
     {
         var earned = Stars.Earned(session.Moves, par, stars);
         var finish = recordFinish?.Invoke(session.Moves);
+        // Transparent rather than hidden, so the board's inset, and the board, stay where they are
+        tutorialBlock.Modulate = Colors.Transparent;
         settings.Close();
         camera.InputEnabled = false;
         results.HasNext = hasNext();
@@ -301,10 +357,62 @@ public partial class Play : Node2D, IScreen
 
     private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
 
+    // No badge when undo is unlimited. With none left, Undo greys out until a restart.
+    private void RefreshUndo()
+    {
+        var left = session.UndosLeft;
+        undoBadge.Visible = left is not null;
+        var empty = left == 0;
+        undoButton.Disabled = empty;
+        undoCaption.Disabled = empty;
+        if (left is { } count)
+        {
+            undoCount.Text = count.ToString(CultureInfo.InvariantCulture);
+            undoBadge.ThemeTypeVariation = empty ? "UndoBadgeEmpty" : "UndoBadge";
+            undoCount.ThemeTypeVariation = empty ? "UndoBadgeTextEmpty" : "UndoBadgeText";
+        }
+    }
+
+    // A tutorial's text sits below the top bar, so the board fits below the text
     private void UpdateInsets()
     {
-        camera.SetInsets(topBar.GetRect().End.Y, hudRoot.Size.Y - bottomBar.Position.Y);
+        var top = tutorialBlock.Visible ? tutorialBlock.GetRect().End.Y : topBar.GetRect().End.Y;
+        camera.SetInsets(top, hudRoot.Size.Y - bottomBar.Position.Y);
         backdrop.SetEdges(topBar.GetRect().End.Y, bottomBar.Position.Y);
+    }
+
+    // Phones get the swipe wording and the ghost finger; desktop gets the keyboard wording
+    private void ShowTutorial()
+    {
+        tutorialBlock.Visible = tutorial is not null;
+        tutorialBlock.Modulate = Colors.White;
+        if (tutorial is null)
+        {
+            swipeHint.Direction = null;
+            return;
+        }
+        var mobile = OS.HasFeature("mobile");
+        var lines = mobile ? tutorial.Lines : tutorial.KeyboardLines;
+        tutorialLine.Text = lines[0];
+        tutorialDetail.Text = lines.Count > 1 ? lines[1] : "";
+        tutorialDetail.Visible = lines.Count > 1;
+        swipeHint.Direction = mobile ? tutorial.SwipeHint : null;
+    }
+
+    // Shown only before the first move; placed each frame, as zoom and pan move the board
+    private void UpdateSwipeHint()
+    {
+        if (swipeHint.Direction is null)
+        {
+            return;
+        }
+        if (!Playing || session.Moves > 0)
+        {
+            swipeHint.Visible = false;
+            return;
+        }
+        var boardBottom = (board.GetGlobalTransformWithCanvas() * new Vector2(0, board.Bounds.End.Y)).Y;
+        swipeHint.Place(boardBottom, bottomBar.Position.Y);
     }
 
     // The game draws under Android's camera hole, so the bars move into the safe area. The results sheet stays
@@ -319,6 +427,9 @@ public partial class Play : Node2D, IScreen
         }
         bottomBar.OffsetBottom = -bottom;
         bottomBar.OffsetTop = -bottom - bottomBar.GetCombinedMinimumSize().Y;
+        // Grows down to fit its text from the top bar's bottom edge
+        tutorialBlock.OffsetTop = topBar.OffsetBottom;
+        tutorialBlock.OffsetBottom = topBar.OffsetBottom;
         UpdateInsets();
     }
 

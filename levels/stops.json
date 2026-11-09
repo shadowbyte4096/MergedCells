@@ -1,0 +1,19 @@
+{
+  "id": 12,
+  "name": "Stops",
+  "chapter": 1,
+  "regions": [
+    [1, 1, 2, 3],
+    [4, 4, 2, 3],
+    [5, 5, 2, 6],
+    [7, 7, 2, 8]
+  ],
+  "tiles": null,
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [3, 3],
+  "par": 3,
+  "tutorial": {
+    "lines": ["A slide stops on the first square of a new block", "or at the edge of the map"]
+  }
+}

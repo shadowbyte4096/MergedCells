@@ -1,0 +1,18 @@
+{
+  "id": 11,
+  "name": "Slide",
+  "chapter": 1,
+  "regions": [
+    [1, 1, 1, 1, 2]
+  ],
+  "tiles": null,
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [0, 4],
+  "par": 1,
+  "tutorial": {
+    "lines": ["Swipe right anywhere to slide", "You don't need to touch the player"],
+    "keyboardLines": ["Press → or D to slide"],
+    "swipeHint": "right"
+  }
+}

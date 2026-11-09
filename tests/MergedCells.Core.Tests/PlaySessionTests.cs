@@ -1,3 +1,5 @@
+using AutoFixture.Xunit3;
+
 namespace MergedCells.Core.Tests;
 
 // TestMaps.Example: Down goes to [1, 0], Down again to [3, 0], then Right wins on [3, 3]
@@ -265,5 +267,115 @@ public class PlaySessionTests
     public void Null_map_throws()
     {
         Assert.Throws<ArgumentNullException>(() => new PlaySession(null!));
+    }
+
+    private static PlaySession Limited(int limit) => new(TestMaps.Example(), new PlayRules(limit));
+
+    // Down to [1, 0], then Down to [3, 0], both slides finished
+    private static PlaySession TwoMovesMade(int limit)
+    {
+        var session = Limited(limit);
+        session.Request(Direction.Down);
+        session.FinishSlide();
+        session.Request(Direction.Down);
+        session.FinishSlide();
+        return session;
+    }
+
+    [Fact]
+    public void UndosLeft_is_null_without_rules()
+    {
+        Assert.Null(New().UndosLeft);
+    }
+
+    [Theory]
+    [AutoData]
+    public void UndosLeft_starts_at_the_limit(int limit)
+    {
+        Assert.Equal(limit, Limited(limit).UndosLeft);
+    }
+
+    // AutoFixture ints are positive, so the limits below cover the two moves undone
+    [Theory]
+    [AutoData]
+    public void Each_undone_move_uses_one(int spare)
+    {
+        var session = TwoMovesMade(spare + 2);
+
+        session.Undo();
+        session.Undo();
+
+        Assert.Equal((spare, Start), (session.UndosLeft, session.Position));
+    }
+
+    [Fact]
+    public void Undo_with_none_left_does_nothing()
+    {
+        var session = TwoMovesMade(1);
+        session.Undo();
+
+        var undone = session.Undo();
+
+        Assert.Equal(((Direction?)null, new Cell(1, 0), 1, 0), (undone, session.Position, session.Moves, session.UndosLeft));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Undo_with_nothing_to_undo_uses_none(int limit)
+    {
+        var session = Limited(limit);
+
+        session.Undo();
+
+        Assert.Equal(limit, session.UndosLeft);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Undoing_the_move_in_flight_uses_one(int spare)
+    {
+        var session = Limited(spare + 1);
+        session.Request(Direction.Down);
+
+        var undone = session.Undo();
+
+        Assert.Equal((Direction.Down, spare), (undone, session.UndosLeft));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Undo_once_won_uses_none(int limit)
+    {
+        var session = TwoMovesMade(limit);
+        session.Request(Direction.Right);
+
+        var undone = session.Undo();
+
+        Assert.Equal(((Direction?)null, limit), (undone, session.UndosLeft));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Restart_refills_the_undos(int spare)
+    {
+        var session = TwoMovesMade(spare + 2);
+        session.Undo();
+        session.Undo();
+
+        session.Restart();
+
+        Assert.Equal(spare + 2, session.UndosLeft);
+    }
+
+    [Fact]
+    public void A_limit_of_zero_refuses_every_undo()
+    {
+        var session = Limited(0);
+        session.Request(Direction.Down);
+        session.FinishSlide();
+
+        var undone = session.Undo();
+
+        Assert.Equal(((Direction?)null, 1), (undone, session.Moves));
     }
 }

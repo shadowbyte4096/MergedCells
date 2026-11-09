@@ -13,7 +13,7 @@ public class GameConfigTests
     private const string StarsGroup =
         """{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""";
 
-    private const string CampaignGroup = """{"gatePercent":1,"chapterStars":{}}""";
+    private const string CampaignGroup = """{"gatePercent":1,"chapterGatePercent":{},"chapterStars":{},"levelStars":{},"undoLimit":1}""";
 
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":{"squaresPerSecond":1,"maxSeconds":1},"stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
@@ -39,10 +39,13 @@ public class GameConfigTests
         float zoomStep = 1,
         float slop = 1,
         int gatePercent = 1,
-        string chapterStars = "{}") =>
+        string chapterStars = "{}",
+        string chapterGatePercent = "{}",
+        string levelStars = "{}",
+        int undoLimit = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterStars":{{{chapterStars}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -91,6 +94,17 @@ public class GameConfigTests
         Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":{\"0\":" + StarsGroup + "}"),
         Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":{\"2\":" + StarsGroup.Replace(",\"oneStarExtraParPercent\":1", "") + "}"),
         Valid.Replace("\"gatePercent\":1", "\"gatePercent\":1,\"extra\":1"),
+        Valid.Replace(",\"chapterGatePercent\":{}", ""),
+        Valid.Replace("\"chapterGatePercent\":{}", "\"chapterGatePercent\":null"),
+        Valid.Replace("\"chapterGatePercent\":{}", "\"chapterGatePercent\":{\"0\":50}"),
+        Valid.Replace("\"chapterGatePercent\":{}", "\"chapterGatePercent\":{\"2\":null}"),
+        Valid.Replace(",\"levelStars\":{}", ""),
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":null"),
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":null}"),
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"0\":" + StarsGroup + "}"),
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":" + StarsGroup.Replace(",\"oneStarExtraParPercent\":1", "") + "}"),
+        Valid.Replace(",\"undoLimit\":1", ""),
+        Valid.Replace("\"undoLimit\":1", "\"undoLimit\":1.5"),
         "null",
         "not json",
         "",
@@ -152,28 +166,49 @@ public class GameConfigTests
         Assert.Equal(percent, GameConfig.Parse(ConfigText(gatePercent: percent)).Campaign.GatePercent);
     }
 
-    [Fact]
-    public void StarsFor_uses_the_top_level_stars_for_an_unlisted_chapter()
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_undo_limit_and_chapter_gate_percentages(int undoLimit, int percent)
     {
-        var config = GameConfig.Parse(ConfigText(chapterStars: ChapterThreeStars));
+        var campaign = GameConfig.Parse(ConfigText(undoLimit: undoLimit, chapterGatePercent: $"{{\"2\":{percent}}}")).Campaign;
 
-        Assert.Equal(config.Stars, config.StarsFor(1));
+        Assert.Equal((undoLimit, percent), (campaign.UndoLimit, campaign.ChapterGatePercent[2]));
     }
 
-    [Fact]
-    public void StarsFor_uses_a_chapter_s_own_thresholds()
+    private const string LevelFourStars =
+        """{"4":{"twoStarMinExtraMoves":8,"twoStarExtraParPercent":8,"oneStarMinExtraMoves":8,"oneStarExtraParPercent":8}}""";
+
+    [Theory]
+    [InlineData(true, true, 8)]
+    [InlineData(true, false, 8)]
+    [InlineData(false, true, 9)]
+    [InlineData(false, false, 1)]
+    public void StarsFor_takes_the_level_s_then_the_chapter_s_then_the_default(bool levelHasOwn, bool chapterHasOwn, int expected)
     {
-        var config = GameConfig.Parse(ConfigText(chapterStars: ChapterThreeStars));
+        var config = GameConfig.Parse(ConfigText(
+            levelStars: levelHasOwn ? LevelFourStars : "{}",
+            chapterStars: chapterHasOwn ? ChapterThreeStars : "{}"));
+        var level = new Level(4, "Four", 3, TestMaps.Example(), 3);
 
         Assert.Equal(
-            new StarsConfig { TwoStarMinExtraMoves = 9, TwoStarExtraParPercent = 9, OneStarMinExtraMoves = 9, OneStarExtraParPercent = 9 },
-            config.StarsFor(3));
+            new StarsConfig
+            {
+                TwoStarMinExtraMoves = expected,
+                TwoStarExtraParPercent = expected,
+                OneStarMinExtraMoves = expected,
+                OneStarExtraParPercent = expected,
+            },
+            config.StarsFor(level));
     }
 
     [Fact]
-    public void Shipped_gate_percentage_is_55()
+    public void Shipped_campaign_values()
     {
-        Assert.Equal(55, Shipped().Campaign.GatePercent);
+        var campaign = Shipped().Campaign;
+
+        Assert.Equal(
+            (66, 5, 0),
+            (campaign.GatePercent, campaign.UndoLimit, campaign.ChapterGatePercent.Count));
     }
 
     [Fact]

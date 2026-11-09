@@ -12,6 +12,7 @@ public partial class Main : Node
     private const double FrameLogSeconds = 5;
 
     private Campaign campaign;
+    private PlayRules campaignRules;
     private Node screen;
     private Action back;
     private bool atRoot;
@@ -33,6 +34,8 @@ public partial class Main : Node
     [Export] public PackedScene LevelSelectScene { get; set; }
 
     [Export] public PackedScene CreditsScene { get; set; }
+
+    [Export] public PackedScene ChapterCardScene { get; set; }
 
     [Export] public PackedScene PlayScene { get; set; }
 
@@ -67,6 +70,7 @@ public partial class Main : Node
         GD.Print($"Campaign: {Plural(campaign.Chapters.Count, "chapter")}, {Plural(campaign.Levels.Count, "level")}");
         try
         {
+            campaignRules = new PlayRules(GameConfigFile.Current.Campaign.UndoLimit);
             _ = Progress();
         }
         catch (ArgumentOutOfRangeException exception)
@@ -158,6 +162,15 @@ public partial class Main : Node
         back = ShowModeSelect;
     });
 
+    public void ShowChapterCard(Chapter finished, Chapter next) => Swap(() =>
+    {
+        var card = Open<ChapterCard>(ChapterCardScene);
+        card.StartPressed += () => ShowLevel(next.Levels[0]);
+        card.AllChaptersPressed += () => ShowLevelSelect(next);
+        card.Open(finished, next);
+        back = () => ShowLevelSelect(next);
+    });
+
     public void ShowLevel(Level next)
     {
         if (screen is Play current && pendingSwap is null)
@@ -241,14 +254,14 @@ public partial class Main : Node
         testBoard = null;
         var chapter = campaign.ChapterOf(next);
         var number = campaign.NumberInChapter(next);
-        var stars = GameConfigFile.Current.StarsFor(chapter.Number);
+        var stars = GameConfigFile.Current.StarsFor(next);
         var played = Progress().Stars(next) is { } earned
             ? $"best {SaveGameFile.Current.BestMoves(next)}, {Plural(earned, "star")}"
             : "not played";
         GD.Print($"Level {chapter.Number}-{number}: {next.Name} (id {next.Id}, par {next.Par}, {played})");
         play.Start(
             next.Map, next.Par, $"{number} · {next.Name}", stars, () => Progress().Next(next) is not null,
-            moves => RecordFinish(next, moves, stars));
+            moves => RecordFinish(next, moves, stars), campaignRules, next.Tutorial);
         back = () => ShowLevelSelect(chapter);
     }
 
@@ -282,7 +295,16 @@ public partial class Main : Node
         }
         else if (level is not null && Progress().Next(level) is { } next)
         {
-            ShowLevel(next);
+            var finished = campaign.ChapterOf(level);
+            var following = campaign.ChapterOf(next);
+            if (following.Number != finished.Number)
+            {
+                ShowChapterCard(finished, following);
+            }
+            else
+            {
+                ShowLevel(next);
+            }
         }
     }
 
