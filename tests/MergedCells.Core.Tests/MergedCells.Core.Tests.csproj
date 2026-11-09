@@ -21,5 +21,9 @@
   <ItemGroup>
     <None Include="..\..\config\game_config.json" Link="game_config.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\levels\*.json" LinkBase="levels" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\campaign\*.json" LinkBase="campaign" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\credits\*.json" LinkBase="credits" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\credits\licences\*.txt" LinkBase="credits\licences" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\MergedCells.csproj" Link="MergedCells.csproj" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

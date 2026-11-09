@@ -1,0 +1,97 @@
+using System;
+using Godot;
+using MergedCells.Core;
+
+namespace MergedCells;
+
+// The first screen: the title, the star total, Campaign, the modes still to come greyed out, Credits and the gear
+public partial class ModeSelect : CanvasLayer, IScreen
+{
+    private Control root;
+    private Control topBar;
+    private Control bottomBar;
+    private StarsView star;
+    private Label totalLabel;
+    private Button testBoards;
+    private SettingsSheet settings;
+    private Appearance appearance;
+    private bool dark;
+
+    public event Action CampaignPressed;
+
+    public event Action CreditsPressed;
+
+    public event Action TestBoardsPressed;
+
+    public event Action<Appearance> AppearanceChosen;
+
+    [Export] public AppLooks Looks { get; set; }
+
+    public bool Dark
+    {
+        set
+        {
+            dark = value;
+            ApplyLook();
+        }
+    }
+
+    public override void _Ready()
+    {
+        root = GetNode<Control>("Root");
+        topBar = GetNode<Control>("Root/TopBar");
+        bottomBar = GetNode<Control>("Root/BottomBar");
+        star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
+        totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
+        testBoards = GetNode<Button>("Root/Centre/Column/TestBoards");
+        settings = GetNode<SettingsSheet>("Root/Settings");
+
+        star.Looks = [StarLook.Earned];
+        GetNode<Button>("Root/Centre/Column/Campaign").Pressed += () => CampaignPressed?.Invoke();
+        testBoards.Pressed += () => TestBoardsPressed?.Invoke();
+        GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();
+        GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open(appearance);
+        settings.AppearanceChosen += choice =>
+        {
+            appearance = choice;
+            AppearanceChosen?.Invoke(choice);
+        };
+        GetViewport().SizeChanged += ApplySafeArea;
+        ApplyLook();
+        ApplySafeArea();
+    }
+
+    public void Open(int totalStars, bool showTestBoards, Appearance saved)
+    {
+        totalLabel.Text = totalStars.ToString();
+        testBoards.Visible = showTestBoards;
+        appearance = saved;
+        GD.Print("Screen: mode select");
+    }
+
+    public bool CloseOverlay()
+    {
+        var open = settings.IsOpen;
+        settings.Close();
+        return open;
+    }
+
+    private void ApplyLook()
+    {
+        if (root is null)
+        {
+            return;
+        }
+        root.Theme = Looks.Ui(dark);
+        RenderingServer.SetDefaultClearColor(Looks.Board(dark).Background);
+    }
+
+    private void ApplySafeArea()
+    {
+        var (top, bottom) = SafeArea.Insets(this);
+        topBar.OffsetTop = top;
+        topBar.OffsetBottom = top + topBar.GetCombinedMinimumSize().Y;
+        bottomBar.OffsetBottom = -bottom;
+        bottomBar.OffsetTop = -bottom - bottomBar.GetCombinedMinimumSize().Y;
+    }
+}

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="AppLooks" format=3]
+
+[ext_resource type="Script" path="res://themes/AppLooks.cs" id="1_looks"]
+[ext_resource type="Resource" path="res://themes/light_board_theme.tres" id="2_light_board"]
+[ext_resource type="Resource" path="res://themes/dark_board_theme.tres" id="3_dark_board"]
+[ext_resource type="Resource" path="res://themes/light_player_look.tres" id="4_light_look"]
+[ext_resource type="Resource" path="res://themes/dark_player_look.tres" id="5_dark_look"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="6_light_ui"]
+[ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="7_dark_ui"]
+
+[resource]
+script = ExtResource("1_looks")
+LightBoard = ExtResource("2_light_board")
+DarkBoard = ExtResource("3_dark_board")
+LightLook = ExtResource("4_light_look")
+DarkLook = ExtResource("5_dark_look")
+LightUi = ExtResource("6_light_ui")
+DarkUi = ExtResource("7_dark_ui")

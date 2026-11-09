@@ -1,0 +1,95 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/CreditsScreen.cs" id="1_credits"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="4_back"]
+
+[node name="Credits" type="CanvasLayer"]
+script = ExtResource("1_credits")
+Looks = ExtResource("2_looks")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="Layout" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopBar" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Root/Layout/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 0
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="TitleLabel" type="Label" parent="Root/Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text = "Credits"
+horizontal_alignment = 1
+
+[node name="RightSpacer" type="Control" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Root/Layout/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Column" type="VBoxContainer" parent="Root/Layout/Scroll/Margin"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="People" type="VBoxContainer" parent="Root/Layout/Scroll/Margin/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Licences" type="VBoxContainer" parent="Root/Layout/Scroll/Margin/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+
+[node name="BottomBar" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="ShowLicences" type="Button" parent="Root/Layout/BottomBar"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Licences"

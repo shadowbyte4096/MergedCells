@@ -16,6 +16,12 @@ public sealed record GameConfig
 
     public required CameraConfig Camera { get; init; }
 
+    public required CampaignConfig Campaign { get; init; }
+
+    // The one place a chapter's star thresholds are resolved: its own entry, otherwise the top-level group
+    public StarsConfig StarsFor(int chapterNumber) =>
+        Campaign.ChapterStars.TryGetValue(chapterNumber, out var stars) ? stars : Stars;
+
     /// <summary>
     /// Parses the config file's text. Throws <see cref="JsonException"/>, naming the problem, when a group or value
     /// is missing, null or of the wrong type, when a key is unknown, or when the text isn't JSON.
@@ -42,6 +48,25 @@ public sealed record GameConfig
         if (config.Camera is null)
         {
             throw new JsonException("The config's \"camera\" group is null.");
+        }
+        if (config.Campaign is null)
+        {
+            throw new JsonException("The config's \"campaign\" group is null.");
+        }
+        if (config.Campaign.ChapterStars is null)
+        {
+            throw new JsonException("The config's \"chapterStars\" is null.");
+        }
+        foreach (var (chapter, stars) in config.Campaign.ChapterStars)
+        {
+            if (chapter < 1)
+            {
+                throw new JsonException($"The config's \"chapterStars\" key {chapter} must be at least 1.");
+            }
+            if (stars is null)
+            {
+                throw new JsonException($"The config's \"chapterStars\" entry for chapter {chapter} is null.");
+            }
         }
         return config;
     }
@@ -97,6 +122,15 @@ public sealed record CameraConfig
 
     // In viewport units: how far a two-finger gesture or a mouse drag must move before it moves the view
     public required float GestureSlop { get; init; }
+}
+
+public sealed record CampaignConfig
+{
+    // A chapter's gate is this percentage of the stars in all earlier chapters, rounded up
+    public required int GatePercent { get; init; }
+
+    // Star thresholds for chapters that don't use the top-level "stars" group, keyed by chapter number
+    public required IReadOnlyDictionary<int, StarsConfig> ChapterStars { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

@@ -5,7 +5,7 @@ using MergedCells.Core;
 namespace MergedCells;
 
 // One level on screen: the board, the HUD, the slide animation, and the glue between input and the PlaySession
-public partial class Play : Node2D
+public partial class Play : Node2D, IScreen
 {
     private BoardView board;
     private PlayerView player;
@@ -23,6 +23,8 @@ public partial class Play : Node2D
 
     private PlaySession session;
     private int par;
+    private StarsConfig stars;
+    private Func<bool> hasNext;
     private Func<int, LevelFinish> recordFinish;
 
     private PlayerSlide? sliding;
@@ -32,22 +34,15 @@ public partial class Play : Node2D
 
     public event Action NextPressed;
 
+    // The top bar's back chevron or the results card's Menu
+    public event Action MenuPressed;
+
     public event Action<Appearance> AppearanceChosen;
 
     // The saved choice, set by the caller, so the settings sheet opens on it
     public Appearance Appearance { get; set; }
 
-    [Export] public BoardTheme LightBoard { get; set; }
-
-    [Export] public BoardTheme DarkBoard { get; set; }
-
-    [Export] public PlayerLook LightLook { get; set; }
-
-    [Export] public PlayerLook DarkLook { get; set; }
-
-    [Export] public Theme LightUi { get; set; }
-
-    [Export] public Theme DarkUi { get; set; }
+    [Export] public AppLooks Looks { get; set; }
 
     public bool Dark
     {
@@ -85,6 +80,8 @@ public partial class Play : Node2D
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
         results.RetryPressed += Retry;
         results.NextPressed += () => NextPressed?.Invoke();
+        results.MenuPressed += () => MenuPressed?.Invoke();
+        GetNode<Button>("Hud/Root/TopBar/Row/Back").Pressed += () => MenuPressed?.Invoke();
         GetNode<Button>("Hud/Root/TopBar/Row/SettingsButton").Pressed += OpenSettings;
         settings.AppearanceChosen += choice =>
         {
@@ -110,23 +107,36 @@ public partial class Play : Node2D
     private void ApplyAppearance(bool toDark)
     {
         dark = toDark;
-        var look = dark ? DarkLook : LightLook;
-        board.Theme = dark ? DarkBoard : LightBoard;
+        var look = Looks.Look(dark);
+        board.Theme = Looks.Board(dark);
         board.GetNode<StartMarker>("StartMarker").Look = look;
         trail.Look = look;
         player.Look = look;
-        GetNode<Control>("Hud/Root").Theme = dark ? DarkUi : LightUi;
+        GetNode<Control>("Hud/Root").Theme = Looks.Ui(dark);
     }
 
-    // recordFinish is called with the move count when the level is won, and returns how the finish compares with the
-    // saved best. Play never sees level IDs or the save. Null (test boards) records nothing.
-    public void Start(Map map, int par, string title, bool hasNext, Func<int, LevelFinish> recordFinish = null)
+    public bool CloseOverlay()
+    {
+        var open = settings.IsOpen;
+        settings.Close();
+        return open;
+    }
+
+    // stars are the level's thresholds (its chapter's in the campaign). hasNext is asked when the results card appears,
+    // so a finish that opens the next chapter enables Next. recordFinish is called with the move count when the level is
+    // won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
+    // boards) records nothing.
+    public void Start(Map map, int par, string title, StarsConfig stars, Func<bool> hasNext, Func<int, LevelFinish> recordFinish = null)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
         ArgumentException.ThrowIfNullOrEmpty(title);
+        ArgumentNullException.ThrowIfNull(stars);
+        ArgumentNullException.ThrowIfNull(hasNext);
 
         this.par = par;
+        this.stars = stars;
+        this.hasNext = hasNext;
         this.recordFinish = recordFinish;
         session = new PlaySession(map);
         board.Map = map;
@@ -137,7 +147,6 @@ public partial class Play : Node2D
         player.Cell = session.Position;
         titleLabel.Text = title;
         results.Title = title;
-        results.HasNext = hasNext;
         RefreshMoves();
         SetClearColor();
         UpdateInsets();
@@ -281,13 +290,13 @@ public partial class Play : Node2D
 
     private void Finish()
     {
-        var config = GameConfigFile.Current.Stars;
-        var stars = Stars.Earned(session.Moves, par, config);
+        var earned = Stars.Earned(session.Moves, par, stars);
         var finish = recordFinish?.Invoke(session.Moves);
         settings.Close();
         camera.InputEnabled = false;
-        results.ShowResults(session.Moves, par, stars, Stars.TwoStarLimit(par, config), Stars.OneStarLimit(par, config), finish);
-        GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(stars, "star")}");
+        results.HasNext = hasNext();
+        results.ShowResults(session.Moves, par, earned, Stars.TwoStarLimit(par, stars), Stars.OneStarLimit(par, stars), finish);
+        GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(earned, "star")}");
     }
 
     private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
@@ -302,7 +311,7 @@ public partial class Play : Node2D
     // flush with the bottom edge, as its own padding already clears a gesture bar.
     private void ApplySafeArea()
     {
-        var (top, bottom) = SafeInsets();
+        var (top, bottom) = SafeArea.Insets(this);
         foreach (var bar in new[] { topBar, resultsTitleBar })
         {
             bar.OffsetTop = top;
@@ -311,22 +320,6 @@ public partial class Play : Node2D
         bottomBar.OffsetBottom = -bottom;
         bottomBar.OffsetTop = -bottom - bottomBar.GetCombinedMinimumSize().Y;
         UpdateInsets();
-    }
-
-    // In viewport units. Desktop windows aren't cut into, and there the safe area is only the screen's usable rect.
-    private (float Top, float Bottom) SafeInsets()
-    {
-        if (!OS.HasFeature("mobile"))
-        {
-            return (0, 0);
-        }
-        var safe = DisplayServer.GetDisplaySafeArea();
-        var window = new Rect2I(DisplayServer.WindowGetPosition(), DisplayServer.WindowGetSize());
-        var scale = GetTree().Root.GetFinalTransform().Scale.Y;
-        var top = Math.Max(0, safe.Position.Y - window.Position.Y) / scale;
-        var bottom = Math.Max(0, window.End.Y - safe.End.Y) / scale;
-        GD.Print($"Safe area: top {top:0.#}, bottom {bottom:0.#}");
-        return (top, bottom);
     }
 
     private void SetClearColor()

@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The card over the faded board when a level is won. Menu stays disabled until chunk 11.
+// The card over the faded board when a level is won
 public partial class ResultsScreen : Control
 {
     private Label titleLabel;
@@ -17,6 +17,8 @@ public partial class ResultsScreen : Control
     public event Action RetryPressed;
 
     public event Action NextPressed;
+
+    public event Action MenuPressed;
 
     public string Title
     {
@@ -37,6 +39,7 @@ public partial class ResultsScreen : Control
         parLabel = GetNode<Label>("Sheet/Column/ParLabel");
         bestLabel = GetNode<Label>("Sheet/Column/BestLabel");
         GetNode<Button>("Sheet/Column/Buttons/Retry").Pressed += () => RetryPressed?.Invoke();
+        GetNode<Button>("Sheet/Column/Buttons/Menu").Pressed += () => MenuPressed?.Invoke();
         nextButton = GetNode<Button>("Sheet/Column/Buttons/Next");
         nextButton.Pressed += () => NextPressed?.Invoke();
     }

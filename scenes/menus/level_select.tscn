@@ -1,0 +1,188 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/LevelSelect.cs" id="1_select"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="4_back"]
+[ext_resource type="Texture2D" path="res://themes/icons/forward.svg" id="5_forward"]
+[ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="6_settings"]
+[ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="7_stars"]
+[ext_resource type="Script" path="res://scenes/menus/DashedPanel.cs" id="8_dashed"]
+[ext_resource type="Script" path="res://scenes/menus/PageDots.cs" id="9_dots"]
+[ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="10_sheet"]
+
+[node name="LevelSelect" type="CanvasLayer"]
+script = ExtResource("1_select")
+Looks = ExtResource("2_looks")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="Layout" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PageColumn"
+
+[node name="TopBar" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Root/Layout/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 0
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="Total" type="HBoxContainer" parent="Root/Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="Star" type="Control" parent="Root/Layout/TopBar/Row/Total"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("7_stars")
+ThemeType = "TotalStar"
+
+[node name="TotalLabel" type="Label" parent="Root/Layout/TopBar/Row/Total"]
+layout_mode = 2
+theme_type_variation = &"TotalLine"
+text = "0"
+
+[node name="SettingsButton" type="Button" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 0
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("6_settings")
+icon_alignment = 1
+
+[node name="Header" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PageHeader"
+
+[node name="Row" type="HBoxContainer" parent="Root/Layout/Header"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Previous" type="Button" parent="Root/Layout/Header/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="Heading" type="VBoxContainer" parent="Root/Layout/Header/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="ChapterLabel" type="Label" parent="Root/Layout/Header/Row/Heading"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Chapter 1"
+horizontal_alignment = 1
+
+[node name="NameLabel" type="Label" parent="Root/Layout/Header/Row/Heading"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "Plain sliding"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Next" type="Button" parent="Root/Layout/Header/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("5_forward")
+icon_alignment = 1
+
+[node name="Middle" type="ScrollContainer" parent="Root/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Column" type="VBoxContainer" parent="Root/Layout/Middle"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"PageMiddle"
+
+[node name="GridCentre" type="CenterContainer" parent="Root/Layout/Middle/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Grid" type="GridContainer" parent="Root/Layout/Middle/Column/GridCentre"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TileGrid"
+columns = 3
+
+[node name="CardCentre" type="CenterContainer" parent="Root/Layout/Middle/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LockedCard" type="PanelContainer" parent="Root/Layout/Middle/Column/CardCentre"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"LockedCard"
+script = ExtResource("8_dashed")
+
+[node name="Column" type="VBoxContainer" parent="Root/Layout/Middle/Column/CardCentre/LockedCard"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CardTitle" type="Label" parent="Root/Layout/Middle/Column/CardCentre/LockedCard/Column"]
+layout_mode = 2
+theme_type_variation = &"LockedTitle"
+text = "Chapter 2 · Irregular regions"
+horizontal_alignment = 1
+
+[node name="CardLine" type="Label" parent="Root/Layout/Middle/Column/CardCentre/LockedCard/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "14 stars to open"
+horizontal_alignment = 1
+
+[node name="Dots" type="Control" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+script = ExtResource("9_dots")
+
+[node name="BottomGap" type="Control" parent="Root/Layout"]
+custom_minimum_size = Vector2(0, 24)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Settings" parent="Root" instance=ExtResource("10_sheet")]
+layout_mode = 1

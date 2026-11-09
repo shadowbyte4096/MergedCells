@@ -10,9 +10,17 @@ public class GameConfigTests
     private const string CameraGroup =
         """{"readableSquareSize":1,"closestSquareSize":1,"followZonePercent":1,"glideSeconds":1,"openingSeconds":1,"openingHoldSeconds":1,"zoomStep":1,"gestureSlop":1}""";
 
+    private const string StarsGroup =
+        """{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""";
+
+    private const string CampaignGroup = """{"gatePercent":1,"chapterStars":{}}""";
+
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":{"squaresPerSecond":1,"maxSeconds":1},"stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
-        + CameraGroup + "}";
+        + CameraGroup + ""","campaign":""" + CampaignGroup + "}";
+
+    private const string ChapterThreeStars =
+        """{"3":{"twoStarMinExtraMoves":9,"twoStarExtraParPercent":9,"oneStarMinExtraMoves":9,"oneStarExtraParPercent":9}}""";
 
     private static string ConfigText(
         float threshold = 1,
@@ -29,10 +37,12 @@ public class GameConfigTests
         double opening = 1,
         double hold = 1,
         float zoomStep = 1,
-        float slop = 1) =>
+        float slop = 1,
+        int gatePercent = 1,
+        string chapterStars = "{}") =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterStars":{{{chapterStars}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -72,6 +82,15 @@ public class GameConfigTests
         Valid.Replace(""","gestureSlop":1""", ""),
         Valid.Replace("\"zoomStep\":1", "\"zoomStep\":1,\"extra\":1"),
         Valid.Replace("\"zoomStep\":1", "\"zoomStep\":\"1\""),
+        Valid.Replace(""","campaign":""" + CampaignGroup, ""),
+        Valid.Replace(CampaignGroup, "null"),
+        Valid.Replace("\"gatePercent\":1,", ""),
+        Valid.Replace(",\"chapterStars\":{}", ""),
+        Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":null"),
+        Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":{\"2\":null}"),
+        Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":{\"0\":" + StarsGroup + "}"),
+        Valid.Replace("\"chapterStars\":{}", "\"chapterStars\":{\"2\":" + StarsGroup.Replace(",\"oneStarExtraParPercent\":1", "") + "}"),
+        Valid.Replace("\"gatePercent\":1", "\"gatePercent\":1,\"extra\":1"),
         "null",
         "not json",
         "",
@@ -124,6 +143,37 @@ public class GameConfigTests
             (readable, closest, zonePercent, glide, opening, hold, zoomStep, slop),
             (camera.ReadableSquareSize, camera.ClosestSquareSize, camera.FollowZonePercent, camera.GlideSeconds,
                 camera.OpeningSeconds, camera.OpeningHoldSeconds, camera.ZoomStep, camera.GestureSlop));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_gate_percentage(int percent)
+    {
+        Assert.Equal(percent, GameConfig.Parse(ConfigText(gatePercent: percent)).Campaign.GatePercent);
+    }
+
+    [Fact]
+    public void StarsFor_uses_the_top_level_stars_for_an_unlisted_chapter()
+    {
+        var config = GameConfig.Parse(ConfigText(chapterStars: ChapterThreeStars));
+
+        Assert.Equal(config.Stars, config.StarsFor(1));
+    }
+
+    [Fact]
+    public void StarsFor_uses_a_chapter_s_own_thresholds()
+    {
+        var config = GameConfig.Parse(ConfigText(chapterStars: ChapterThreeStars));
+
+        Assert.Equal(
+            new StarsConfig { TwoStarMinExtraMoves = 9, TwoStarExtraParPercent = 9, OneStarMinExtraMoves = 9, OneStarExtraParPercent = 9 },
+            config.StarsFor(3));
+    }
+
+    [Fact]
+    public void Shipped_gate_percentage_is_55()
+    {
+        Assert.Equal(55, Shipped().Campaign.GatePercent);
     }
 
     [Fact]

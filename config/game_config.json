@@ -21,5 +21,9 @@
     "openingHoldSeconds": 0,
     "zoomStep": 1.25,
     "gestureSlop": 14
+  },
+  "campaign": {
+    "gatePercent": 55,
+    "chapterStars": {}
   }
 }

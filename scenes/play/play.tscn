@@ -10,23 +10,14 @@
 [ext_resource type="Script" path="res://scenes/play/ResultsScreen.cs" id="8_results"]
 [ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="9_stars"]
 [ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="10_back"]
-[ext_resource type="Resource" path="res://themes/light_board_theme.tres" id="11_light_board"]
-[ext_resource type="Resource" path="res://themes/dark_board_theme.tres" id="12_dark_board"]
-[ext_resource type="Resource" path="res://themes/light_player_look.tres" id="13_light_look"]
-[ext_resource type="Resource" path="res://themes/dark_player_look.tres" id="14_dark_look"]
-[ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="15_dark_ui"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="11_looks"]
 [ext_resource type="Script" path="res://scenes/play/BarBackdrop.cs" id="16_backdrop"]
 [ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="17_settings"]
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="18_settings_sheet"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
-LightBoard = ExtResource("11_light_board")
-DarkBoard = ExtResource("12_dark_board")
-LightLook = ExtResource("13_light_look")
-DarkLook = ExtResource("14_dark_look")
-LightUi = ExtResource("5_theme")
-DarkUi = ExtResource("15_dark_ui")
+Looks = ExtResource("11_looks")
 
 [node name="Camera" type="Camera2D" parent="."]
 script = ExtResource("2_camera")
@@ -75,7 +66,6 @@ layout_mode = 2
 size_flags_vertical = 0
 focus_mode = 0
 theme_type_variation = &"BackButton"
-disabled = true
 icon = ExtResource("10_back")
 icon_alignment = 1
 
@@ -277,7 +267,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 focus_mode = 0
 theme_type_variation = &"PillButton"
-disabled = true
 text = "Menu"
 
 [node name="Next" type="Button" parent="Hud/Root/Results/Sheet/Column/Buttons"]

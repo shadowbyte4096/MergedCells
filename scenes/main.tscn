@@ -2,8 +2,13 @@
 
 [ext_resource type="Script" path="res://scenes/Main.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/play/play.tscn" id="2_play"]
+[ext_resource type="PackedScene" path="res://scenes/menus/mode_select.tscn" id="3_mode"]
+[ext_resource type="PackedScene" path="res://scenes/menus/level_select.tscn" id="4_select"]
+[ext_resource type="PackedScene" path="res://scenes/menus/credits.tscn" id="5_credits"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
-
-[node name="Play" parent="." instance=ExtResource("2_play")]
+ModeSelectScene = ExtResource("3_mode")
+LevelSelectScene = ExtResource("4_select")
+CreditsScene = ExtResource("5_credits")
+PlayScene = ExtResource("2_play")
