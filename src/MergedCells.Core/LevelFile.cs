@@ -10,10 +10,10 @@ public static class LevelFile
 
     /// <summary>
     /// Parses a level file's text. Throws <see cref="JsonException"/>, naming the problem, when a value is missing, null,
-    /// of the wrong type or out of range, when a key is unknown, when the grid's rows differ in length, when twist tiles or
-    /// teleporters are given (not supported yet), when a tutorial has no lines, more than two or a blank one, or an
-    /// unknown swipe direction, or when the text isn't JSON. Throws <see cref="InvalidMapException"/> when the map breaks
-    /// a map rule.
+    /// of the wrong type or out of range, when a key is unknown, when a grid's rows differ in length, when a tile code is
+    /// unknown or a later twist's, when teleporters are given (not supported yet), when a tutorial has no lines, more than
+    /// two or a blank one, or an unknown swipe direction, or when the text isn't JSON. Throws
+    /// <see cref="InvalidMapException"/> when the map breaks a map rule.
     /// </summary>
     public static Level Parse(string json)
     {
@@ -27,10 +27,6 @@ public static class LevelFile
         RequireValue(file.Regions, "regions");
         RequireValue(file.Start, "start");
         RequireValue(file.End, "end");
-        if (file.Tiles is not null)
-        {
-            throw new JsonException("The level's \"tiles\" must be null: twists aren't supported yet.");
-        }
         if (file.Teleporters is not null)
         {
             throw new JsonException("The level's \"teleporters\" must be null: twists aren't supported yet.");
@@ -44,7 +40,11 @@ public static class LevelFile
             throw new JsonException("The level's \"name\" is blank.");
         }
 
-        var map = Map.Create(Grid(file.Regions), Coordinate(file.Start, "start"), Coordinate(file.End, "end"));
+        var map = Map.Create(
+            Grid(file.Regions, "regions"),
+            Coordinate(file.Start, "start"),
+            Coordinate(file.End, "end"),
+            file.Tiles is null ? null : Tiles(Grid(file.Tiles, "tiles")));
         return new Level(file.Id, file.Name, file.Chapter, map, file.Par, ReadTutorial(file.Tutorial));
     }
 
@@ -95,7 +95,7 @@ public static class LevelFile
         }
     }
 
-    private static int[,] Grid(int[][] rows)
+    private static int[,] Grid(int[][] rows, string key)
     {
         var columns = rows.Length == 0 || rows[0] is null ? 0 : rows[0].Length;
         var grid = new int[rows.Length, columns];
@@ -103,11 +103,11 @@ public static class LevelFile
         {
             if (rows[row] is null)
             {
-                throw new JsonException($"Row {row} of \"regions\" is null.");
+                throw new JsonException($"Row {row} of \"{key}\" is null.");
             }
             if (rows[row].Length != columns)
             {
-                throw new JsonException($"Row {row} of \"regions\" has {rows[row].Length} squares; row 0 has {columns}.");
+                throw new JsonException($"Row {row} of \"{key}\" has {rows[row].Length} squares; row 0 has {columns}.");
             }
             for (var column = 0; column < columns; column++)
             {
@@ -115,6 +115,26 @@ public static class LevelFile
             }
         }
         return grid;
+    }
+
+    private static Tile[,] Tiles(int[,] codes)
+    {
+        var tiles = new Tile[codes.GetLength(0), codes.GetLength(1)];
+        for (var row = 0; row < codes.GetLength(0); row++)
+        {
+            for (var column = 0; column < codes.GetLength(1); column++)
+            {
+                tiles[row, column] = codes[row, column] switch
+                {
+                    0 => Tile.None,
+                    1 => Tile.Wall,
+                    2 => throw new JsonException($"The level's \"tiles\" has a sticky square at [{row}, {column}]: sticky squares aren't supported yet."),
+                    3 => throw new JsonException($"The level's \"tiles\" has a trap at [{row}, {column}]: traps aren't supported yet."),
+                    var code => throw new JsonException($"The level's \"tiles\" has the unknown code {code} at [{row}, {column}]."),
+                };
+            }
+        }
+        return tiles;
     }
 
     private static Cell Coordinate(int[] pair, string name) =>
@@ -133,9 +153,10 @@ internal sealed record LevelJson
 
     public required int[][] Regions { get; init; }
 
-    // Chunks 13 and 17 read these; until then a value is rejected rather than silently ignored
+    // Codes 0 (none) and 1 (wall); the later twists' codes are rejected until their chunks
     public int[][]? Tiles { get; init; }
 
+    // Chunk 17 reads these; until then a value is rejected rather than silently ignored
     public int[][][]? Teleporters { get; init; }
 
     public required int[] Start { get; init; }

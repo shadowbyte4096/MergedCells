@@ -11,6 +11,10 @@ public enum MapProblemKind
     StartRightOfEnd,
     StartBelowEnd,
     StartOnEnd,
+    TilesSizeMismatch,
+    UnknownTile,
+    WallOnStart,
+    WallOnEnd,
 }
 
 public sealed record MapProblem(MapProblemKind Kind, string Message);

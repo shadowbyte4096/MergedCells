@@ -1,0 +1,26 @@
+{
+  "id": 27,
+  "name": "Blocked",
+  "chapter": 3,
+  "regions": [
+    [1, 1, 1, 1, 1],
+    [2, 3, 3, 3, 4],
+    [2, 5, 5, 5, 4],
+    [2, 6, 6, 6, 4],
+    [7, 7, 7, 7, 8]
+  ],
+  "tiles": [
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 1],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0]
+  ],
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [4, 4],
+  "par": 3,
+  "tutorial": {
+    "lines": ["Walls block the way too", "You can't slide through them"]
+  }
+}

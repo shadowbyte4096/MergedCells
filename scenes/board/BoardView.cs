@@ -29,6 +29,9 @@ public partial class BoardView : Node2D
     private int colorCount;
     private StyleBoxFlat[] fillBoxes;
     private StyleBoxFlat dotBox;
+    private WallTextures wallTextures;
+    // Blocks keep their old drawing until they're rebuilt, so a replaced theme's wall textures are kept until then
+    private readonly List<WallTextures> retiredWallTextures = [];
     // One entry per Map.Rectangles index; null for regions that are rectangles
     private IrregularShape[] irregular;
     private BoardBlocks blocks;
@@ -59,6 +62,7 @@ public partial class BoardView : Node2D
                     Recolor();
                 }
             }
+            BuildWallTextures();
             BuildIrregularShapes();
             MarkUnbuilt();
             ThemeChanged?.Invoke();
@@ -185,6 +189,10 @@ public partial class BoardView : Node2D
         BuildBlock(block, outlined);
         built[block] = true;
         unbuilt--;
+        if (unbuilt == 0)
+        {
+            retiredWallTextures.Clear();
+        }
     }
 
     private void BuildBlock(int block, bool outlined)
@@ -228,6 +236,31 @@ public partial class BoardView : Node2D
             else
             {
                 RenderingServer.CanvasItemAddRect(item, area, isEnd ? theme.End : fill);
+            }
+        }
+        DrawWalls(item, block, outlined);
+    }
+
+    // After the block's regions, so a wall is never painted over (a square's region is in this block or an earlier one)
+    private void DrawWalls(Rid item, int block, bool outlined)
+    {
+        if (!map.HasTiles || wallTextures == null)
+        {
+            return;
+        }
+        var area = blocks.Area(block);
+        for (var row = area.Top; row <= area.Bottom; row++)
+        {
+            for (var column = area.Left; column <= area.Right; column++)
+            {
+                var cell = new Cell(row, column);
+                if (map.TileAt(cell) != Tile.Wall)
+                {
+                    continue;
+                }
+                var texture = wallTextures.For(WallNeighbours.Of(map, cell), outlined);
+                RenderingServer.CanvasItemAddTextureRect(
+                    item, new Rect2(column * CellSize, row * CellSize, CellSize, CellSize), texture.GetRid());
             }
         }
     }
@@ -314,6 +347,8 @@ public partial class BoardView : Node2D
         RenderingServer.CanvasItemSetParent(item, GetCanvasItem());
         RenderingServer.CanvasItemSetDrawBehindParent(item, true);
         RenderingServer.CanvasItemSetDrawIndex(item, block);
+        // For the wall textures; nothing else in a block is textured
+        RenderingServer.CanvasItemSetDefaultTextureFilter(item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
     }
 
@@ -348,6 +383,7 @@ public partial class BoardView : Node2D
             {
                 RenderingServer.CanvasItemClear(item);
             }
+            retiredWallTextures.Clear();
         }
     }
 
@@ -416,6 +452,25 @@ public partial class BoardView : Node2D
             fillBoxes[i].SetBorderWidthAll(border);
         }
         dotBox = RoundedBox(theme.End, Mathf.RoundToInt(theme.EndDotCornerFraction * theme.EndDotFraction * CellSize));
+    }
+
+    private void BuildWallTextures()
+    {
+        if (wallTextures != null)
+        {
+            retiredWallTextures.Add(wallTextures);
+        }
+        wallTextures = null;
+        if (theme == null)
+        {
+            return;
+        }
+        if (theme.WallRings < 1)
+        {
+            GD.PushError($"The board theme has {theme.WallRings} wall rings; it needs at least 1.");
+            return;
+        }
+        wallTextures = new WallTextures(theme);
     }
 
     private StyleBoxFlat RoundedBox(Color fill, int corner)

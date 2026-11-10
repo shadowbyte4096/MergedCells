@@ -2,13 +2,15 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// A fingerprint of everything that changes how a level plays: the grid's size, the regions' shapes, the start, the
-/// end and the par. Saved bests carry it, so a best from a level that has since changed is ignored.
+/// end, the par and any twist tiles. Saved bests carry it, so a best from a level that has since changed is ignored. A
+/// level without twists feeds nothing for them, so adding twist support never changes a plain level's fingerprint.
 /// </summary>
 public static class LevelFingerprint
 {
     // 64-bit FNV-1a. Never change the algorithm or the order things are fed in: every saved best would stop matching
     private const ulong OffsetBasis = 0xcbf29ce484222325;
     private const ulong Prime = 0x100000001b3;
+    private const int TilesSection = 1;
 
     public static string Of(Level level)
     {
@@ -45,6 +47,18 @@ public static class LevelFingerprint
         Feed(ref hash, map.End.Row);
         Feed(ref hash, map.End.Column);
         Feed(ref hash, par);
+        if (map.HasTiles)
+        {
+            // A marker before each twist section keeps one section's numbers from reading as another's
+            Feed(ref hash, TilesSection);
+            for (var row = 0; row < map.Rows; row++)
+            {
+                for (var column = 0; column < map.Columns; column++)
+                {
+                    Feed(ref hash, (int)map.TileAt(new Cell(row, column)));
+                }
+            }
+        }
         return hash.ToString("x16");
     }
 

@@ -5,7 +5,8 @@ namespace MergedCells.Core.Tests;
 
 public class SolverTests
 {
-    private sealed record MapCase(string Name, Func<Map> Build, int Par, string Path, int ReachableStops, long OptimalRoutes);
+    private sealed record MapCase(
+        string Name, Func<Map> Build, int Par, string Path, int ReachableStops, long OptimalRoutes, bool HasWalls = false);
 
     // One row per hand-made map: name, map, par, path as letters (U, D, L, R), reachable stops, optimal routes
     private static readonly MapCase[] Cases =
@@ -24,9 +25,26 @@ public class SolverTests
         new("RowStrips100", RowStrips100, 100, new string('D', 99) + "R", 200, 100),
         // About 2.3e58 optimal routes, so the count is capped
         new("Singles100", Singles100, 198, new string('D', 99) + new string('R', 99), 10_000, long.MaxValue),
+        // Level 26: the wall stops the first slide right above the end
+        new("WallStopper", () => Map.Create(Grid("AAAAA", "BCDEF"), new(0, 0), new(1, 2), Walls(2, 5, (0, 3))), 2, "RD", 6, 1, true),
+        // Level 27: the walls block the way down the right side. The middle column and [4, 2] can't be reached
+        new(
+            "WallBlocked",
+            () => Map.Create(Grid("AAAAA", "BCCCD", "BEEED", "BFFFD", "GGGGZ"), new(0, 0), new(4, 4), Walls(5, 5, (1, 4), (2, 4))),
+            3,
+            "DDR",
+            18,
+            1,
+            true),
+        new("WallPocket", WallPocket, 1, "D", 4, 1, true),
     ];
 
     public static TheoryData<string> CaseNames => new(Cases.Select(c => c.Name));
+
+    public static TheoryData<string> PlainCaseNames => new(Cases.Where(c => !c.HasWalls).Select(c => c.Name));
+
+    // The start is mid-strip, so the squares either side of it can never get back above the end
+    private static Map WallPocket() => Map.Create(Grid("AAA", "BZC"), new(0, 1), new(1, 1), Walls(2, 3, (1, 0), (1, 2)));
 
     // Each set starts at a different direction, so any change to the tie-break order fails at least one row
     public static TheoryData<Direction[], Direction> WinningDirections => new()
@@ -108,10 +126,29 @@ public class SolverTests
     }
 
     [Theory]
-    [MemberData(nameof(CaseNames))]
+    [MemberData(nameof(PlainCaseNames))]
     public void Plain_maps_have_no_dead_ends(string name)
     {
         Assert.Equal(0, Solver.Solve(Case(name).Build()).DeadEnds);
+    }
+
+    [Fact]
+    public void Walls_sealing_the_end_make_the_map_unsolvable()
+    {
+        var map = Map.Create(Grid("AB", "CD"), new(0, 0), new(1, 1), Walls(2, 2, (0, 1), (1, 0)));
+
+        var result = Solver.Solve(map);
+
+        Assert.Equal((false, (int?)null, 1, 1), (result.IsSolvable, result.Par, result.ReachableStops, result.DeadEnds));
+    }
+
+    // [0, 0] and [0, 2]: each can only slide to the other
+    [Fact]
+    public void Walls_can_leave_dead_ends_on_a_solvable_map()
+    {
+        var result = Solver.Solve(WallPocket());
+
+        Assert.Equal((true, 2), (result.IsSolvable, result.DeadEnds));
     }
 
     [Fact]

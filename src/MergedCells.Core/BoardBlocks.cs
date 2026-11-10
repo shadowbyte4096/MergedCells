@@ -11,8 +11,9 @@ public sealed class BoardBlocks
     private readonly int mapRows;
     private readonly int mapColumns;
     private readonly int[][] regions;
-    // The squares each block's regions cover, which can reach well past the block; null for a block that draws nothing
-    private readonly CellRange?[] reach;
+    // The squares each block draws on: its own, where twist marks go, and those its regions cover, which can reach well
+    // past the block
+    private readonly CellRange[] reach;
 
     public BoardBlocks(Map map, int size)
     {
@@ -32,14 +33,17 @@ public sealed class BoardBlocks
             lists[topLeft.Row / size * Columns + topLeft.Column / size].Add(index);
         }
         regions = lists.Select(list => list.ToArray()).ToArray();
+        // A block's regions start inside it, so they can only reach further down and right than its own squares
         reach = regions
-            .Select(indices => indices.Length == 0
-                ? (CellRange?)null
-                : new CellRange(
-                    indices.Min(index => map.Rectangles[index].TopLeft.Row),
-                    indices.Min(index => map.Rectangles[index].TopLeft.Column),
-                    indices.Max(index => map.Rectangles[index].BottomRight.Row),
-                    indices.Max(index => map.Rectangles[index].BottomRight.Column)))
+            .Select((indices, block) =>
+            {
+                var area = Area(block);
+                return new CellRange(
+                    area.Top,
+                    area.Left,
+                    indices.Select(index => map.Rectangles[index].BottomRight.Row).Append(area.Bottom).Max(),
+                    indices.Select(index => map.Rectangles[index].BottomRight.Column).Append(area.Right).Max());
+            })
             .ToArray();
     }
 
@@ -77,13 +81,16 @@ public sealed class BoardBlocks
         }
     }
 
-    /// <summary>The blocks whose regions reach into the range, so must be drawn to show it, in reading order.</summary>
+    /// <summary>
+    /// The blocks that must be drawn to show the range, in reading order: those overlapping it, and those whose regions
+    /// reach into it.
+    /// </summary>
     public IEnumerable<int> Drawing(CellRange range)
     {
         for (var block = 0; block < Count; block++)
         {
-            if (reach[block] is { } covered
-                && covered.Top <= range.Bottom && covered.Bottom >= range.Top
+            var covered = reach[block];
+            if (covered.Top <= range.Bottom && covered.Bottom >= range.Top
                 && covered.Left <= range.Right && covered.Right >= range.Left)
             {
                 yield return block;

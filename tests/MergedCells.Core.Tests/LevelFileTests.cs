@@ -43,7 +43,6 @@ public class LevelFileTests
         Valid.Replace("[4,5,2,3]", "null"),
         Valid.Replace("\"start\":[0,0]", "\"start\":[0]"),
         Valid.Replace("\"end\":[3,3]", "\"end\":[3,3,3]"),
-        Valid.Replace("\"tiles\":null", "\"tiles\":[[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]]"),
         Valid.Replace("\"teleporters\":null", "\"teleporters\":[[[0,1],[3,2]]]"),
         Valid.Replace("\"Two Down, One Across\"", "\"\""),
         Valid.Replace("\"Two Down, One Across\"", "\"  \""),

@@ -22,6 +22,43 @@ public class LevelFingerprintTests
         Assert.Equal("62afd3245b0a9990", LevelFingerprint.Of(TestMaps.Example(), 4));
     }
 
+    // Computed outside the code under test, like the plain pins: the plain values, then 1, then the 16 tile codes
+    [Fact]
+    public void Example_with_a_wall_fingerprint_is_pinned()
+    {
+        var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4, (1, 1)));
+
+        Assert.Equal("5519c22f56523c17", LevelFingerprint.Of(map, 3));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Tiles_with_no_walls_keep_the_plain_fingerprint(int par)
+    {
+        var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4));
+
+        Assert.Equal(LevelFingerprint.Of(TestMaps.Example(), Positive(par)), LevelFingerprint.Of(map, Positive(par)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Adding_a_wall_changes_the_fingerprint(int par)
+    {
+        var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4, (1, 1)));
+
+        Assert.NotEqual(LevelFingerprint.Of(TestMaps.Example(), Positive(par)), LevelFingerprint.Of(map, Positive(par)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Moving_a_wall_changes_the_fingerprint(int par)
+    {
+        var first = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4, (1, 1)));
+        var second = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4, (1, 2)));
+
+        Assert.NotEqual(LevelFingerprint.Of(first, Positive(par)), LevelFingerprint.Of(second, Positive(par)));
+    }
+
     public static TheoryData<string> MapNames => new() { "example", "rowStrips", "sketch" };
 
     private static Map Named(string name) => name switch

@@ -1,6 +1,7 @@
 {
   "chapters": [
     { "name": "Plain sliding", "levels": [11, 12, 13, 1, 2, 18, 19, 20, 21, 7, 23, 24, 25, 22, 8] },
-    { "name": "Irregular regions", "levels": [9, 10], "intro": ["Blocks can be any shape now.", "A slide still stops on the first square of a new block."] }
+    { "name": "Irregular regions", "levels": [9, 10], "intro": ["Blocks can be any shape now.", "A slide still stops on the first square of a new block."] },
+    { "name": "Walls", "levels": [26, 27], "intro": ["Walls stop a slide on the square before them.", "Use them to stop where you need to."] }
   ]
 }

@@ -15,6 +15,13 @@ public partial class BoardTheme : Resource
     // The end's dots, and the whole end square when zoomed out
     [Export] public Color End { get; set; } = new("#235e56");
 
+    // A wall's rings step from Wall at its edge to WallMiddle
+    [Export] public Color Wall { get; set; } = new("#235e56");
+
+    [Export] public Color WallMiddle { get; set; } = new("#a9c5c0");
+
+    [Export] public int WallRings { get; set; } = 4;
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

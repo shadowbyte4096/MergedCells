@@ -59,13 +59,14 @@ public class BoardBlocksTests
         Assert.Equal([0, 1, 13, 14], blocks.Overlapping(new CellRange(7, 0, 9, 8)));
     }
 
-    // Every row strip starts in column 0, so only block column 0 draws anything, but its strips reach every column
+    // Every row strip starts in column 0, so block column 0 reaches every column; the blocks the range overlaps count
+    // too, for the marks drawn per square
     [Fact]
-    public void Drawing_lists_the_blocks_whose_regions_reach_into_a_range()
+    public void Drawing_lists_the_blocks_reaching_or_overlapping_a_range()
     {
         var blocks = new BoardBlocks(TestMaps.RowStrips100(), 8);
 
-        Assert.Equal([0, 13], blocks.Drawing(new CellRange(7, 50, 9, 60)));
+        Assert.Equal([0, 6, 7, 13, 19, 20], blocks.Drawing(new CellRange(7, 50, 9, 60)));
     }
 
     [Fact]

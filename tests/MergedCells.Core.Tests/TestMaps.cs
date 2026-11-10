@@ -88,4 +88,15 @@ internal static class TestMaps
         }
         return relabelled;
     }
+
+    // A tile grid with walls on the given squares
+    public static Tile[,] Walls(int rows, int columns, params (int Row, int Column)[] walls)
+    {
+        var tiles = new Tile[rows, columns];
+        foreach (var (row, column) in walls)
+        {
+            tiles[row, column] = Tile.Wall;
+        }
+        return tiles;
+    }
 }
