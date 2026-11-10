@@ -46,14 +46,20 @@ public class LevelFileTilesTests
         Assert.Equal(MapProblemKind.TilesSizeMismatch, Assert.Single(ex.Problems).Kind);
     }
 
-    [Theory]
-    [InlineData(2, "sticky")]
-    [InlineData(3, "trap")]
-    public void Tile_codes_for_later_twists_are_rejected(int code, string twist)
+    [Fact]
+    public void Tile_code_2_is_read_as_a_sticky_square()
     {
-        var ex = Assert.Throws<JsonException>(() => LevelFile.Parse(WithTiles(NoWalls.Replace("[0,0,0,0]]", $"[0,{code},0,0]]"))));
+        var map = LevelFile.Parse(WithTiles("[[0,0,0,0],[0,2,0,0],[0,0,0,0],[0,0,0,0]]")).Map;
 
-        Assert.Contains(twist, ex.Message);
+        Assert.Equal(Tile.Sticky, map.TileAt(new(1, 1)));
+    }
+
+    [Fact]
+    public void Tile_code_for_traps_is_rejected()
+    {
+        var ex = Assert.Throws<JsonException>(() => LevelFile.Parse(WithTiles(NoWalls.Replace("[0,0,0,0]]", "[0,3,0,0]]"))));
+
+        Assert.Contains("trap", ex.Message);
     }
 
     [Theory]

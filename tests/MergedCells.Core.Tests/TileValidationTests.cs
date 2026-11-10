@@ -66,11 +66,38 @@ public class TileValidationTests
     }
 
     [Fact]
+    public void Sticky_square_on_the_end_is_a_problem()
+    {
+        Assert.Equal(new[] { StickyOnEnd }, ExampleKinds(Sticky(4, 4, (3, 3))));
+    }
+
+    [Fact]
+    public void Sticky_square_on_the_start_is_valid()
+    {
+        Assert.Empty(ExampleKinds(Sticky(4, 4, (0, 0))));
+    }
+
+    [Fact]
+    public void Region_of_only_sticky_squares_is_valid()
+    {
+        Assert.Empty(ExampleKinds(Sticky(4, 4, (0, 2), (1, 2))));
+    }
+
+    [Fact]
     public void Tile_problems_come_after_the_existing_ones()
     {
         var kinds = Kinds(AllSingles3x3(), new(0, 2), new(2, 0), Walls(3, 3, (0, 2), (2, 0)));
 
         Assert.Equal(new[] { StartRightOfEnd, WallOnStart, WallOnEnd }, kinds);
+    }
+
+    [Fact]
+    public void Sticky_end_comes_after_a_wall_on_the_start()
+    {
+        var tiles = Walls(4, 4, (0, 0));
+        tiles[3, 3] = Tile.Sticky;
+
+        Assert.Equal(new[] { WallOnStart, StickyOnEnd }, ExampleKinds(tiles));
     }
 
     [Fact]

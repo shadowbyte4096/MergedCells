@@ -6,7 +6,7 @@ namespace MergedCells.Core.Tests;
 public class SolverTests
 {
     private sealed record MapCase(
-        string Name, Func<Map> Build, int Par, string Path, int ReachableStops, long OptimalRoutes, bool HasWalls = false);
+        string Name, Func<Map> Build, int Par, string Path, int ReachableStops, long OptimalRoutes, bool HasTwists = false);
 
     // One row per hand-made map: name, map, par, path as letters (U, D, L, R), reachable stops, optimal routes
     private static readonly MapCase[] Cases =
@@ -37,11 +37,22 @@ public class SolverTests
             1,
             true),
         new("WallPocket", WallPocket, 1, "D", 4, 1, true),
+        // Level 28: the sticky square stops the first slide right beside the end
+        new("StickyStopper", () => Map.Create(Grid("AB", "AC", "AZ", "AD", "AE"), new(0, 0), new(2, 1), Sticky(5, 2, (2, 0))), 2, "DR", 10, 1, true),
+        // Level 29: the right-hand lane's two sticky squares make it a move slower than going round. Column 2 can't be reached
+        new(
+            "StickySlowLane",
+            () => Map.Create(Grid("AAAAB", "CDDDB", "CEEEB", "CFFFB", "GGGGZ"), new(0, 0), new(4, 4), Sticky(5, 5, (1, 4), (2, 4))),
+            3,
+            "DDR",
+            20,
+            1,
+            true),
     ];
 
     public static TheoryData<string> CaseNames => new(Cases.Select(c => c.Name));
 
-    public static TheoryData<string> PlainCaseNames => new(Cases.Where(c => !c.HasWalls).Select(c => c.Name));
+    public static TheoryData<string> PlainCaseNames => new(Cases.Where(c => !c.HasTwists).Select(c => c.Name));
 
     // The start is mid-strip, so the squares either side of it can never get back above the end
     private static Map WallPocket() => Map.Create(Grid("AAA", "BZC"), new(0, 1), new(1, 1), Walls(2, 3, (1, 0), (1, 2)));

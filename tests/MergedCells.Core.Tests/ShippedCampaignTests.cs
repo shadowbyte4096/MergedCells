@@ -58,7 +58,7 @@ public class ShippedCampaignTests
         Assert.Null(Record.Exception(() => CampaignProgress.Of(Campaign(), new SaveGame(), config)));
     }
 
-    // Chapter 2 opens at 30 stars and chapter 3 at 34 ("Chapter gates" in levels-and-campaign.md). Adding a level to an
+    // Chapter 2 opens at 30 stars, chapter 3 at 34 and chapter 4 at 38 ("Chapter gates" in levels-and-campaign.md). Adding a level to an
     // early chapter or retuning the percentage moves them, and players part-way through would find a chapter shut again
     [Fact]
     public void Shipped_chapter_gates_are_pinned()
@@ -66,7 +66,7 @@ public class ShippedCampaignTests
         var campaign = Campaign();
         var progress = CampaignProgress.Of(campaign, new SaveGame(), GameConfig.Parse(File.ReadAllText(Shipped("game_config.json"))));
 
-        Assert.Equal([0, 30, 34], campaign.Chapters.Select(progress.Gate));
+        Assert.Equal([0, 30, 34, 38], campaign.Chapters.Select(progress.Gate));
     }
 
     [Fact]

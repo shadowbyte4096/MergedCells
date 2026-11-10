@@ -22,6 +22,22 @@ public partial class BoardTheme : Resource
 
     [Export] public int WallRings { get; set; } = 4;
 
+    // A sticky square's diagonal stripes, drawn over StickyTint
+    [Export] public Color Sticky { get; set; } = new("#235e56");
+
+    [Export] public Color StickyTint { get; set; } = new("#f2f5f5");
+
+    // In from the grid line on sides that don't join another sticky square
+    [Export] public float StickyInsetFraction { get; set; } = 0.14f;
+
+    [Export] public float StickyCornerFraction { get; set; } = 0.12f;
+
+    // Stripes crossing each side of a square: a whole number, so they run unbroken across joined squares
+    [Export] public int StickyStripes { get; set; } = 4;
+
+    // Measured across a stripe
+    [Export] public float StickyStripeFraction { get; set; } = 0.085f;
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

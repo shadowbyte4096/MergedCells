@@ -30,8 +30,9 @@ public partial class BoardView : Node2D
     private StyleBoxFlat[] fillBoxes;
     private StyleBoxFlat dotBox;
     private WallTextures wallTextures;
-    // Blocks keep their old drawing until they're rebuilt, so a replaced theme's wall textures are kept until then
-    private readonly List<WallTextures> retiredWallTextures = [];
+    private StickyTextures stickyTextures;
+    // Blocks keep their old drawing until they're rebuilt, so a replaced theme's tile textures are kept until then
+    private readonly List<object> retiredTileTextures = [];
     // One entry per Map.Rectangles index; null for regions that are rectangles
     private IrregularShape[] irregular;
     private BoardBlocks blocks;
@@ -62,7 +63,7 @@ public partial class BoardView : Node2D
                     Recolor();
                 }
             }
-            BuildWallTextures();
+            BuildTileTextures();
             BuildIrregularShapes();
             MarkUnbuilt();
             ThemeChanged?.Invoke();
@@ -191,7 +192,7 @@ public partial class BoardView : Node2D
         unbuilt--;
         if (unbuilt == 0)
         {
-            retiredWallTextures.Clear();
+            retiredTileTextures.Clear();
         }
     }
 
@@ -238,13 +239,13 @@ public partial class BoardView : Node2D
                 RenderingServer.CanvasItemAddRect(item, area, isEnd ? theme.End : fill);
             }
         }
-        DrawWalls(item, block, outlined);
+        DrawTiles(item, block, outlined);
     }
 
-    // After the block's regions, so a wall is never painted over (a square's region is in this block or an earlier one)
-    private void DrawWalls(Rid item, int block, bool outlined)
+    // After the block's regions, so a twist is never painted over (a square's region is in this block or an earlier one)
+    private void DrawTiles(Rid item, int block, bool outlined)
     {
-        if (!map.HasTiles || wallTextures == null)
+        if (!map.HasTiles)
         {
             return;
         }
@@ -254,13 +255,17 @@ public partial class BoardView : Node2D
             for (var column = area.Left; column <= area.Right; column++)
             {
                 var cell = new Cell(row, column);
-                if (map.TileAt(cell) != Tile.Wall)
+                var texture = map.TileAt(cell) switch
                 {
-                    continue;
+                    Tile.Wall => wallTextures?.For(WallNeighbours.Of(map, cell), outlined),
+                    Tile.Sticky => stickyTextures?.For(StickyNeighbours.Of(map, cell), outlined),
+                    _ => null,
+                };
+                if (texture != null)
+                {
+                    RenderingServer.CanvasItemAddTextureRect(
+                        item, new Rect2(column * CellSize, row * CellSize, CellSize, CellSize), texture.GetRid());
                 }
-                var texture = wallTextures.For(WallNeighbours.Of(map, cell), outlined);
-                RenderingServer.CanvasItemAddTextureRect(
-                    item, new Rect2(column * CellSize, row * CellSize, CellSize, CellSize), texture.GetRid());
             }
         }
     }
@@ -347,7 +352,7 @@ public partial class BoardView : Node2D
         RenderingServer.CanvasItemSetParent(item, GetCanvasItem());
         RenderingServer.CanvasItemSetDrawBehindParent(item, true);
         RenderingServer.CanvasItemSetDrawIndex(item, block);
-        // For the wall textures; nothing else in a block is textured
+        // For the wall and sticky textures; nothing else in a block is textured
         RenderingServer.CanvasItemSetDefaultTextureFilter(item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
     }
@@ -383,7 +388,7 @@ public partial class BoardView : Node2D
             {
                 RenderingServer.CanvasItemClear(item);
             }
-            retiredWallTextures.Clear();
+            retiredTileTextures.Clear();
         }
     }
 
@@ -454,13 +459,18 @@ public partial class BoardView : Node2D
         dotBox = RoundedBox(theme.End, Mathf.RoundToInt(theme.EndDotCornerFraction * theme.EndDotFraction * CellSize));
     }
 
-    private void BuildWallTextures()
+    private void BuildTileTextures()
     {
         if (wallTextures != null)
         {
-            retiredWallTextures.Add(wallTextures);
+            retiredTileTextures.Add(wallTextures);
+        }
+        if (stickyTextures != null)
+        {
+            retiredTileTextures.Add(stickyTextures);
         }
         wallTextures = null;
+        stickyTextures = null;
         if (theme == null)
         {
             return;
@@ -468,9 +478,19 @@ public partial class BoardView : Node2D
         if (theme.WallRings < 1)
         {
             GD.PushError($"The board theme has {theme.WallRings} wall rings; it needs at least 1.");
-            return;
         }
-        wallTextures = new WallTextures(theme);
+        else
+        {
+            wallTextures = new WallTextures(theme);
+        }
+        if (theme.StickyStripes < 1)
+        {
+            GD.PushError($"The board theme has {theme.StickyStripes} sticky stripes; it needs at least 1.");
+        }
+        else
+        {
+            stickyTextures = new StickyTextures(theme);
+        }
     }
 
     private StyleBoxFlat RoundedBox(Color fill, int corner)

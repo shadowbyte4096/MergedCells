@@ -133,6 +133,10 @@ internal static class MapValidator
         {
             problems.Add(new MapProblem(MapProblemKind.WallOnEnd, $"The end {Describe(end)} is a wall."));
         }
+        if (Map.IsInside(end, rows, columns) && tiles[end.Row, end.Column] == Tile.Sticky)
+        {
+            problems.Add(new MapProblem(MapProblemKind.StickyOnEnd, $"The end {Describe(end)} is a sticky square."));
+        }
     }
 
     private static Cell? FirstUndefined(Tile[,] tiles)

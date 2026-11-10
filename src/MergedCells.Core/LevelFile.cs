@@ -130,7 +130,7 @@ public static class LevelFile
                 {
                     0 => Tile.None,
                     1 => Tile.Wall,
-                    2 => throw new JsonException($"The level's \"tiles\" has a sticky square at [{row}, {column}]: sticky squares aren't supported yet."),
+                    2 => Tile.Sticky,
                     3 => throw new JsonException($"The level's \"tiles\" has a trap at [{row}, {column}]: traps aren't supported yet."),
                     var code => throw new JsonException($"The level's \"tiles\" has the unknown code {code} at [{row}, {column}]."),
                 };
@@ -155,7 +155,7 @@ internal sealed record LevelJson
 
     public required int[][] Regions { get; init; }
 
-    // Codes 0 (none) and 1 (wall); the later twists' codes are rejected until their chunks
+    // Codes 0 (none), 1 (wall) and 2 (sticky); 3 (trap) is rejected until its chunk
     public int[][]? Tiles { get; init; }
 
     // Chunk 17 reads these; until then a value is rejected rather than silently ignored

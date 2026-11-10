@@ -71,6 +71,25 @@ public class LevelFingerprintTests
         Assert.NotEqual(LevelFingerprint.Of(first, Positive(par)), LevelFingerprint.Of(second, Positive(par)));
     }
 
+    [Theory]
+    [AutoData]
+    public void Sticky_square_and_a_wall_on_the_same_square_give_different_fingerprints(int par)
+    {
+        var sticky = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Sticky(4, 4, (1, 1)));
+        var wall = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Walls(4, 4, (1, 1)));
+
+        Assert.NotEqual(LevelFingerprint.Of(wall, Positive(par)), LevelFingerprint.Of(sticky, Positive(par)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Adding_a_sticky_square_changes_the_fingerprint(int par)
+    {
+        var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Sticky(4, 4, (1, 1)));
+
+        Assert.NotEqual(LevelFingerprint.Of(TestMaps.Example(), Positive(par)), LevelFingerprint.Of(map, Positive(par)));
+    }
+
     public static TheoryData<string> MapNames => new() { "example", "rowStrips", "sketch" };
 
     private static Map Named(string name) => name switch

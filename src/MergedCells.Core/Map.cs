@@ -128,8 +128,9 @@ public sealed class Map
     /// <summary>
     /// Slides from <paramref name="from"/> until the next square is off the map (stopping on the last
     /// square) or in a different rectangle (stopping on that first square inside it). Reaching the end
-    /// square wins and stops there. A wall stops the slide on the square before it. A slide that can't move
-    /// returns <paramref name="from"/> with <see cref="SlideResult.ReachedEnd"/> false.
+    /// square wins and stops there. A wall stops the slide on the square before it, and a sticky square stops it on
+    /// that square. A slide that can't move returns <paramref name="from"/> with
+    /// <see cref="SlideResult.ReachedEnd"/> false.
     /// </summary>
     public SlideResult Slide(Cell from, Direction direction)
     {
@@ -146,7 +147,8 @@ public sealed class Map
             {
                 return new SlideResult(current, false);
             }
-            if (tiles != null && tiles[next.Row * Columns + next.Column] == Tile.Wall)
+            var tile = tiles == null ? Tile.None : tiles[next.Row * Columns + next.Column];
+            if (tile == Tile.Wall)
             {
                 return new SlideResult(current, false);
             }
@@ -155,6 +157,10 @@ public sealed class Map
             if (next == End)
             {
                 return new SlideResult(End, true);
+            }
+            if (tile == Tile.Sticky)
+            {
+                return new SlideResult(next, false);
             }
             if (RegionAt(next) != RegionAt(current))
             {

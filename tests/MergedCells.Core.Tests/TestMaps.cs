@@ -90,12 +90,16 @@ internal static class TestMaps
     }
 
     // A tile grid with walls on the given squares
-    public static Tile[,] Walls(int rows, int columns, params (int Row, int Column)[] walls)
+    public static Tile[,] Walls(int rows, int columns, params (int Row, int Column)[] walls) => Tiles(rows, columns, Tile.Wall, walls);
+
+    public static Tile[,] Sticky(int rows, int columns, params (int Row, int Column)[] sticky) => Tiles(rows, columns, Tile.Sticky, sticky);
+
+    private static Tile[,] Tiles(int rows, int columns, Tile tile, (int Row, int Column)[] squares)
     {
         var tiles = new Tile[rows, columns];
-        foreach (var (row, column) in walls)
+        foreach (var (row, column) in squares)
         {
-            tiles[row, column] = Tile.Wall;
+            tiles[row, column] = tile;
         }
         return tiles;
     }
