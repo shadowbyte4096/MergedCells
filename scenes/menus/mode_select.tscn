@@ -71,7 +71,7 @@ horizontal_alignment = 1
 [node name="Total" type="HBoxContainer" parent="Root/Centre/Column"]
 layout_mode = 2
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_type_variation = &"TotalRow"
 alignment = 1
 
 [node name="Star" type="Control" parent="Root/Centre/Column/Total"]
@@ -131,6 +131,13 @@ layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Test boards"
+
+[node name="SaveNotice" type="Label" parent="Root/Centre/Column"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="BottomBar" type="MarginContainer" parent="Root"]
 layout_mode = 1

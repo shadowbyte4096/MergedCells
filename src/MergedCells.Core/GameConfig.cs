@@ -30,14 +30,50 @@ public sealed record GameConfig
     }
 
     /// <summary>
+    /// Runs every number through the code that uses it, so a value out of range stops the game at start-up rather than
+    /// part-way through a screen. Throws <see cref="ArgumentOutOfRangeException"/> naming the value. The gate
+    /// percentages need the save, so <see cref="CampaignProgress.Of"/> checks those.
+    /// </summary>
+    public void CheckRanges(IEnumerable<Level> levels)
+    {
+        ArgumentNullException.ThrowIfNull(levels);
+        _ = new SwipeDetector(Input.SwipeThreshold);
+        _ = SlideTiming.Seconds(1, Slide);
+        // Any board and band will do: the config values are checked first
+        _ = new CameraSpace(new BoardRect(0, 0, 64, 64), new System.Numerics.Vector2(720, 1280), 24, 64, Camera);
+        _ = new PinchTracker(Camera.GestureSlop);
+        _ = new DragTracker(Camera.GestureSlop);
+        _ = new PlayRules(Campaign.UndoLimit);
+        CheckStarLimits(1, Stars, "The config's \"stars\"");
+        foreach (var level in levels)
+        {
+            CheckStarLimits(level.Par, StarsFor(level), $"Level {level.Id}'s star thresholds");
+        }
+    }
+
+    // A 1-star limit below the 2-star limit would make 1 star impossible to earn
+    private static void CheckStarLimits(int par, StarsConfig stars, string name)
+    {
+        var twoStar = Core.Stars.TwoStarLimit(par, stars);
+        var oneStar = Core.Stars.OneStarLimit(par, stars);
+        if (oneStar < twoStar)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(stars), $"{name} give a 1-star limit of {oneStar} moves, below the 2-star limit of {twoStar}.");
+        }
+    }
+
+    /// <summary>
     /// Parses the config file's text. Throws <see cref="JsonException"/>, naming the problem, when a group or value
-    /// is missing, null or of the wrong type, when a key is unknown, or when the text isn't JSON.
+    /// is missing, null or of the wrong type, when a key is unknown or repeated, or when the text isn't JSON.
     /// </summary>
     public static GameConfig Parse(string json)
     {
         // Some Windows editors save UTF-8 with a byte order mark, which System.Text.Json rejects
-        var config = JsonSerializer.Deserialize(json.TrimStart(ByteOrderMark), GameConfigJsonContext.Default.GameConfig)
+        var text = json.TrimStart(ByteOrderMark);
+        var config = JsonSerializer.Deserialize(text, GameConfigJsonContext.Default.GameConfig)
             ?? throw new JsonException("The config is null.");
+        JsonKeys.RejectDuplicates(text, "config");
 
         // .NET 8's System.Text.Json enforces required keys but not non-null values, so each group is checked here
         if (config.Input is null)

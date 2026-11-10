@@ -35,6 +35,20 @@ public class WallSlideTests
         Assert.Equal(new SlideResult(new(0, 1), false), map.Slide(new(0, 0), Direction.Right));
     }
 
+    // 5 rows by 6 columns with the wall off row 0, so reading the tiles with rows and columns swapped looks at another square
+    [Theory]
+    [InlineData(0, 3, Direction.Down, 1, 3)]
+    [InlineData(4, 3, Direction.Up, 3, 3)]
+    [InlineData(2, 0, Direction.Right, 2, 2)]
+    [InlineData(2, 5, Direction.Left, 2, 4)]
+    public void Slide_from_any_side_stops_before_a_wall_on_a_non_square_map(
+        int row, int column, Direction direction, int stopRow, int stopColumn)
+    {
+        var map = Map.Create(Grid("AAAAAA", "AAAAAA", "AAAAAA", "AAAAAA", "AAAAAZ"), new(0, 0), new(4, 5), Walls(5, 6, (2, 3)));
+
+        Assert.Equal(new SlideResult(new(stopRow, stopColumn), false), map.Slide(new(row, column), direction));
+    }
+
     [Fact]
     public void Tiles_with_no_walls_slide_as_a_plain_map()
     {

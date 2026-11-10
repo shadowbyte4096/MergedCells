@@ -259,6 +259,51 @@ public class SwipeDetectorTests
         Assert.Null(swipes.Drag(finger, x + threshold, y));
     }
 
+    // A short flick: the last drag was inside the threshold and the lift is past it
+    [Theory]
+    [AutoData]
+    public void Lift_past_the_threshold_fires_when_no_drag_reached_it(float threshold, int finger, float x, float y)
+    {
+        var swipes = new SwipeDetector(threshold);
+        swipes.Press(finger, x, y);
+        swipes.Drag(finger, x + threshold - 1, y);
+
+        Assert.Equal(Direction.Right, swipes.Release(finger, x + threshold, y));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Lift_under_the_threshold_gives_no_move(float threshold, int finger, float x, float y)
+    {
+        var swipes = new SwipeDetector(threshold);
+        swipes.Press(finger, x, y);
+
+        Assert.Null(swipes.Release(finger, x + threshold - 1, y));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Lift_after_the_swipe_fired_gives_no_second_move(float threshold, int finger, float x, float y)
+    {
+        var swipes = new SwipeDetector(threshold);
+        swipes.Press(finger, x, y);
+        swipes.Drag(finger, x + threshold, y);
+
+        Assert.Null(swipes.Release(finger, x + threshold + 1, y));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Lift_at_a_position_ends_the_gesture(float threshold, int finger, float x, float y)
+    {
+        var swipes = new SwipeDetector(threshold);
+        swipes.Press(finger, x, y);
+        swipes.Release(finger, x + threshold, y);
+        swipes.Press(finger, x, y);
+
+        Assert.Equal(Direction.Left, swipes.Drag(finger, x - threshold, y));
+    }
+
     [Theory]
     [InlineData(0f)]
     [InlineData(-1f)]

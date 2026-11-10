@@ -70,6 +70,7 @@ public partial class Main : Node
         GD.Print($"Campaign: {Plural(campaign.Chapters.Count, "chapter")}, {Plural(campaign.Levels.Count, "level")}");
         try
         {
+            GameConfigFile.Current.CheckRanges(campaign.Levels);
             campaignRules = new PlayRules(GameConfigFile.Current.Campaign.UndoLimit);
             _ = Progress();
         }
@@ -139,7 +140,7 @@ public partial class Main : Node
         menu.CreditsPressed += ShowCredits;
         menu.TestBoardsPressed += () => ShowTestBoard(0);
         menu.AppearanceChosen += OnAppearanceChosen;
-        menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Current.Appearance);
+        menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Current.Appearance, SaveGameFile.Notice);
         back = null;
         atRoot = true;
     });

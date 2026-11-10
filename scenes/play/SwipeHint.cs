@@ -7,11 +7,6 @@ namespace MergedCells;
 // space between the board and the bottom bar, well away from the player. It never takes touches.
 public partial class SwipeHint : Control
 {
-    // The loop's phases, as fractions of loop_ms: fade in, slide, fade out, then a pause
-    private const double FadeInEnd = 0.15;
-    private const double SlideEnd = 0.70;
-    private const double FadeOutEnd = 0.90;
-
     private Direction? direction;
     private Vector2 centre;
     private bool fits;
@@ -87,17 +82,21 @@ public partial class SwipeHint : Control
             [start + side, end + side, end - side, start - side],
             [track with { A = 0 }, track, track, track with { A = 0 }]);
 
+        // The loop's phases, as percentages of loop_ms: fade in, slide, fade out, then a pause
+        var fadeInEnd = GetThemeConstant("fade_in_percent", nameof(SwipeHint)) / 100.0;
+        var slideEnd = GetThemeConstant("slide_percent", nameof(SwipeHint)) / 100.0;
+        var fadeOutEnd = GetThemeConstant("fade_out_percent", nameof(SwipeHint)) / 100.0;
         var phase = loop > 0 ? seconds % loop / loop : 0;
-        if (phase >= FadeOutEnd)
+        if (phase >= fadeOutEnd)
         {
             return;
         }
         var first = start + along * radius;
         var last = end - along * radius;
-        var travel = Mathf.SmoothStep((float)FadeInEnd, (float)SlideEnd, (float)phase);
-        var alpha = phase < FadeInEnd
-            ? phase / FadeInEnd
-            : phase < SlideEnd ? 1 : 1 - (phase - SlideEnd) / (FadeOutEnd - SlideEnd);
+        var travel = Mathf.SmoothStep((float)fadeInEnd, (float)slideEnd, (float)phase);
+        var alpha = phase < fadeInEnd
+            ? phase / fadeInEnd
+            : phase < slideEnd ? 1 : 1 - (phase - slideEnd) / (fadeOutEnd - slideEnd);
         DrawCircle(first.Lerp(last, travel), radius, dot with { A = dot.A * (float)alpha }, antialiased: true);
     }
 }

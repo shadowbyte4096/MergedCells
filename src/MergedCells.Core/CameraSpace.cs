@@ -208,10 +208,16 @@ public sealed class CameraSpace
             ? new CameraGlide(glide.From, glide.To, glide.HalfwayZoom, glide.Seconds, glide.Delay, offsets)
             : glide;
 
-    // For each axis: the offset from chunk 8's path, in viewport units, that keeps the view on the board at each moment,
-    // with the least change in speed. Null when no moment needs one
+    // For each axis: the offset from chunk 8's path, in viewport units, that keeps the view on the board and the player's
+    // square on screen at each moment, with the least change in speed. Null when no moment needs one
     private Vector2[]? PlanOffsets(CameraGlide glide, Func<double, Vector2> player)
     {
+        // A player who starts off screen (the view was panned away) is brought back by the glide itself; forcing the
+        // square on screen from the first moment would jump the view
+        var start = player(glide.Delay);
+        var slackX = StartSlack(glide.From.Focus.X, glide.From.Zoom, band.X, start.X);
+        var slackY = StartSlack(glide.From.Focus.Y, glide.From.Zoom, band.Y, start.Y);
+        var keepsPlayer = slackX is not null && slackY is not null;
         var lowX = new double[OffsetIntervals + 1];
         var highX = new double[OffsetIntervals + 1];
         var lowY = new double[OffsetIntervals + 1];
@@ -222,8 +228,8 @@ public sealed class CameraSpace
             var time = glide.Delay + glide.Seconds * i / OffsetIntervals;
             var view = glide.Sample(time);
             var at = player(time);
-            needed |= Allowed(view.Focus.X, view.Zoom, board.Left, board.Right, band.X, at.X, out lowX[i], out highX[i]);
-            needed |= Allowed(view.Focus.Y, view.Zoom, board.Top, board.Bottom, band.Y, at.Y, out lowY[i], out highY[i]);
+            needed |= Allowed(view.Focus.X, view.Zoom, board.Left, board.Right, band.X, at.X, slackX ?? 0, keepsPlayer, out lowX[i], out highX[i]);
+            needed |= Allowed(view.Focus.Y, view.Zoom, board.Top, board.Bottom, band.Y, at.Y, slackY ?? 0, keepsPlayer, out lowY[i], out highY[i]);
         }
         if (!needed)
         {
@@ -241,9 +247,11 @@ public sealed class CameraSpace
     }
 
     // The offsets on one axis, in viewport units, that keep the view on the board (Clamp's rule, centring an axis wider
-    // than the board), narrowed to keep the player's square on screen where both can hold. True when the board's range
-    // excludes no offset, so the clamp would move this moment
-    private bool Allowed(float focus, float zoom, float start, float end, float bandSize, float player, out double low, out double high)
+    // than the board), narrowed to keep the player's square on screen where both can hold. True when the range excludes
+    // no offset: the clamp would move this moment, or (when the plan keeps the player) the square would leave the screen.
+    // A zoom-in from a zoomed-out view beside an edge does the second without the first: a remembered move after a long slide
+    private bool Allowed(
+        float focus, float zoom, float start, float end, float bandSize, float player, float slack, bool keepsPlayer, out double low, out double high)
     {
         var inset = (bandSize / 2 - margin) / (double)zoom;
         var centre = (start + end) / 2.0;
@@ -251,7 +259,7 @@ public sealed class CameraSpace
         high = (Math.Max(end - inset, centre) - focus) * zoom;
         var needed = low > 1e-3 || high < -1e-3;
 
-        var reach = bandSize / 2 - squareSize / 2 * zoom;
+        var reach = bandSize / 2 - squareSize / 2 * zoom + slack;
         var relative = (player - focus) * (double)zoom;
         var playerLow = Math.Max(low, relative - reach);
         var playerHigh = Math.Min(high, relative + reach);
@@ -259,8 +267,21 @@ public sealed class CameraSpace
         {
             low = playerLow;
             high = playerHigh;
+            needed |= keepsPlayer && (low > 1e-3 || high < -1e-3);
         }
         return needed;
+    }
+
+    // How much of the player's square is cut off on one axis as the glide starts, in viewport units, which the plan then
+    // allows throughout. Null when it is more than a fifth of the square: the token is drawn smaller than that leaves
+    private float? StartSlack(float focus, float zoom, float bandSize, float player)
+    {
+        var cut = (Math.Abs(player - focus) + squareSize / 2) * zoom - bandSize / 2;
+        if (cut <= 0)
+        {
+            return 0;
+        }
+        return cut <= squareSize * zoom / 5 ? cut : null;
     }
 
     // Minimises the squared second differences (the change in speed) inside the ranges, with both ends at zero:

@@ -74,6 +74,17 @@ public sealed class SwipeDetector
         }
     }
 
+    /// <summary>
+    /// A finger lifted at this position. Returns the swipe's direction when the lift completes one, as a drag to the same
+    /// place would: a short flick can lift past the threshold without a drag having reported it.
+    /// </summary>
+    public Direction? Release(int finger, float x, float y)
+    {
+        var direction = Drag(finger, x, y);
+        Release(finger);
+        return direction;
+    }
+
     /// <summary>Forgets every finger, for when releases may have been lost (the app lost focus or was paused).</summary>
     public void Reset()
     {

@@ -36,8 +36,8 @@ public sealed class Campaign
 
     /// <summary>
     /// Reads the chapter file's text against the level files. Throws <see cref="JsonException"/>, naming the problem,
-    /// when a value is missing, null or blank, when a key is unknown, when a chapter has no levels, when an ID is listed
-    /// twice or has no level file, when a level file is in no chapter or its "chapter" isn't the chapter that lists it,
+    /// when a value is missing, null or blank, when a key is unknown or repeated, when a chapter has no levels, when an ID is listed
+    /// twice or has no level file, when two level files share an ID, when a level file is in no chapter or its "chapter" isn't the chapter that lists it,
     /// when an "intro" has no lines, more than two or a blank one, or when the text isn't JSON.
     /// </summary>
     public static Campaign Parse(string json, IReadOnlyList<Level> levels)
@@ -45,8 +45,10 @@ public sealed class Campaign
         ArgumentNullException.ThrowIfNull(json);
         ArgumentNullException.ThrowIfNull(levels);
         // Some Windows editors save UTF-8 with a byte order mark, which System.Text.Json rejects
-        var file = JsonSerializer.Deserialize(json.TrimStart(ByteOrderMark), CampaignJsonContext.Default.CampaignJson)
+        var text = json.TrimStart(ByteOrderMark);
+        var file = JsonSerializer.Deserialize(text, CampaignJsonContext.Default.CampaignJson)
             ?? throw new JsonException("The chapter file is null.");
+        JsonKeys.RejectDuplicates(text, "chapter file");
         // .NET 8's System.Text.Json enforces required keys but not non-null values, so each is checked by name
         if (file.Chapters is null)
         {
@@ -57,6 +59,10 @@ public sealed class Campaign
             throw new JsonException("The chapter file has no chapters.");
         }
 
+        if (levels.GroupBy(level => level.Id).FirstOrDefault(group => group.Count() > 1) is { } shared)
+        {
+            throw new JsonException($"Level ID {shared.Key} is used by more than one level file.");
+        }
         var byId = levels.ToDictionary(level => level.Id);
         var listed = new HashSet<int>();
         var chapters = new List<Chapter>();

@@ -143,7 +143,7 @@ public partial class Play : Node2D, IScreen
         return open;
     }
 
-    // stars are the level's thresholds (its chapter's in the campaign). hasNext is asked when the results card appears,
+    // stars are the level's thresholds (in the campaign, from GameConfig.StarsFor). hasNext is asked when the results card appears,
     // so a finish that opens the next chapter enables Next. recordFinish is called with the move count when the level is
     // won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
     // boards) records nothing. Null rules mean unlimited undo; a null tutorial shows no text.

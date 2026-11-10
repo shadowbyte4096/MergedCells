@@ -106,8 +106,9 @@ public class GameConfigTests
         Valid.Replace(",\"undoLimit\":1", ""),
         Valid.Replace("\"undoLimit\":1", "\"undoLimit\":1.5"),
         "null",
-        "not json",
-        "",
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":" + StarsGroup.Replace("}", ",\"extra\":1}") + "}"),
+        Valid.Replace("\"undoLimit\":1", "\"undoLimit\":2,\"undoLimit\":1"),
+        Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":" + StarsGroup + ",\"02\":" + StarsGroup + "}"),
     };
 
     [Theory]
@@ -220,7 +221,7 @@ public class GameConfigTests
     }
 
     [Fact]
-    public void Shipped_star_thresholds_are_accepted()
+    public void Shipped_default_star_thresholds_are_accepted()
     {
         var config = Shipped();
 
@@ -254,6 +255,45 @@ public class GameConfigTests
             (new PinchTracker(config.Camera.GestureSlop), new DragTracker(config.Camera.GestureSlop))));
     }
 
+    [Fact]
+    public void Shipped_config_passes_the_range_check()
+    {
+        Assert.Null(Record.Exception(() => Shipped().CheckRanges(ShippedCampaignTests.Campaign().Levels)));
+    }
+
+    // Each is the nearest value its user rejects
+    public static TheoryData<string> OutOfRangeTexts => new()
+    {
+        ConfigText(threshold: 0),
+        ConfigText(squaresPerSecond: 0),
+        ConfigText(maxSeconds: 0),
+        ConfigText(twoStarMin: -1),
+        ConfigText(oneStarPercent: -1),
+        ConfigText(readable: 0),
+        ConfigText(zonePercent: 101),
+        ConfigText(glide: 0),
+        ConfigText(hold: -1),
+        ConfigText(zoomStep: 1),
+        ConfigText(slop: -1),
+        ConfigText(undoLimit: -1),
+    };
+
+    [Theory]
+    [MemberData(nameof(OutOfRangeTexts))]
+    public void A_value_out_of_range_fails_the_range_check(string text)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => GameConfig.Parse(text).CheckRanges([]));
+    }
+
+    [Theory]
+    [AutoData]
+    public void A_level_s_own_thresholds_are_range_checked(int id)
+    {
+        var config = GameConfig.Parse(ConfigText(levelStars: $$"""{"{{id}}":{{StarsGroup.Replace("\"oneStarMinExtraMoves\":1", "\"oneStarMinExtraMoves\":-1")}}}"""));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.CheckRanges([new Level(id, "Level", 1, TestMaps.Example(), 3)]));
+    }
+
     [Theory]
     [AutoData]
     public void Parse_accepts_a_leading_byte_order_mark(float threshold)
@@ -272,5 +312,46 @@ public class GameConfigTests
     public void Invalid_config_throws_JsonException(string text)
     {
         Assert.Throws<JsonException>(() => GameConfig.Parse(text));
+    }
+
+    // A case that broke the JSON itself would throw without testing the rule it was written for
+    [Theory]
+    [MemberData(nameof(InvalidTexts))]
+    public void Every_invalid_case_is_still_JSON(string text)
+    {
+        Assert.Null(Record.Exception(() => JsonDocument.Parse(text).Dispose()));
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("")]
+    public void Text_that_is_not_JSON_throws_JsonException(string text)
+    {
+        Assert.Throws<JsonException>(() => GameConfig.Parse(text));
+    }
+
+    [Fact]
+    public void A_repeated_key_is_named_in_the_error()
+    {
+        var text = Valid.Replace("\"undoLimit\":1", "\"undoLimit\":2,\"undoLimit\":1");
+
+        Assert.Contains("\"undoLimit\"", Assert.Throws<JsonException>(() => GameConfig.Parse(text)).Message, StringComparison.Ordinal);
+    }
+
+    // Swapped numbers: 1 star would be impossible to earn
+    [Theory]
+    [AutoData]
+    public void A_one_star_limit_below_the_two_star_limit_fails_the_range_check(int id)
+    {
+        var swapped = """{"twoStarMinExtraMoves":4,"twoStarExtraParPercent":0,"oneStarMinExtraMoves":2,"oneStarExtraParPercent":0}""";
+        var config = GameConfig.Parse(ConfigText(levelStars: $$"""{"{{id}}":{{swapped}}}"""));
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => config.CheckRanges([new Level(id, "Level", 1, TestMaps.Example(), 5)]));
+    }
+
+    [Fact]
+    public void A_top_level_one_star_limit_below_the_two_star_limit_fails_the_range_check()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => GameConfig.Parse(ConfigText(twoStarMin: 4, oneStarMin: 2)).CheckRanges([]));
     }
 }

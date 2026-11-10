@@ -92,6 +92,15 @@ public class MapRectanglesTests
         Assert.Equal(new Rectangle('A', new(0, 0), 2, 2), LShape().Rectangles[0]);
     }
 
+    // X's bounding rectangle starts at [0, 0], before Y's, but its first square [0, 3] comes after Y's
+    [Fact]
+    public void Regions_are_in_reading_order_of_their_first_squares_not_their_bounding_top_lefts()
+    {
+        var map = Map.Create(Grid("ZYYX", "XXXX", "QQQE"), new(0, 0), new(2, 3));
+
+        Assert.Equal("ZYXQE", string.Concat(map.Rectangles.Select(rectangle => (char)rectangle.Id)));
+    }
+
     [Fact]
     public void BottomRight_is_the_last_square()
     {

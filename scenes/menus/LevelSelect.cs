@@ -220,7 +220,8 @@ public partial class LevelSelect : CanvasLayer, IScreen
         {
             var locked = campaign.Chapters[page.Number];
             cardTitle.Text = $"Chapter {locked.Number} · {locked.Name}";
-            cardLine.Text = $"{progress.Gate(locked)} stars to open";
+            var gate = progress.Gate(locked);
+            cardLine.Text = gate == 1 ? "1 star to open" : $"{gate} stars to open";
             card.CustomMinimumSize = new Vector2(gridWidth, 0);
         }
         dots.Visible = open.Count > 1;

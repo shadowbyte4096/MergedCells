@@ -31,6 +31,18 @@ public class LevelFingerprintTests
         Assert.Equal("5519c22f56523c17", LevelFingerprint.Of(map, 3));
     }
 
+    // Computed outside the code under test too. The example is square with its start and end on the diagonal, so it
+    // can't tell rows from columns; this map has 2 rows and 3 columns, and each row has a start or end off the diagonal
+    [Theory]
+    [InlineData(0, 0, "9595701f6d6c9037")]
+    [InlineData(1, 0, "8d3b24c0e00797a6")]
+    public void Non_square_fingerprint_is_pinned(int startRow, int startColumn, string expected)
+    {
+        var map = Map.Create(new[,] { { 1, 1, 2 }, { 3, 3, 4 } }, new(startRow, startColumn), new(1, 2));
+
+        Assert.Equal(expected, LevelFingerprint.Of(map, 2));
+    }
+
     [Theory]
     [AutoData]
     public void Tiles_with_no_walls_keep_the_plain_fingerprint(int par)

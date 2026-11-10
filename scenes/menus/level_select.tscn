@@ -57,7 +57,7 @@ icon_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
-theme_override_constants/separation = 10
+theme_type_variation = &"TotalRow"
 alignment = 1
 
 [node name="Star" type="Control" parent="Root/Layout/TopBar/Row/Total"]

@@ -138,9 +138,6 @@ public partial class BoardCamera : Camera2D
             case InputEventScreenTouch touch:
                 HandleTouch(touch);
                 break;
-            case InputEventScreenDrag screenDrag:
-                pinch.Drag(screenDrag.Index, screenDrag.Position.X, screenDrag.Position.Y);
-                break;
             // Android also sends a mouse event for every touch; those must never pan
             case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press
                 when press.Device != InputEvent.DeviceIdEmulation:
@@ -164,9 +161,15 @@ public partial class BoardCamera : Camera2D
     }
 
     // A drag's motion and release are read here, before the HUD, so a drag carries on over a button and its release
-    // there still ends it. The press stays unhandled-only, so a press on a button never starts one.
+    // there still ends it. The press stays unhandled-only, so a press on a button never starts one. The same goes for a
+    // pinching finger's drags: over a button they would be marked handled, and the pinch would freeze and then jump.
     public override void _Input(InputEvent @event)
     {
+        if (@event is InputEventScreenDrag screenDrag)
+        {
+            pinch?.Drag(screenDrag.Index, screenDrag.Position.X, screenDrag.Position.Y);
+            return;
+        }
         if (drag is not { IsDown: true } || @event.Device == InputEvent.DeviceIdEmulation)
         {
             return;

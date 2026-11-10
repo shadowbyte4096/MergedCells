@@ -61,8 +61,10 @@ public class LevelFileTests
         WithTutorial("{\"lines\":[\"a\"],\"swipeHint\":\"north\"}"),
         WithTutorial("{\"lines\":[\"a\"],\"text\":\"a\"}"),
         "null",
-        "not json",
-        "",
+        Valid.Replace("\"par\":3", "\"par\":3,\"par\":99"),
+        Valid.Replace("\"id\":3", "\"id\":3,\"id\":7"),
+        Valid.Replace("\"start\":[0,0]", "\"start\":[2,2],\"start\":[0,0]"),
+        WithTutorial("{\"lines\":[\"a\"],\"lines\":[\"b\"]}"),
     };
 
     [Theory]
@@ -165,6 +167,48 @@ public class LevelFileTests
     public void Invalid_level_throws_JsonException(string text)
     {
         Assert.Throws<JsonException>(() => LevelFile.Parse(text));
+    }
+
+    // A case that broke the JSON itself would throw without testing the rule it was written for
+    [Theory]
+    [MemberData(nameof(InvalidTexts))]
+    public void Every_invalid_case_is_still_JSON(string text)
+    {
+        Assert.Null(Record.Exception(() => JsonDocument.Parse(text).Dispose()));
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("")]
+    public void Text_that_is_not_JSON_throws_JsonException(string text)
+    {
+        Assert.Throws<JsonException>(() => LevelFile.Parse(text));
+    }
+
+    [Fact]
+    public void A_repeated_key_is_named_in_the_error()
+    {
+        var text = Valid.Replace("\"par\":3", "\"par\":3,\"par\":99");
+
+        Assert.Contains("\"par\"", Assert.Throws<JsonException>(() => LevelFile.Parse(text)).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Teleporters_are_named_in_the_error()
+    {
+        var text = Valid.Replace("\"teleporters\":null", "\"teleporters\":[[[0,1],[3,2]]]");
+
+        Assert.Contains("teleporters aren't supported yet", Assert.Throws<JsonException>(() => LevelFile.Parse(text)).Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("\"regions\":" + Regions, "\"regions\":[]")]
+    [InlineData("\"regions\":" + Regions, "\"regions\":[[]]")]
+    [InlineData("\"start\":[0,0]", "\"start\":[-1,0]")]
+    [InlineData("\"end\":[3,3]", "\"end\":[3,-1]")]
+    public void An_empty_grid_or_a_square_off_the_map_throws_InvalidMapException(string valid, string broken)
+    {
+        Assert.Throws<InvalidMapException>(() => LevelFile.Parse(Valid.Replace(valid, broken)));
     }
 
     [Theory]

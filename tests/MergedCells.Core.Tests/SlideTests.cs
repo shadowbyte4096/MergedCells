@@ -111,6 +111,31 @@ public class SlideTests
         Assert.Equal(new SlideResult(new(stopRow, stopColumn), false), map.Slide(new(row, column), direction));
     }
 
+    // A is a C: the slide leaves it for B and stops there, though A carries on beyond B
+    [Fact]
+    public void Slide_across_the_mouth_of_a_C_shaped_region_stops_on_the_region_in_it()
+    {
+        var map = Map.Create(Grid("AAAC", "ABBC", "AAAZ"), new(0, 0), new(2, 3));
+
+        Assert.Equal(new SlideResult(new(1, 1), false), map.Slide(new(0, 1), Direction.Down));
+    }
+
+    // A is a ring round B: into the hole, out of it, and along the ring past it
+    [Theory]
+    [InlineData(0, 1, Direction.Down, 1, 1)]
+    [InlineData(1, 1, Direction.Down, 2, 1)]
+    [InlineData(1, 1, Direction.Left, 1, 0)]
+    [InlineData(0, 0, Direction.Down, 2, 0)]
+    [InlineData(2, 2, Direction.Left, 2, 0)]
+    [InlineData(0, 0, Direction.Right, 0, 3)]
+    public void Slide_on_a_ring_stops_at_its_hole_and_runs_on_past_it(
+        int row, int column, Direction direction, int stopRow, int stopColumn)
+    {
+        var map = Map.Create(Grid("AAAC", "ABAC", "AAAZ"), new(0, 0), new(2, 3));
+
+        Assert.Equal(new SlideResult(new(stopRow, stopColumn), false), map.Slide(new(row, column), direction));
+    }
+
     [Fact]
     public void Ladder_of_side_by_side_strips_moves_one_square_per_slide()
     {

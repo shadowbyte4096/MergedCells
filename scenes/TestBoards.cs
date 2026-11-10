@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// Large boards for checking the camera and the drawing cost, played after the level files until chunk 11 replaces Main
+// Large boards for checking the camera and the drawing cost, behind the mode select's debug-only button
 public static class TestBoards
 {
     // Chunk 4's 10x10 block of rectangles. Its bottom-right square is 1x1, so a tiled map can end in its far corner

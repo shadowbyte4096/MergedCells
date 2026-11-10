@@ -67,7 +67,7 @@ public class CameraFollowTests
     [Theory]
     [MemberData(nameof(NearAnEdge))]
     [MemberData(nameof(IntoAnEdge))]
-    public void Planned_glides_never_need_the_clamp(int board, int fromColumn, int fromRow, int toColumn, int toRow)
+    public void Planned_glides_need_the_clamp_by_less_than_a_viewport_unit(int board, int fromColumn, int fromRow, int toColumn, int toRow)
     {
         var (_, _, frames) = Follow(board, fromColumn, fromRow, toColumn, toRow);
 
@@ -89,7 +89,7 @@ public class CameraFollowTests
 
     [Theory]
     [MemberData(nameof(NearAnEdge))]
-    public void Planned_glide_jolts_no_more_than_chunk_8(int board, int fromColumn, int fromRow, int toColumn, int toRow)
+    public void Planned_glide_jolts_no_more_than_chunk_8_within_its_allowance(int board, int fromColumn, int fromRow, int toColumn, int toRow)
     {
         var alongRow = fromRow == toRow;
 
@@ -137,6 +137,39 @@ public class CameraFollowTests
         for (var time = recentre.Seconds / 2; time <= recentre.Seconds; time += 1 / 60.0)
         {
             Assert.True(space.ShowsSquare(space.Clamp(recentre.Sample(time)), start), $"Player off screen at {time:0.000} s");
+        }
+    }
+
+    // (board side, row, first column, second column, third column): a long slide beside the bottom edge, then a
+    // remembered move, which starts in the frame the first slide ends, while the camera is still zoomed out
+    [Theory]
+    [InlineData(100, 98, 13, 99, 86)]
+    [InlineData(100, 98, 90, 5, 20)]
+    [InlineData(100, 1, 13, 99, 86)]
+    [InlineData(50, 48, 2, 47, 30)]
+    public void Player_stays_on_screen_when_a_remembered_move_follows_a_long_slide(
+        int board, int row, int firstColumn, int secondColumn, int thirdColumn)
+    {
+        var space = Board(board);
+        var readable = space.ReadableZoom;
+        var (first, second, third) = (Centre(firstColumn, row), Centre(secondColumn, row), Centre(thirdColumn, row));
+        var firstSlide = SlideTiming.Seconds(Math.Abs(secondColumn - firstColumn), Slide);
+        var secondSlide = SlideTiming.Seconds(Math.Abs(thirdColumn - secondColumn), Slide);
+        var resting = space.Centre(first, readable);
+        var follow = space.PlanFollow(resting, resting, readable, first, second, firstSlide)!;
+        var midGlide = space.Clamp(follow.Sample(Math.Ceiling(firstSlide * 60) / 60));
+
+        var glide = space.PlanFollow(midGlide, space.Clamp(follow.To), readable, second, third, secondSlide);
+
+        Assert.NotNull(glide);
+        for (var frame = 0; frame / 60.0 <= glide.Seconds; frame++)
+        {
+            var time = frame / 60.0;
+            var player = Vector2.Lerp(second, third, (float)Math.Min(time / secondSlide, 1));
+            var shown = space.Clamp(glide.Sample(time));
+            var cut = (Vector2.Abs(player - shown.Focus) + new Vector2(Square / 2)) * shown.Zoom - Phone / 2;
+            // The plan holds at 65 moments and runs straight between them, so a frame between two can be a hair out
+            Assert.True(Math.Max(cut.X, cut.Y) < 0.5f, $"Player off screen by {Math.Max(cut.X, cut.Y):0.00} at {time:0.000} s");
         }
     }
 

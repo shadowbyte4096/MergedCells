@@ -119,6 +119,21 @@ public class CameraGlideTests
         Assert.Equal(expected.Y, focus.Y, 0.001f);
     }
 
+    // Five offsets are four intervals: each fraction falls between two moments, or on one, after the delay
+    [Theory]
+    [InlineAutoData(0.25, 100)]
+    [InlineAutoData(0.375, 150)]
+    [InlineAutoData(0.625, 130)]
+    public void Planned_offsets_are_read_between_their_own_two_moments_after_the_delay(
+        double fraction, float expected, Vector2 focus, double seconds, double delay)
+    {
+        var view = new CameraView(focus, 1);
+        var glide = new CameraGlide(
+            view, view, null, seconds, delay, [Vector2.Zero, new Vector2(100, 0), new Vector2(200, 0), new Vector2(60, 0), Vector2.Zero]);
+
+        Assert.Equal(focus.X + expected, glide.Sample(delay + seconds * fraction).Focus.X, 0.01f);
+    }
+
     [Theory]
     [AutoData]
     public void Fewer_than_two_offsets_throws(CameraView start, CameraView end, double seconds)

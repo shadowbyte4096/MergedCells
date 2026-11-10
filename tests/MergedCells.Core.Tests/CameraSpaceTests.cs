@@ -354,6 +354,24 @@ public class CameraSpaceTests
         Assert.Throws<ArgumentOutOfRangeException>(() => Space(640, 640, config: config));
     }
 
+    // (board width, board height, band x, band y, margin, square size)
+    [Theory]
+    [InlineData(0, 640, 720, 1000, 24, 64)]
+    [InlineData(640, -1, 720, 1000, 24, 64)]
+    [InlineData(float.NaN, 640, 720, 1000, 24, 64)]
+    [InlineData(640, 640, float.PositiveInfinity, 1000, 24, 64)]
+    [InlineData(640, 640, 720, float.NaN, 24, 64)]
+    [InlineData(640, 640, 720, 1000, -1, 64)]
+    [InlineData(640, 640, 720, 1000, float.NaN, 64)]
+    [InlineData(640, 640, 720, 1000, 24, 0)]
+    [InlineData(640, 640, 720, 1000, 24, float.PositiveInfinity)]
+    public void Board_band_margin_or_square_size_out_of_range_throws(
+        float boardWidth, float boardHeight, float bandX, float bandY, float margin, float squareSize)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            new CameraSpace(new BoardRect(0, 0, boardWidth, boardHeight), new Vector2(bandX, bandY), margin, squareSize, Config));
+    }
+
     [Theory]
     [InlineData(48, 1000)]
     [InlineData(720, 48)]

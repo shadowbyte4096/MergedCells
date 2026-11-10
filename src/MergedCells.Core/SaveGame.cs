@@ -63,6 +63,7 @@ public sealed class SaveGame
 
         var file = JsonSerializer.Deserialize(text, SaveJsonContext.Default.SaveJson)
             ?? throw new JsonException("The save is null.");
+        JsonKeys.RejectDuplicates(text, "save");
         // .NET 8's System.Text.Json enforces required keys but not non-null values, so each is checked by name
         if (file.Settings is null)
         {
@@ -126,8 +127,18 @@ public sealed class SaveGame
         {
             throw new JsonException("The save has no \"version\".");
         }
-        if (version.ValueKind != JsonValueKind.Number || !version.TryGetInt32(out var number))
+        if (version.ValueKind != JsonValueKind.Number)
         {
+            throw new JsonException("The save's \"version\" isn't a whole number.");
+        }
+        if (!version.TryGetInt32(out var number))
+        {
+            // No build writes 2.0 or a number too big for an int, so whatever did is newer than this one
+            var whole = Math.Floor(version.GetDouble());
+            if (whole > CurrentVersion)
+            {
+                throw new NewerSaveException((int)Math.Min(whole, int.MaxValue));
+            }
             throw new JsonException("The save's \"version\" isn't a whole number.");
         }
         if (number > CurrentVersion)

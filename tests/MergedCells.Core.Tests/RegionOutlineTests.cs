@@ -18,10 +18,13 @@ public class RegionOutlineTests
 
     private static string Describe(IEnumerable<OutlineCorner> corners) => string.Join(" ", corners);
 
-    private static void AssertPoints(IEnumerable<Vector2> expected, IEnumerable<Vector2> actual)
+    private static void AssertPoints(Vector2[] expected, IEnumerable<Vector2> actual)
     {
+        var points = actual.ToList();
+        // Zip stops at the shorter list, so a short one would otherwise compare nothing
+        Assert.Equal(expected.Length, points.Count);
         Assert.All(
-            expected.Zip(actual),
+            expected.Zip(points),
             pair => Assert.True(Vector2.Distance(pair.First, pair.Second) < 1e-5f, $"Expected {pair.First}, got {pair.Second}"));
     }
 
@@ -105,6 +108,41 @@ public class RegionOutlineTests
         AssertPoints(
             [new(0.9f, 1f), new(1f - 0.1f / Root2, 1f + 0.1f / Root2), new(1f, 1.1f)],
             points.Skip(6).Take(3));
+    }
+
+    [Fact]
+    public void Hole_loop_is_inset_away_from_the_hole()
+    {
+        var map = Map.Create(Grid("AAA", "ABA", "AAA"), new(0, 0), new(1, 1));
+        var hole = RegionOutline.Trace(map, 'A')[1];
+
+        var points = RegionOutline.Inset(hole, 0.1f, 0.2f, 2);
+
+        Assert.Equal(12, points.Count);
+        Assert.All(points, point => Assert.True(point.X <= 1 || point.X >= 2 || point.Y <= 1 || point.Y >= 2, $"{point} is inside the hole"));
+    }
+
+    // The loop passes the point where two squares touch only at a corner twice: corners 4 and 8 of 10
+    [Theory]
+    [InlineData(4, 1, 2)]
+    [InlineData(8, 0, 1)]
+    public void Pinch_point_is_rounded_inside_each_square_that_touches_it(int corner, int column, int row)
+    {
+        var map = Map.Create(Grid("AAA", "ABA", "CAA"), new(0, 0), new(1, 1));
+        var loop = Assert.Single(RegionOutline.Trace(map, 'A'));
+
+        var arc = RegionOutline.Inset(loop, 0.1f, 0.2f, 2).Skip(corner * 3).Take(3).ToList();
+
+        Assert.Equal(3, arc.Count);
+        Assert.All(arc, point => Assert.Equal((column, row), ((int)MathF.Floor(point.X), (int)MathF.Floor(point.Y))));
+    }
+
+    [Fact]
+    public void Inset_accepts_an_inset_and_radius_of_exactly_half_a_square()
+    {
+        var loop = RegionOutline.Trace(SingleSquare(), 'A')[0];
+
+        Assert.Equal(12, RegionOutline.Inset(loop, 0.25f, 0.25f, 2).Count);
     }
 
     [Theory]

@@ -15,7 +15,7 @@ public partial class CreditsScreen : CanvasLayer, IScreen
 {
     private const string CreditsPath = "res://credits/credits.json";
 
-    // Labels made per frame, in milliseconds: building all ~500 paragraphs at once stalled a frame for 400 ms on desktop.
+    // Labels made per frame, in milliseconds: building all ~800 paragraphs at once stalled a frame for 400 ms on desktop.
     // A drawing detail like BoardView.BuildBudgetMs, not config.
     private const double BuildBudgetMs = 4;
 

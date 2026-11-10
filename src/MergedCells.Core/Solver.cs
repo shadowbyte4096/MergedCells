@@ -15,7 +15,7 @@ public static class Solver
         return Solve(map.Start, map.Slide);
     }
 
-    // The test hook: no valid plain map is unsolvable, so tests pass in made-up slide rules here
+    // The test hook: tests pass in made-up slide rules here
     internal static SolveResult Solve(Cell start, Func<Cell, Direction, SlideResult> slide)
     {
         ArgumentNullException.ThrowIfNull(slide);

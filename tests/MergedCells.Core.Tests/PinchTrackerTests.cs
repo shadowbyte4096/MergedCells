@@ -194,11 +194,54 @@ public class PinchTrackerTests
         Assert.Null(pinch.TakeStep());
     }
 
+    // The distance is zero for a frame, so that frame and the next give nothing, and the one after carries on
+    [Theory]
+    [AutoData]
+    public void Pinch_carries_on_after_a_frame_with_both_fingers_on_one_point(int a)
+    {
+        var pinch = Pinching(a, a + 1);
+        pinch.Drag(a + 1, 100, 100);
+        var together = pinch.TakeStep();
+        pinch.Drag(a + 1, 150, 100);
+        var fromTogether = pinch.TakeStep();
+        pinch.Drag(a + 1, 200, 100);
+
+        Assert.Equal(
+            ((GestureStep?)null, (GestureStep?)null, new GestureStep(2, new Vector2(125, 100), new Vector2(150, 100))),
+            (together, fromTogether, pinch.TakeStep()));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Pinch_past_the_dead_zone_keeps_giving_steps_back_inside_it(int a)
+    {
+        var pinch = Pinching(a, a + 1, Slop);
+        pinch.Drag(a + 1, 230, 100);
+        pinch.TakeStep();
+        pinch.Drag(a + 1, 205, 100);
+
+        Assert.Equal(new GestureStep(105f / 130, new Vector2(165, 100), new Vector2(152.5f, 100)), pinch.TakeStep());
+    }
+
+    [Theory]
+    [AutoData]
+    public void Third_finger_held_through_a_lift_joins_only_when_pressed_again(int a)
+    {
+        var pinch = Pinching(a, a + 1);
+        pinch.Press(a + 2, 300, 100);
+        pinch.Release(a + 1);
+        pinch.Drag(a + 2, 320, 100);
+        var afterLift = pinch.IsPinching;
+        pinch.Press(a + 2, 320, 100);
+
+        Assert.Equal((false, true), (afterLift, pinch.IsPinching));
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(float.PositiveInfinity)]
     [InlineData(float.NaN)]
-    public void Negative_or_infinite_dead_zone_throws(float slop)
+    public void Dead_zone_that_is_negative_or_not_finite_throws(float slop)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new PinchTracker(slop));
     }

@@ -125,11 +125,34 @@ public class SolverTests
         Assert.Equal(expected.OptimalRoutes, Solver.Solve(expected.Build()).OptimalRoutes);
     }
 
+    // Every plain row in Cases is a rectangle tiling. Irregular regions break this: see the ring tests below
     [Theory]
     [MemberData(nameof(PlainCaseNames))]
-    public void Plain_maps_have_no_dead_ends(string name)
+    public void Plain_maps_of_rectangles_have_no_dead_ends(string name)
     {
         Assert.Equal(0, Solver.Solve(Case(name).Build()).DeadEnds);
+    }
+
+    // The player slides right round the ring and can only stop on its four corners, never beside the end
+    [Fact]
+    public void Ring_round_the_end_makes_a_plain_map_unsolvable()
+    {
+        var map = Map.Create(Grid("AAA", "ABA", "AAA"), new(0, 0), new(1, 1));
+
+        var result = Solver.Solve(map);
+
+        Assert.Equal((false, (int?)null, 4, 4), (result.IsSolvable, result.Par, result.ReachableStops, result.DeadEnds));
+    }
+
+    // Right wins at once; any other first move strands the player on the ring's corners
+    [Fact]
+    public void Ring_can_leave_dead_ends_on_a_solvable_plain_map()
+    {
+        var map = Map.Create(Grid("AAAA", "ABAA", "AAAA"), new(1, 0), new(1, 1));
+
+        var result = Solver.Solve(map);
+
+        Assert.Equal(((int?)1, 6, 4), (result.Par, result.ReachableStops, result.DeadEnds));
     }
 
     [Fact]

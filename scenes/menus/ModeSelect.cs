@@ -13,6 +13,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private StarsView star;
     private Label totalLabel;
     private Button testBoards;
+    private Label saveNotice;
     private SettingsSheet settings;
     private Appearance appearance;
     private bool dark;
@@ -44,6 +45,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
         star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
         totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
         testBoards = GetNode<Button>("Root/Centre/Column/TestBoards");
+        saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
         settings = GetNode<SettingsSheet>("Root/Settings");
 
         star.Looks = [StarLook.Earned];
@@ -61,10 +63,13 @@ public partial class ModeSelect : CanvasLayer, IScreen
         ApplySafeArea();
     }
 
-    public void Open(int totalStars, bool showTestBoards, Appearance saved)
+    // saveNotice: why this run's progress isn't being kept, or null while saving works
+    public void Open(int totalStars, bool showTestBoards, Appearance saved, string saveNotice)
     {
         totalLabel.Text = totalStars.ToString();
         testBoards.Visible = showTestBoards;
+        this.saveNotice.Text = saveNotice ?? "";
+        this.saveNotice.Visible = saveNotice != null;
         appearance = saved;
         GD.Print("Screen: mode select");
     }

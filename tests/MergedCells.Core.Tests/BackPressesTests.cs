@@ -106,14 +106,55 @@ public class BackPressesTests
         Assert.True(presses.Request(50));
     }
 
+    // Android posts a key event and its request separately, so a device can deliver them a frame apart
     [Fact]
-    public void A_request_a_frame_after_the_release_counts()
+    public void A_press_whose_request_comes_a_frame_before_the_key_counts_once()
+    {
+        var presses = new BackPresses();
+
+        var first = presses.Request(5);
+        presses.KeyDown(6);
+        presses.KeyUp(6);
+        var second = presses.Request(6);
+
+        Assert.Equal((true, false), (first, second));
+    }
+
+    [Fact]
+    public void A_release_s_request_a_frame_after_the_key_up_does_not_count()
+    {
+        var presses = new BackPresses();
+        presses.KeyDown(5);
+        var first = presses.Request(5);
+        presses.KeyUp(6);
+
+        Assert.Equal((true, false), (first, presses.Request(7)));
+    }
+
+    // A back gesture that sends no keys, soon after a key press ended
+    [Fact]
+    public void A_request_three_frames_after_the_release_counts()
     {
         var presses = new BackPresses();
         presses.KeyDown(10);
         presses.Request(10);
         presses.KeyUp(10);
+        presses.Request(10);
 
-        Assert.True(presses.Request(11));
+        Assert.True(presses.Request(13));
+    }
+
+    // The app lost focus mid-press and the release was delivered when it came back
+    [Fact]
+    public void A_release_after_a_reset_does_not_count_its_press_again()
+    {
+        var presses = new BackPresses();
+        presses.KeyDown(10);
+        presses.Request(10);
+        presses.Reset();
+
+        presses.KeyUp(50);
+
+        Assert.False(presses.Request(50));
     }
 }

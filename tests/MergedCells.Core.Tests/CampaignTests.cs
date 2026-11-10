@@ -107,6 +107,13 @@ public class CampaignTests
         Assert.Null(Record.Exception(() => Campaign.Parse(Valid, TwoLevels)));
     }
 
+    // The loaders catch JsonException, so two files claiming one ID must not surface as ToDictionary's ArgumentException
+    [Fact]
+    public void Two_level_files_with_one_id_throw_JsonException()
+    {
+        Assert.Throws<JsonException>(() => Campaign.Parse(Valid, [.. TwoLevels, LevelWith(1, 1)]));
+    }
+
     public static TheoryData<string> InvalidTexts => new()
     {
         "{}",
@@ -133,8 +140,8 @@ public class CampaignTests
         Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[null]"),
         Valid.Replace("\"levels\":[2]", "\"levels\":[2],\"intro\":[\" \"]"),
         "null",
-        "not json",
-        "",
+        Valid.Replace("\"name\":\"A\"", "\"name\":\"A\",\"name\":\"C\""),
+        Valid.Replace("\"levels\":[2]", "\"levels\":[7],\"levels\":[2]"),
     };
 
     [Theory]
@@ -142,5 +149,29 @@ public class CampaignTests
     public void Invalid_chapter_file_throws_JsonException(string text)
     {
         Assert.Throws<JsonException>(() => Campaign.Parse(text, TwoLevels));
+    }
+
+    // A case that broke the JSON itself would throw without testing the rule it was written for
+    [Theory]
+    [MemberData(nameof(InvalidTexts))]
+    public void Every_invalid_case_is_still_JSON(string text)
+    {
+        Assert.Null(Record.Exception(() => JsonDocument.Parse(text).Dispose()));
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("")]
+    public void Text_that_is_not_JSON_throws_JsonException(string text)
+    {
+        Assert.Throws<JsonException>(() => Campaign.Parse(text, TwoLevels));
+    }
+
+    [Fact]
+    public void A_repeated_key_is_named_in_the_error()
+    {
+        var text = Valid.Replace("\"name\":\"A\"", "\"name\":\"A\",\"name\":\"C\"");
+
+        Assert.Contains("\"name\"", Assert.Throws<JsonException>(() => Campaign.Parse(text, TwoLevels)).Message, StringComparison.Ordinal);
     }
 }

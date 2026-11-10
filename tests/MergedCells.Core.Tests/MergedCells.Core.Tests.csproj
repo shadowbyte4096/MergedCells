@@ -24,6 +24,7 @@
     <None Include="..\..\campaign\*.json" LinkBase="campaign" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\*.json" LinkBase="credits" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\licences\*.txt" LinkBase="credits\licences" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\themes\fonts\OFL.txt" Link="themes\fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\MergedCells.csproj" Link="MergedCells.csproj" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -67,6 +67,13 @@ public class RectangleColoringTests
         Assert.Equal(RectangleColoring.Assign(Sketch(), 5), RectangleColoring.Assign(Sketch(), 5));
     }
 
+    // A change to a tie-break would recolour every level a player knows, with every other test still passing
+    [Fact]
+    public void Sketch_colors_are_pinned()
+    {
+        Assert.Equal("021041431403210232", string.Concat(RectangleColoring.Assign(Sketch(), 5)));
+    }
+
     [Fact]
     public void Five_colors_are_all_used_on_single_squares()
     {

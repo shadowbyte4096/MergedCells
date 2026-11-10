@@ -197,6 +197,34 @@ public sealed class SaveStoreTests : IDisposable
     }
 
     [Fact]
+    public void Failed_write_leaves_the_old_save_whole()
+    {
+        File.WriteAllText(SavePath, SaveGameJsonTests.Valid);
+        var store = new SaveStore(SavePath);
+        var save = store.Load().Save;
+        save.RecordFinish(Five, 4, Shipped);
+        Directory.CreateDirectory(TempPath);
+
+        store.Write(save);
+
+        Assert.Equal(SaveGameJsonTests.Valid, File.ReadAllText(SavePath));
+    }
+
+    // A fresh save written over a broken file that was never kept would lose it for good
+    [Fact]
+    public void Broken_file_that_cannot_be_set_aside_is_left_alone_and_nothing_is_written()
+    {
+        File.WriteAllText(SavePath, "{");
+        Directory.CreateDirectory(BrokenPath);
+        File.WriteAllText(Path.Combine(BrokenPath, "in the way"), "");
+        var store = new SaveStore(SavePath);
+
+        var load = store.Load();
+
+        Assert.Equal((SaveOutcome.Unreadable, false, "{"), (load.Outcome, store.CanWrite, File.ReadAllText(SavePath)));
+    }
+
+    [Fact]
     public void File_saved_by_a_text_editor_loads()
     {
         File.WriteAllText(SavePath, SaveGameJsonTests.Valid.Replace(",", ",\r\n"), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));

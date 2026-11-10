@@ -14,6 +14,17 @@ public class MapTilesTests
         Assert.Equal(expected, ExampleWithWall().TileAt(new(row, column)));
     }
 
+    [Theory]
+    [InlineData(1, 3, Tile.Wall)]
+    [InlineData(1, 0, Tile.None)]
+    [InlineData(0, 3, Tile.None)]
+    public void TileAt_keeps_rows_and_columns_apart_on_a_non_square_map(int row, int column, Tile expected)
+    {
+        var map = Map.Create(Grid("AAAAB", "CCCCD"), new(0, 0), new(1, 4), Walls(2, 5, (1, 3)));
+
+        Assert.Equal(expected, map.TileAt(new(row, column)));
+    }
+
     [Fact]
     public void TileAt_is_none_on_a_map_without_tiles()
     {

@@ -10,7 +10,7 @@ public static class LevelFile
 
     /// <summary>
     /// Parses a level file's text. Throws <see cref="JsonException"/>, naming the problem, when a value is missing, null,
-    /// of the wrong type or out of range, when a key is unknown, when a grid's rows differ in length, when a tile code is
+    /// of the wrong type or out of range, when a key is unknown or repeated, when a grid's rows differ in length, when a tile code is
     /// unknown or a later twist's, when teleporters are given (not supported yet), when a tutorial has no lines, more than
     /// two or a blank one, or an unknown swipe direction, or when the text isn't JSON. Throws
     /// <see cref="InvalidMapException"/> when the map breaks a map rule.
@@ -19,8 +19,10 @@ public static class LevelFile
     {
         ArgumentNullException.ThrowIfNull(json);
         // Some Windows editors save UTF-8 with a byte order mark, which System.Text.Json rejects
-        var file = JsonSerializer.Deserialize(json.TrimStart(ByteOrderMark), LevelJsonContext.Default.LevelJson)
+        var text = json.TrimStart(ByteOrderMark);
+        var file = JsonSerializer.Deserialize(text, LevelJsonContext.Default.LevelJson)
             ?? throw new JsonException("The level is null.");
+        JsonKeys.RejectDuplicates(text, "level");
 
         // .NET 8's System.Text.Json enforces required keys but not non-null values, so each is checked by name
         RequireValue(file.Name, "name");
@@ -29,7 +31,7 @@ public static class LevelFile
         RequireValue(file.End, "end");
         if (file.Teleporters is not null)
         {
-            throw new JsonException("The level's \"teleporters\" must be null: twists aren't supported yet.");
+            throw new JsonException("The level's \"teleporters\" must be null: teleporters aren't supported yet.");
         }
         if (file.Id < 1 || file.Chapter < 1 || file.Par < 1)
         {

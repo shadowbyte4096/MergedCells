@@ -32,22 +32,29 @@ public partial class MoveInput : Node
             case InputEventKey key:
                 HandleKey(key);
                 break;
-            case InputEventScreenTouch touch:
-                if (touch.Pressed)
-                {
-                    swipes.Press(touch.Index, touch.Position.X, touch.Position.Y);
-                }
-                else
-                {
-                    swipes.Release(touch.Index);
-                }
+            case InputEventScreenTouch { Pressed: true } touch:
+                swipes.Press(touch.Index, touch.Position.X, touch.Position.Y);
                 break;
-            case InputEventScreenDrag drag:
-                if (swipes.Drag(drag.Index, drag.Position.X, drag.Position.Y) is { } direction)
+            case InputEventScreenTouch { Canceled: true } touch:
+                swipes.Release(touch.Index);
+                break;
+            case InputEventScreenTouch touch:
+                if (swipes.Release(touch.Index, touch.Position.X, touch.Position.Y) is { } direction)
                 {
                     MoveRequested?.Invoke(direction);
                 }
                 break;
+        }
+    }
+
+    // Drags are read here, before the HUD. Godot gives a drag whose press wasn't on a control to whatever control is
+    // under the finger now, and a button marks it handled, so a swipe that crossed Undo or Restart went missing.
+    // The press stays unhandled-only, so a finger that went down on a control is unknown here and its drags give nothing.
+    public override void _Input(InputEvent @event)
+    {
+        if (@event is InputEventScreenDrag drag && swipes.Drag(drag.Index, drag.Position.X, drag.Position.Y) is { } direction)
+        {
+            MoveRequested?.Invoke(direction);
         }
     }
 
