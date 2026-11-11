@@ -13,7 +13,7 @@ public class GameConfigTests
     private const string StarsGroup =
         """{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""";
 
-    private const string SlideGroup = """{"squaresPerSecond":1,"maxSeconds":1,"trapShrinkSeconds":1,"trapPauseSeconds":1,"trapGrowSeconds":1}""";
+    private const string SlideGroup = """{"squaresPerSecond":1,"maxSeconds":1,"trapShrinkSeconds":1,"trapPauseSeconds":1,"trapGrowSeconds":1,"teleportShrinkSeconds":1,"teleportGrowSeconds":1}""";
 
     private const string CampaignGroup = """{"gatePercent":1,"chapterGatePercent":{},"chapterStars":{},"levelStars":{},"undoLimit":1}""";
 
@@ -31,6 +31,8 @@ public class GameConfigTests
         double trapShrink = 1,
         double trapPause = 1,
         double trapGrow = 1,
+        double teleportShrink = 1,
+        double teleportGrow = 1,
         int twoStarMin = 1,
         int twoStarPercent = 1,
         int oneStarMin = 1,
@@ -50,7 +52,7 @@ public class GameConfigTests
         int undoLimit = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -70,6 +72,8 @@ public class GameConfigTests
         Valid.Replace(""","trapShrinkSeconds":1""", ""),
         Valid.Replace(""","trapPauseSeconds":1""", ""),
         Valid.Replace(""","trapGrowSeconds":1""", ""),
+        Valid.Replace(""","teleportShrinkSeconds":1""", ""),
+        Valid.Replace(""","teleportGrowSeconds":1""", ""),
         Valid.Replace("""{"twoStarMinExtraMoves":1,""", "{"),
         Valid.Replace(""","twoStarExtraParPercent":1""", ""),
         Valid.Replace(""","oneStarMinExtraMoves":1""", ""),
@@ -142,6 +146,23 @@ public class GameConfigTests
         var slide = GameConfig.Parse(ConfigText(trapShrink: shrink, trapPause: pause, trapGrow: grow)).Slide;
 
         Assert.Equal((shrink, pause, grow), (slide.TrapShrinkSeconds, slide.TrapPauseSeconds, slide.TrapGrowSeconds));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_teleport_times(double shrink, double grow)
+    {
+        var slide = GameConfig.Parse(ConfigText(teleportShrink: shrink, teleportGrow: grow)).Slide;
+
+        Assert.Equal((shrink, grow), (slide.TeleportShrinkSeconds, slide.TeleportGrowSeconds));
+    }
+
+    [Fact]
+    public void Shipped_teleport_times_are_the_mockup_s()
+    {
+        var slide = Shipped().Slide;
+
+        Assert.Equal((0.12, 0.12), (slide.TeleportShrinkSeconds, slide.TeleportGrowSeconds));
     }
 
     [Theory]
@@ -294,6 +315,8 @@ public class GameConfigTests
         ConfigText(trapShrink: 0),
         ConfigText(trapPause: -1),
         ConfigText(trapGrow: 0),
+        ConfigText(teleportShrink: 0),
+        ConfigText(teleportGrow: 0),
         ConfigText(twoStarMin: -1),
         ConfigText(oneStarPercent: -1),
         ConfigText(readable: 0),

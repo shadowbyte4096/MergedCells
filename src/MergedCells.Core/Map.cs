@@ -6,14 +6,21 @@ public sealed class Map
     private readonly Dictionary<int, bool> filled;
     // Null when the map has no twist tiles, so a plain map pays nothing for them in Slide
     private readonly Tile[]? tiles;
+    // Each square's partner as a flat index, -1 for none; null when the map has no teleporters
+    private readonly int[]? partners;
+    // A slide keeps one direction, so entering a teleporter square twice repeats everything after it: a slide with more
+    // jumps than this has looped. It also bounds every slide, at most (this + 2) * max(Rows, Columns) steps
+    private readonly int teleporterSquares;
 
-    private Map(int[,] regions, Cell start, Cell end, Rectangle[] rectangles, Dictionary<int, bool> filled, Tile[,]? tiles)
+    private Map(
+        int[,] regions, Cell start, Cell end, Rectangle[] rectangles, Dictionary<int, bool> filled, Tile[,]? tiles, TeleporterPair[] teleporters)
     {
         Rows = regions.GetLength(0);
         Columns = regions.GetLength(1);
         Start = start;
         End = end;
         Rectangles = Array.AsReadOnly(rectangles);
+        Teleporters = Array.AsReadOnly(teleporters);
         this.filled = filled;
         this.regions = new int[Rows * Columns];
         this.tiles = HasAny(tiles) ? new Tile[Rows * Columns] : null;
@@ -28,7 +35,20 @@ public sealed class Map
                 }
             }
         }
+        if (teleporters.Length > 0)
+        {
+            partners = new int[Rows * Columns];
+            teleporterSquares = teleporters.Length * 2;
+            Array.Fill(partners, -1);
+            foreach (var pair in teleporters)
+            {
+                partners[IndexOf(pair.First)] = IndexOf(pair.Second);
+                partners[IndexOf(pair.Second)] = IndexOf(pair.First);
+            }
+        }
     }
+
+    private int IndexOf(Cell cell) => cell.Row * Columns + cell.Column;
 
     public int Rows { get; }
 
@@ -44,6 +64,9 @@ public sealed class Map
     /// </summary>
     public IReadOnlyList<Rectangle> Rectangles { get; }
 
+    /// <summary>The map's teleporter pairs in the order they were given, empty when it has none.</summary>
+    public IReadOnlyList<TeleporterPair> Teleporters { get; }
+
     /// <summary>
     /// True when the region fills its entry in <see cref="Rectangles"/>. Throws <see cref="ArgumentException"/> for an ID
     /// that isn't on the map.
@@ -54,23 +77,26 @@ public sealed class Map
             : throw new ArgumentException($"Region {regionId} isn't on the map.", nameof(regionId));
 
     /// <summary>
-    /// Checks a region grid, start and end against the map rules. Returns every problem found,
+    /// Checks a region grid, start, end, tiles and teleporter pairs against the map rules. Returns every problem found,
     /// or an empty list when the map is valid.
     /// </summary>
-    public static IReadOnlyList<MapProblem> Validate(int[,] regions, Cell start, Cell end, Tile[,]? tiles = null) =>
-        MapValidator.Validate(regions, start, end, tiles);
+    public static IReadOnlyList<MapProblem> Validate(
+        int[,] regions, Cell start, Cell end, Tile[,]? tiles = null, IReadOnlyList<TeleporterPair>? teleporters = null) =>
+        MapValidator.Validate(regions, start, end, tiles, teleporters);
 
     /// <summary>
-    /// Builds a map from a copy of <paramref name="regions"/>, indexed <c>[row, column]</c>.
-    /// Throws <see cref="InvalidMapException"/> listing every problem <see cref="Validate"/> finds.
+    /// Builds a map from copies of <paramref name="regions"/> (indexed <c>[row, column]</c>), the tiles and the teleporter
+    /// pairs. Throws <see cref="InvalidMapException"/> listing every problem <see cref="Validate"/> finds.
     /// </summary>
-    public static Map Create(int[,] regions, Cell start, Cell end, Tile[,]? tiles = null)
+    public static Map Create(
+        int[,] regions, Cell start, Cell end, Tile[,]? tiles = null, IReadOnlyList<TeleporterPair>? teleporters = null)
     {
         ArgumentNullException.ThrowIfNull(regions);
-        // Validate a private copy, so a caller changing its array mid-check can't produce an invalid map
+        // Validate private copies, so a caller changing its arrays mid-check can't produce an invalid map
         var copy = (int[,])regions.Clone();
         var tilesCopy = (Tile[,]?)tiles?.Clone();
-        var problems = MapValidator.Validate(copy, start, end, tilesCopy);
+        var teleportersCopy = teleporters?.ToArray() ?? [];
+        var problems = MapValidator.Validate(copy, start, end, tilesCopy, teleportersCopy);
         if (problems.Count > 0)
         {
             throw new InvalidMapException(problems);
@@ -82,7 +108,8 @@ public sealed class Map
             end,
             firstSeenOrder.Select(id => bounds[id].ToRectangle(id)).ToArray(),
             bounds.ToDictionary(pair => pair.Key, pair => pair.Value.Count == pair.Value.Area),
-            tilesCopy);
+            tilesCopy,
+            teleportersCopy);
     }
 
     public bool Contains(Cell cell) => IsInside(cell, Rows, Columns);
@@ -129,18 +156,26 @@ public sealed class Map
     /// Slides from <paramref name="from"/> until the next square is off the map (stopping on the last
     /// square) or in a different rectangle (stopping on that first square inside it). Reaching the end
     /// square wins and stops there. A wall stops the slide on the square before it, and a sticky square stops it on
-    /// that square. Entering a trap sends the player to the start, with <see cref="SlideResult.Trapped"/> true. A slide
-    /// that can't move returns <paramref name="from"/> with <see cref="SlideResult.ReachedEnd"/> false.
+    /// that square. Entering a trap sends the player to the start, with <see cref="SlideResult.Trapped"/> true. Entering
+    /// a teleporter moves the player to its partner, and the slide carries on from there, with
+    /// <see cref="SlideResult.Teleported"/> true. A slide that can't move returns <paramref name="from"/> with
+    /// <see cref="SlideResult.ReachedEnd"/> false, and one that would never stop also has <see cref="SlideResult.Looped"/> true.
     /// </summary>
-    public SlideResult Slide(Cell from, Direction direction) => Walk(from, direction, out _);
+    public SlideResult Slide(Cell from, Direction direction) => Walk(from, direction, null);
 
     /// <summary>
-    /// As <see cref="Slide"/>, also giving the square the straight slide reached: the trap that caught the player, or
-    /// otherwise the stop. For animation; the solver uses <see cref="Slide"/>.
+    /// As <see cref="Slide"/>, also giving the slide's straight runs in order, for animation; the solver uses
+    /// <see cref="Slide"/>.
     /// </summary>
-    public SlideTrace Trace(Cell from, Direction direction) => new(Walk(from, direction, out var reached), reached);
+    public SlideTrace Trace(Cell from, Direction direction)
+    {
+        var runs = new List<SlideRun>();
+        var result = Walk(from, direction, runs);
+        return new SlideTrace(result, runs.AsReadOnly());
+    }
 
-    private SlideResult Walk(Cell from, Direction direction, out Cell reached)
+    // Runs are recorded only when tracing, so Slide allocates nothing
+    private SlideResult Walk(Cell from, Direction direction, List<SlideRun>? runs)
     {
         if (!Contains(from))
         {
@@ -148,44 +183,63 @@ public sealed class Map
         }
 
         var current = from;
+        var runStart = from;
+        var teleported = false;
+        var jumps = 0;
         while (true)
         {
             var next = current.Step(direction);
             if (!Contains(next))
             {
-                reached = current;
-                return new SlideResult(current, false);
+                return Finish(runs, runStart, current, new SlideResult(current, false, Teleported: teleported));
             }
-            var tile = tiles == null ? Tile.None : tiles[next.Row * Columns + next.Column];
+            var index = IndexOf(next);
+            var tile = tiles == null ? Tile.None : tiles[index];
             if (tile == Tile.Wall)
             {
-                reached = current;
-                return new SlideResult(current, false);
+                return Finish(runs, runStart, current, new SlideResult(current, false, Teleported: teleported));
             }
             // Before the boundary check, so a slide passing over an end that shares a rectangle would
             // still win. Validation keeps the end 1x1 today; this is the safety net if that ever changes.
             if (next == End)
             {
-                reached = End;
-                return new SlideResult(End, true);
+                return Finish(runs, runStart, End, new SlideResult(End, true, Teleported: teleported));
             }
             if (tile == Tile.Sticky)
             {
-                reached = next;
-                return new SlideResult(next, false);
+                return Finish(runs, runStart, next, new SlideResult(next, false, Teleported: teleported));
             }
             if (tile == Tile.Trap)
             {
-                reached = next;
-                return new SlideResult(Start, false, true);
+                return Finish(runs, runStart, next, new SlideResult(Start, false, true, teleported));
+            }
+            // Before the boundary check, so a teleporter on a new region's first square teleports. Teleporter squares
+            // hold no tile, so the tests above never see one. The slide carries on from the partner.
+            if (partners != null && partners[index] >= 0)
+            {
+                if (++jumps > teleporterSquares)
+                {
+                    runs?.Clear();
+                    return Finish(runs, from, from, new SlideResult(from, false, Looped: true));
+                }
+                runs?.Add(new SlideRun(runStart, next));
+                current = new Cell(partners[index] / Columns, partners[index] % Columns);
+                runStart = current;
+                teleported = true;
+                continue;
             }
             if (RegionAt(next) != RegionAt(current))
             {
-                reached = next;
-                return new SlideResult(next, false);
+                return Finish(runs, runStart, next, new SlideResult(next, false, Teleported: teleported));
             }
             current = next;
         }
+    }
+
+    private static SlideResult Finish(List<SlideRun>? runs, Cell runStart, Cell runEnd, SlideResult result)
+    {
+        runs?.Add(new SlideRun(runStart, runEnd));
+        return result;
     }
 
     internal static bool IsInside(Cell cell, int rows, int columns) =>

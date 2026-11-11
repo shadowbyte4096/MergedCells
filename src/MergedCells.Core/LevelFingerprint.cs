@@ -2,7 +2,7 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// A fingerprint of everything that changes how a level plays: the grid's size, the regions' shapes, the start, the
-/// end, the par and any twist tiles. Saved bests carry it, so a best from a level that has since changed is ignored. A
+/// end, the par, any twist tiles and which squares teleporters link. Saved bests carry it, so a best from a level that has since changed is ignored. A
 /// level without twists feeds nothing for them, so adding twist support never changes a plain level's fingerprint.
 /// </summary>
 public static class LevelFingerprint
@@ -11,6 +11,7 @@ public static class LevelFingerprint
     private const ulong OffsetBasis = 0xcbf29ce484222325;
     private const ulong Prime = 0x100000001b3;
     private const int TilesSection = 1;
+    private const int TeleportersSection = 2;
 
     public static string Of(Level level)
     {
@@ -59,7 +60,29 @@ public static class LevelFingerprint
                 }
             }
         }
+        if (map.Teleporters.Count > 0)
+        {
+            // Per square, so neither the pairs' order (only their letters) nor a pair's own order changes the fingerprint
+            Feed(ref hash, TeleportersSection);
+            foreach (var partner in Partners(map))
+            {
+                Feed(ref hash, partner);
+            }
+        }
         return hash.ToString("x16");
+    }
+
+    // Each square's partner as row * columns + column, or -1, in reading order
+    private static int[] Partners(Map map)
+    {
+        var partners = new int[map.Rows * map.Columns];
+        Array.Fill(partners, -1);
+        foreach (var pair in map.Teleporters)
+        {
+            partners[pair.First.Row * map.Columns + pair.First.Column] = pair.Second.Row * map.Columns + pair.Second.Column;
+            partners[pair.Second.Row * map.Columns + pair.Second.Column] = pair.First.Row * map.Columns + pair.First.Column;
+        }
+        return partners;
     }
 
     // Least significant byte first, whatever the machine's byte order

@@ -66,6 +66,34 @@ public class SolverTests
             14,
             1,
             true),
+        // A ladder of row strips (par 5 without it): the top lane's teleporter drops the player onto row 3, which runs to
+        // the edge right above the end
+        new(
+            "TeleporterShortcut",
+            () => Map.Create(Grid("AAAAA", "BBBBB", "CCCCC", "DDDDD", "EEEEZ"), new(0, 0), new(4, 4), teleporters: [Pair(0, 2, 3, 1)]),
+            2,
+            "RD",
+            10,
+            1,
+            true),
+        // The teleporter is the first square of the top lane's second region, so the slide jumps rather than stopping there
+        new(
+            "TeleporterOnBoundary",
+            () => Map.Create(Grid("AABBB", "CCCCC", "DDDDZ"), new(0, 0), new(2, 4), teleporters: [Pair(0, 2, 1, 1)]),
+            2,
+            "RD",
+            9,
+            1,
+            true),
+        // The exit is at the right edge, right above the end, so the jump stops on it
+        new(
+            "ExitAtTheEdge",
+            () => Map.Create(Grid("AAAAA", "BBBBB", "CCCCZ"), new(0, 0), new(2, 4), teleporters: [Pair(0, 2, 1, 4)]),
+            2,
+            "RD",
+            8,
+            1,
+            true),
     ];
 
     public static TheoryData<string> CaseNames => new(Cases.Select(c => c.Name));
@@ -257,6 +285,17 @@ public class SolverTests
         var result = SolveCycleWithNoWin();
 
         Assert.Equal((false, (int?)null, 0, 0L), (result.IsSolvable, result.Par, result.Path.Count, result.OptimalRoutes));
+    }
+
+    // Left and Right from the start both loop, so the route goes down first. Not a row in Cases: a broken loop guard would
+    // hang every theory over them, and here the timeout fails it instead
+    [Fact(Timeout = 10_000)]
+    public async Task Looping_slides_are_skipped()
+    {
+        var result = await Task.Run(() => Solver.Solve(LoopingLane()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(((int?)2, 6, 1L), (result.Par, result.ReachableStops, result.OptimalRoutes));
+        Assert.Equal(Directions("DR"), result.Path);
     }
 
     [Fact]

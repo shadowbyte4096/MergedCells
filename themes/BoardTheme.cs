@@ -49,6 +49,16 @@ public partial class BoardTheme : Resource
 
     [Export] public float TrapFlatStrokeFraction { get; set; } = 0.22f;
 
+    // A teleporter square shows its pair's letter, centred by its ink. Zoomed out it nearly fills the square
+    [Export] public Color Teleporter { get; set; } = new("#235e56");
+
+    [Export] public Font TeleporterFont { get; set; } = GD.Load<Font>("res://themes/fonts/Inter-ExtraBold.ttf");
+
+    // The letter's font size, as a fraction of a square's side
+    [Export] public float TeleporterLetterFraction { get; set; } = 0.66f;
+
+    [Export] public float TeleporterFlatLetterFraction { get; set; } = 0.95f;
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

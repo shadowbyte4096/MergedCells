@@ -42,7 +42,7 @@ public class PlaySessionTests
 
         var slide = session.Request(Direction.Down);
 
-        PlayerSlide? expected = new PlayerSlide(Direction.Down, Start, new Cell(1, 0), new Cell(1, 0), false);
+        PlayerSlide? expected = new PlayerSlide(Direction.Down, [new(Start, new Cell(1, 0))], new Cell(1, 0), false);
         Assert.Equal((expected, 1, expected), (slide, session.Moves, session.Current));
     }
 
@@ -74,7 +74,7 @@ public class PlaySessionTests
 
         var next = session.FinishSlide();
 
-        PlayerSlide? expected = new PlayerSlide(Direction.Down, new Cell(1, 0), new Cell(3, 0), new Cell(3, 0), false);
+        PlayerSlide? expected = new PlayerSlide(Direction.Down, [new(new Cell(1, 0), new Cell(3, 0))], new Cell(3, 0), false);
         Assert.Equal((expected, 2), (next, session.Moves));
     }
 
@@ -384,7 +384,7 @@ public class PlaySessionTests
 
         var slide = session.Request(Direction.Right);
 
-        Assert.Equal(new PlayerSlide(Direction.Right, new(0, 1), new(0, 3), Start, false), slide);
+        Assert.Equal(new PlayerSlide(Direction.Right, [new(new(0, 1), new(0, 3))], Start, false), slide);
     }
 
     [Fact]
@@ -394,7 +394,7 @@ public class PlaySessionTests
 
         var slide = session.Request(Direction.Right);
 
-        Assert.Equal((new PlayerSlide(Direction.Right, Start, new(0, 1), Start, false), 1), (slide, session.Moves));
+        Assert.Equal((new PlayerSlide(Direction.Right, [new(Start, new(0, 1))], Start, false), 1), (slide, session.Moves));
     }
 
     [Fact]
@@ -406,6 +406,28 @@ public class PlaySessionTests
 
         var next = session.FinishSlide();
 
-        Assert.Equal(new PlayerSlide(Direction.Down, Start, new(1, 0), new(1, 0), false), next);
+        Assert.Equal(new PlayerSlide(Direction.Down, [new(Start, new(1, 0))], new(1, 0), false), next);
+    }
+
+    [Fact]
+    public void Teleported_move_gives_a_slide_with_both_runs()
+    {
+        var session = new PlaySession(TestMaps.TeleporterLane());
+
+        var slide = session.Request(Direction.Right);
+
+        Assert.Equal(new PlayerSlide(Direction.Right, [new(Start, new(0, 2)), new(new(1, 4), new(1, 5))], new(1, 5), false), slide);
+    }
+
+    [Fact]
+    public void Round_trip_gives_a_counted_slide()
+    {
+        var session = new PlaySession(TestMaps.RoundTrip());
+
+        var slide = session.Request(Direction.Right);
+
+        Assert.Equal(
+            (new PlayerSlide(Direction.Right, [new(new(0, 2), new(0, 4)), new(new(0, 1), new(0, 2))], new(0, 2), false), 1),
+            (slide, session.Moves));
     }
 }

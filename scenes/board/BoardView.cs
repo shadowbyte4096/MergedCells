@@ -32,7 +32,8 @@ public partial class BoardView : Node2D
     private WallTextures wallTextures;
     private StickyTextures stickyTextures;
     private TrapTextures trapTextures;
-    // Blocks keep their old drawing until they're rebuilt, so a replaced theme's tile textures are kept until then
+    private TeleporterGlyphs teleporterGlyphs;
+    // Blocks keep their old drawing until they're rebuilt, so a replaced theme's tile textures and letters are kept until then
     private readonly List<object> retiredTileTextures = [];
     // One entry per Map.Rectangles index; null for regions that are rectangles
     private IrregularShape[] irregular;
@@ -241,6 +242,28 @@ public partial class BoardView : Node2D
             }
         }
         DrawTiles(item, block, outlined);
+        DrawTeleporters(item, block, outlined);
+    }
+
+    // Teleporter squares hold no tile and are never the start or the end, so a letter never shares a square with a mark
+    private void DrawTeleporters(Rid item, int block, bool outlined)
+    {
+        if (teleporterGlyphs == null)
+        {
+            return;
+        }
+        var area = blocks.Area(block);
+        for (var index = 0; index < map.Teleporters.Count; index++)
+        {
+            var pair = map.Teleporters[index];
+            foreach (var cell in new[] { pair.First, pair.Second })
+            {
+                if (cell.Row >= area.Top && cell.Row <= area.Bottom && cell.Column >= area.Left && cell.Column <= area.Right)
+                {
+                    teleporterGlyphs.Draw(item, CellCentre(cell), TeleporterLetters.For(index), outlined);
+                }
+            }
+        }
     }
 
     // After the block's regions, so a twist is never painted over (a square's region is in this block or an earlier one)
@@ -475,9 +498,14 @@ public partial class BoardView : Node2D
         {
             retiredTileTextures.Add(trapTextures);
         }
+        if (teleporterGlyphs != null)
+        {
+            retiredTileTextures.Add(teleporterGlyphs);
+        }
         wallTextures = null;
         stickyTextures = null;
         trapTextures = null;
+        teleporterGlyphs = null;
         if (theme == null)
         {
             return;
@@ -507,6 +535,20 @@ public partial class BoardView : Node2D
         else
         {
             trapTextures = new TrapTextures(theme);
+        }
+        if (theme.TeleporterFont is not FontFile)
+        {
+            GD.PushError("The board theme's teleporter font must be set to a font file.");
+        }
+        else if (!AllPositive(theme.TeleporterLetterFraction, theme.TeleporterFlatLetterFraction))
+        {
+            GD.PushError(
+                $"The board theme's teleporter letter sizes ({theme.TeleporterLetterFraction}, {theme.TeleporterFlatLetterFraction}) "
+                + "must be positive and finite.");
+        }
+        else
+        {
+            teleporterGlyphs = new TeleporterGlyphs(theme);
         }
     }
 

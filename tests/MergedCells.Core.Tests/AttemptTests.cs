@@ -183,6 +183,37 @@ public class AttemptTests
     }
 
     [Fact]
+    public void Round_trip_counts_as_a_move()
+    {
+        var attempt = new Attempt(TestMaps.RoundTrip());
+
+        var outcome = attempt.Move(Direction.Right);
+
+        Assert.Equal((MoveOutcome.Moved, 1, new Cell(0, 2)), (outcome, attempt.Moves, attempt.Position));
+    }
+
+    [Fact]
+    public void Undo_after_a_round_trip_returns_to_where_it_began()
+    {
+        var attempt = new Attempt(TestMaps.RoundTrip());
+        attempt.Move(Direction.Right);
+
+        var undone = attempt.Undo();
+
+        Assert.Equal(((Direction?)Direction.Right, 0, new Cell(0, 2)), (undone, attempt.Moves, attempt.Position));
+    }
+
+    [Fact(Timeout = 10_000)]
+    public async Task Looping_slide_is_ignored()
+    {
+        var attempt = new Attempt(TestMaps.LoopingLane());
+
+        var outcome = await Task.Run(() => attempt.Move(Direction.Right), TestContext.Current.CancellationToken);
+
+        Assert.Equal((MoveOutcome.Ignored, 0), (outcome, attempt.Moves));
+    }
+
+    [Fact]
     public void Null_map_throws()
     {
         Assert.Throws<ArgumentNullException>(() => new Attempt(null!));

@@ -1,6 +1,7 @@
 [gd_resource type="Resource" script_class="BoardTheme" format=3]
 
 [ext_resource type="Script" path="res://themes/BoardTheme.cs" id="1_theme"]
+[ext_resource type="FontFile" path="res://themes/fonts/Inter-ExtraBold.ttf" id="2_font"]
 
 [resource]
 script = ExtResource("1_theme")
@@ -22,6 +23,10 @@ TrapSizeFraction = 0.4
 TrapStrokeFraction = 0.11
 TrapFlatSizeFraction = 0.68
 TrapFlatStrokeFraction = 0.22
+Teleporter = Color(0.36862745, 0.82745098, 0.74901961, 1)
+TeleporterFont = ExtResource("2_font")
+TeleporterLetterFraction = 0.66
+TeleporterFlatLetterFraction = 0.95
 GapFraction = 0.16
 OutlineFraction = 0.07
 CornerFraction = 0.2

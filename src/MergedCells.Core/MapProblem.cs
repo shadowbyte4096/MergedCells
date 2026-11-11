@@ -18,6 +18,12 @@ public enum MapProblemKind
     StickyOnEnd,
     TrapOnStart,
     TrapOnEnd,
+    TeleporterOutsideMap,
+    TeleporterPairOnOneSquare,
+    TeleporterSquareReused,
+    TeleporterOnStart,
+    TeleporterOnEnd,
+    TeleporterOnTile,
 }
 
 public sealed record MapProblem(MapProblemKind Kind, string Message);

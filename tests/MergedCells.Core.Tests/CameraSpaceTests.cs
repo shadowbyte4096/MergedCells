@@ -182,6 +182,25 @@ public class CameraSpaceTests
         Assert.Equal(expected, Space(3200, 3200).ShowsSquare(V(1600, 1600, 1), new Vector2(x, y)));
     }
 
+    // A teleporter's partner on screen now can still scroll off while the camera finishes a glide elsewhere
+    [Fact]
+    public void ShowsNowAndAhead_needs_the_square_in_the_view_the_camera_is_heading_to()
+    {
+        Assert.False(Space(3200, 3200).ShowsNowAndAhead(V(1600, 1600, 1), V(1000, 1600, 1), new Vector2(1900, 1600)));
+    }
+
+    [Fact]
+    public void ShowsNowAndAhead_needs_the_square_on_screen_now()
+    {
+        Assert.False(Space(3200, 3200).ShowsNowAndAhead(V(1000, 1600, 1), V(1600, 1600, 1), new Vector2(1900, 1600)));
+    }
+
+    [Fact]
+    public void ShowsNowAndAhead_holds_when_both_views_show_the_square()
+    {
+        Assert.True(Space(3200, 3200).ShowsNowAndAhead(V(1600, 1600, 1), V(1700, 1600, 1), new Vector2(1900, 1600)));
+    }
+
     [Fact]
     public void Follow_does_nothing_for_a_stop_inside_the_middle_area()
     {

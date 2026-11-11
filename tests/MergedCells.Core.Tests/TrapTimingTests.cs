@@ -16,6 +16,8 @@ public class TrapTimingTests
         TrapShrinkSeconds = shrink,
         TrapPauseSeconds = pause,
         TrapGrowSeconds = grow,
+        TeleportShrinkSeconds = Anonymous.Create<double>(),
+        TeleportGrowSeconds = Anonymous.Create<double>(),
     };
 
     // Shrinking on the trap, hidden, then growing on the start: 0.2, 0.1 and 0.2 seconds

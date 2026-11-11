@@ -7,7 +7,9 @@
     "maxSeconds": 0.4,
     "trapShrinkSeconds": 0.2,
     "trapPauseSeconds": 0.1,
-    "trapGrowSeconds": 0.2
+    "trapGrowSeconds": 0.2,
+    "teleportShrinkSeconds": 0.12,
+    "teleportGrowSeconds": 0.12
   },
   "stars": {
     "twoStarMinExtraMoves": 2,

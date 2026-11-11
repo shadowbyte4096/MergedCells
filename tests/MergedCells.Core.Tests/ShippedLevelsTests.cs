@@ -39,6 +39,45 @@ public class ShippedLevelsTests
         Assert.Equal(Solver.Solve(level.Map).Par, level.Par);
     }
 
+    // A looping slide is a silent no-op in play, which a player can't tell from a broken swipe. Under a timeout, with the
+    // slides on another thread, so a broken loop guard fails the test instead of hanging the run
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(LevelFiles))]
+    public async Task No_slide_from_a_reachable_stop_loops(string file)
+    {
+        var map = Load(file).Map;
+
+        var looping = await Task.Run(() => LoopingSlides(map), TestContext.Current.CancellationToken);
+
+        Assert.Empty(looping);
+    }
+
+    private static readonly Direction[] Directions = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
+
+    private static List<(Cell From, Direction Direction)> LoopingSlides(Map map)
+    {
+        var looping = new List<(Cell, Direction)>();
+        var seen = new HashSet<Cell> { map.Start };
+        var queue = new Queue<Cell>([map.Start]);
+        while (queue.Count > 0)
+        {
+            var at = queue.Dequeue();
+            foreach (var direction in Directions)
+            {
+                var result = map.Slide(at, direction);
+                if (result.Looped)
+                {
+                    looping.Add((at, direction));
+                }
+                else if (!result.ReachedEnd && seen.Add(result.Stop))
+                {
+                    queue.Enqueue(result.Stop);
+                }
+            }
+        }
+        return looping;
+    }
+
     [Fact]
     public void No_two_levels_share_an_id()
     {

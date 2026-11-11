@@ -11,7 +11,7 @@ public static class LevelFile
     /// <summary>
     /// Parses a level file's text. Throws <see cref="JsonException"/>, naming the problem, when a value is missing, null,
     /// of the wrong type or out of range, when a key is unknown or repeated, when a grid's rows differ in length, when a tile code is
-    /// unknown, when teleporters are given (not supported yet), when a tutorial has no lines, more than
+    /// unknown, when a teleporter pair isn't two squares of two numbers each, when a tutorial has no lines, more than
     /// two or a blank one, or an unknown swipe direction, or when the text isn't JSON. Throws
     /// <see cref="InvalidMapException"/> when the map breaks a map rule.
     /// </summary>
@@ -29,10 +29,6 @@ public static class LevelFile
         RequireValue(file.Regions, "regions");
         RequireValue(file.Start, "start");
         RequireValue(file.End, "end");
-        if (file.Teleporters is not null)
-        {
-            throw new JsonException("The level's \"teleporters\" must be null: teleporters aren't supported yet.");
-        }
         if (file.Id < 1 || file.Chapter < 1 || file.Par < 1)
         {
             throw new JsonException($"The level's \"id\" ({file.Id}), \"chapter\" ({file.Chapter}) and \"par\" ({file.Par}) must be at least 1.");
@@ -46,8 +42,37 @@ public static class LevelFile
             Grid(file.Regions, "regions"),
             Coordinate(file.Start, "start"),
             Coordinate(file.End, "end"),
-            file.Tiles is null ? null : Tiles(Grid(file.Tiles, "tiles")));
+            file.Tiles is null ? null : Tiles(Grid(file.Tiles, "tiles")),
+            file.Teleporters is null ? null : Teleporters(file.Teleporters));
         return new Level(file.Id, file.Name, file.Chapter, map, file.Par, ReadTutorial(file.Tutorial));
+    }
+
+    // Only the shape is checked here; Map.Create checks where the pairs sit
+    private static TeleporterPair[] Teleporters(int[][][] pairs)
+    {
+        var read = new TeleporterPair[pairs.Length];
+        for (var index = 0; index < pairs.Length; index++)
+        {
+            var pair = pairs[index] ?? throw new JsonException($"The level's \"teleporters\" pair {index} is null.");
+            if (pair.Length != 2)
+            {
+                throw new JsonException($"The level's \"teleporters\" pair {index} has {pair.Length} squares; it needs two.");
+            }
+            read[index] = new TeleporterPair(PairSquare(pair[0], index), PairSquare(pair[1], index));
+        }
+        return read;
+    }
+
+    private static Cell PairSquare(int[]? square, int index)
+    {
+        if (square is null)
+        {
+            throw new JsonException($"The level's \"teleporters\" pair {index} has a null square.");
+        }
+        return square.Length == 2
+            ? new Cell(square[0], square[1])
+            : throw new JsonException(
+                $"The level's \"teleporters\" pair {index} has a square of {square.Length} numbers; it needs two, [row, column].");
     }
 
     private static Tutorial? ReadTutorial(TutorialJson? tutorial)
@@ -158,7 +183,7 @@ internal sealed record LevelJson
     // Codes 0 (none), 1 (wall), 2 (sticky) and 3 (trap)
     public int[][]? Tiles { get; init; }
 
-    // Chunk 17 reads these; until then a value is rejected rather than silently ignored
+    // Pairs of [row, column] squares; their order gives the letters drawn on them
     public int[][][]? Teleporters { get; init; }
 
     public required int[] Start { get; init; }

@@ -40,6 +40,7 @@ public sealed record GameConfig
         _ = new SwipeDetector(Input.SwipeThreshold);
         _ = SlideTiming.Seconds(1, Slide);
         _ = TrapTiming.Seconds(Slide);
+        _ = TeleportTiming.Seconds(0, Slide);
         // Any board and band will do: the config values are checked first
         _ = new CameraSpace(new BoardRect(0, 0, 64, 64), new System.Numerics.Vector2(720, 1280), 24, 64, Camera);
         _ = new PinchTracker(Camera.GestureSlop);
@@ -162,6 +163,11 @@ public sealed record SlideConfig
     public required double TrapPauseSeconds { get; init; }
 
     public required double TrapGrowSeconds { get; init; }
+
+    // In seconds, at each teleporter: the player shrinks into it, then grows out of its partner
+    public required double TeleportShrinkSeconds { get; init; }
+
+    public required double TeleportGrowSeconds { get; init; }
 }
 
 // Each star limit is par plus the larger of its minimum and its percentage of par, rounded up

@@ -138,6 +138,13 @@ public sealed class CameraSpace
     }
 
     /// <summary>
+    /// Whether the whole square stays on screen: in the view now, and in the view the camera is heading to. A square on
+    /// screen now can scroll off while a glide elsewhere finishes.
+    /// </summary>
+    public bool ShowsNowAndAhead(CameraView current, CameraView heading, Vector2 squareCentre) =>
+        ShowsSquare(current, squareCentre) && ShowsSquare(heading, squareCentre);
+
+    /// <summary>
     /// The glide for a slide from one square centre to another, or null when the camera should leave things as they are.
     /// </summary>
     /// <param name="current">Where the camera is now: the glide starts here.</param>

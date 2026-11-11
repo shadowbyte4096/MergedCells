@@ -61,6 +61,18 @@ internal static class TestMaps
     // A trap on [0, 1]: Right from the start is caught after one square
     public static Map TrapBesideTheStart() => Map.Create(Grid("AAAAA", "BCDEF"), new(0, 0), new(1, 2), Traps(2, 5, (0, 1)));
 
+    // Right from the start enters [0, 2], comes out of [1, 4] and runs to the edge at [1, 5]
+    public static Map TeleporterLane() =>
+        Map.Create(Grid("AAAAAA", "BBBBBB", "CCCCCZ"), new(0, 0), new(2, 5), teleporters: [Pair(0, 2, 1, 4)]);
+
+    // Right from the start enters [0, 4], comes out of [0, 1] behind it, and stops on the start's region boundary
+    public static Map RoundTrip() =>
+        Map.Create(Grid("AABBBB", "CCCCCZ"), new(0, 2), new(1, 5), teleporters: [Pair(0, 1, 0, 4)]);
+
+    // Left or Right from the start enters one teleporter, comes out of the other behind the player, and goes round for ever
+    public static Map LoopingLane() =>
+        Map.Create(Grid("AAAAA", "BBBBZ"), new(0, 2), new(1, 4), teleporters: [Pair(0, 1, 0, 3)]);
+
     // Draws a region grid as rows of letters, one per square; squares with the same letter share a region.
     // Tests that depend on the ID values themselves use number grids instead.
     public static int[,] Grid(params string[] rows)
@@ -101,6 +113,9 @@ internal static class TestMaps
     public static Tile[,] Sticky(int rows, int columns, params (int Row, int Column)[] sticky) => Tiles(rows, columns, Tile.Sticky, sticky);
 
     public static Tile[,] Traps(int rows, int columns, params (int Row, int Column)[] traps) => Tiles(rows, columns, Tile.Trap, traps);
+
+    public static TeleporterPair Pair(int firstRow, int firstColumn, int secondRow, int secondColumn) =>
+        new(new(firstRow, firstColumn), new(secondRow, secondColumn));
 
     private static Tile[,] Tiles(int rows, int columns, Tile tile, (int Row, int Column)[] squares)
     {

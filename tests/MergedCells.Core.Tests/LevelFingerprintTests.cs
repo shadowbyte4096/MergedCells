@@ -43,6 +43,75 @@ public class LevelFingerprintTests
         Assert.Equal(expected, LevelFingerprint.Of(map, 2));
     }
 
+    private static Map NonSquare(Tile[,]? tiles, params TeleporterPair[] teleporters) =>
+        Map.Create(new[,] { { 1, 1, 2 }, { 3, 3, 4 } }, new(0, 0), new(1, 2), tiles, teleporters);
+
+    // Computed outside the code under test, like the other pins: the plain values, then 2 and every square's partner
+    // index (-1 for none)
+    [Fact]
+    public void Non_square_teleporter_fingerprint_is_pinned()
+    {
+        Assert.Equal("83296ebe97d9d5b4", LevelFingerprint.Of(NonSquare(null, TestMaps.Pair(0, 2, 1, 0)), 2));
+    }
+
+    // The tiles section (1, then every code) comes before the teleporter section
+    [Fact]
+    public void Tiles_then_teleporters_fingerprint_is_pinned()
+    {
+        var map = NonSquare(TestMaps.Sticky(2, 3, (1, 1)), TestMaps.Pair(0, 2, 1, 0));
+
+        Assert.Equal("630082feed42d947", LevelFingerprint.Of(map, 2));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Empty_pair_list_keeps_the_plain_fingerprint(int par)
+    {
+        var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, teleporters: []);
+
+        Assert.Equal(LevelFingerprint.Of(TestMaps.Example(), Positive(par)), LevelFingerprint.Of(map, Positive(par)));
+    }
+
+    private static Map ExampleWithPairs(params TeleporterPair[] pairs) =>
+        Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, teleporters: pairs);
+
+    [Theory]
+    [AutoData]
+    public void Adding_a_pair_changes_the_fingerprint(int par)
+    {
+        Assert.NotEqual(
+            LevelFingerprint.Of(TestMaps.Example(), Positive(par)),
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(0, 1, 2, 2)), Positive(par)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Moving_a_pair_s_square_changes_the_fingerprint(int par)
+    {
+        Assert.NotEqual(
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(0, 1, 2, 2)), Positive(par)),
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(0, 1, 2, 1)), Positive(par)));
+    }
+
+    // The pairs' order only changes their letters, which are presentation
+    [Theory]
+    [AutoData]
+    public void Reordered_pairs_keep_the_fingerprint(int par)
+    {
+        Assert.Equal(
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(0, 1, 2, 2), TestMaps.Pair(1, 1, 3, 0)), Positive(par)),
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(1, 1, 3, 0), TestMaps.Pair(0, 1, 2, 2)), Positive(par)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Swapped_squares_keep_the_fingerprint(int par)
+    {
+        Assert.Equal(
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(0, 1, 2, 2)), Positive(par)),
+            LevelFingerprint.Of(ExampleWithPairs(TestMaps.Pair(2, 2, 0, 1)), Positive(par)));
+    }
+
     [Theory]
     [AutoData]
     public void Tiles_with_no_walls_keep_the_plain_fingerprint(int par)

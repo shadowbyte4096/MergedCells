@@ -38,11 +38,10 @@ public partial class Play : Node2D, IScreen
     private Tutorial tutorial;
 
     private PlayerSlide? sliding;
+    private MoveTimeline timeline;
     private double elapsed;
-    // The straight slide's time, and the whole move's: a trapped one adds the return to the start
-    private double duration;
-    private double total;
-    private bool caught;
+    // How many of the slide in flight's events have run
+    private int eventsRun;
     private bool dark;
 
     public event Action NextPressed;
@@ -200,15 +199,17 @@ public partial class Play : Node2D, IScreen
         }
 
         elapsed += delta;
-        // A loop, because a long frame can finish one slide and part of the remembered one after it
+        // A loop, because a long frame can pass several of a move's events, finish it, and start the remembered one
         while (sliding is { } current)
         {
-            // Its own step, so a frame that skips past the catch still releases the trail and sends the camera back
-            if (current.Trapped && !caught && elapsed >= duration)
+            // One event per pass, in the timeline's order, so a frame that skips past several still runs them all. A jump's
+            // wait moves every later time, so the next event's time is read only after it is set
+            if (eventsRun < timeline.Events.Count && elapsed >= timeline.Events[eventsRun].At)
             {
-                Catch(current);
+                RunEvent(current, timeline.Events[eventsRun++]);
+                continue;
             }
-            if (elapsed < total)
+            if (elapsed < timeline.Seconds)
             {
                 break;
             }
@@ -219,9 +220,8 @@ public partial class Play : Node2D, IScreen
             }
             player.Cell = current.To;
             SetPlayerScale(1);
-            var leftover = elapsed - total;
+            var leftover = elapsed - timeline.Seconds;
             sliding = null;
-            caught = false;
             if (session.FinishSlide() is { } next)
             {
                 Begin(next);
@@ -233,28 +233,54 @@ public partial class Play : Node2D, IScreen
             }
         }
 
-        if (sliding is not { } moving)
+        if (sliding is null)
         {
             return;
         }
-        if (caught)
+        var frame = timeline.At(elapsed);
+        player.Position = board.CellCentre(frame.From).Lerp(board.CellCentre(frame.To), (float)frame.Progress);
+        SetPlayerScale(frame.Scale);
+        if (frame.Sliding)
         {
-            var (onStart, scale) = TrapTiming.At(elapsed - duration, GameConfigFile.Current.Slide);
-            player.Cell = onStart ? moving.To : moving.Reached;
-            SetPlayerScale(scale);
-        }
-        else
-        {
-            var progress = (float)(elapsed / duration);
-            player.Position = board.CellCentre(moving.From).Lerp(board.CellCentre(moving.Reached), progress);
             trail.Stretch(player.Position);
         }
+    }
+
+    private void RunEvent(PlayerSlide slide, MoveEvent moveEvent)
+    {
+        switch (moveEvent.Kind)
+        {
+            case MoveEventKind.ReachTeleporter:
+                ReachTeleporter(slide, moveEvent.Index);
+                break;
+            case MoveEventKind.BeginRun:
+                BeginRun(slide, moveEvent.Index);
+                break;
+            case MoveEventKind.Catch:
+                Catch(slide);
+                break;
+        }
+    }
+
+    // The player has slid into a teleporter: its trail ends there, and the camera may need time to show the partner
+    private void ReachTeleporter(PlayerSlide slide, int jump)
+    {
+        trail.Stretch(board.CellCentre(slide.Runs[jump].To));
+        trail.Release();
+        timeline = timeline.WithWait(jump, camera.Reveal(board.CellCentre(slide.Runs[jump + 1].From)));
+    }
+
+    // The player has grown out of a partner and slides on: a new trail strip, followed like any slide
+    private void BeginRun(PlayerSlide slide, int run)
+    {
+        var from = board.CellCentre(slide.Runs[run].From);
+        trail.Begin(from);
+        camera.Follow(from, board.CellCentre(slide.Runs[run].To), timeline.RunEnd(run) - timeline.RunStart(run));
     }
 
     // The slide has reached a trap: the player shrinks into it and grows back on the start, while the camera heads there
     private void Catch(PlayerSlide slide)
     {
-        caught = true;
         player.Cell = slide.Reached;
         trail.Stretch(board.CellCentre(slide.Reached));
         trail.Release();
@@ -372,25 +398,27 @@ public partial class Play : Node2D, IScreen
     private void Begin(PlayerSlide slide)
     {
         // Worked out first, so a throw leaves no half-started slide behind
-        var config = GameConfigFile.Current.Slide;
-        duration = SlideTiming.Seconds(slide.Squares, config);
-        total = duration + (slide.Trapped ? TrapTiming.Seconds(config) : 0);
+        timeline = new MoveTimeline(slide, GameConfigFile.Current.Slide);
         sliding = slide;
         elapsed = 0;
-        caught = false;
+        eventsRun = 0;
         trail.Begin(board.CellCentre(slide.From));
-        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.Reached), duration);
+        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.Runs[0].To), timeline.RunEnd(0));
         RefreshMoves();
+        var through = "";
+        for (var jump = 0; jump < timeline.Jumps; jump++)
+        {
+            through += $", through {Format(slide.Runs[jump].To)} to {Format(slide.Runs[jump + 1].From)}";
+        }
         var won = slide.Wins ? ", won" : "";
         var trapped = slide.Trapped ? $", trapped, back to {Format(slide.To)}" : "";
-        GD.Print($"Move {slide.Direction} to {Format(slide.Reached)}{won}{trapped}");
+        GD.Print($"Move {slide.Direction} to {Format(slide.Reached)}{through}{won}{trapped}");
     }
 
     private void StopSlide()
     {
         sliding = null;
         elapsed = 0;
-        caught = false;
         SetPlayerScale(1);
         trail.Clear();
     }

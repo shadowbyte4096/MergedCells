@@ -16,6 +16,8 @@ public class SlideTimingTests
         TrapShrinkSeconds = Anonymous.Create<double>(),
         TrapPauseSeconds = Anonymous.Create<double>(),
         TrapGrowSeconds = Anonymous.Create<double>(),
+        TeleportShrinkSeconds = Anonymous.Create<double>(),
+        TeleportGrowSeconds = Anonymous.Create<double>(),
     };
 
     [Theory]

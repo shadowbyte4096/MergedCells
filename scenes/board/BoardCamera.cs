@@ -108,6 +108,27 @@ public partial class BoardCamera : Camera2D
         }
     }
 
+    // The player has reached a teleporter whose partner, in board units, is about to be the player's square. Returns how
+    // long until the camera can show it: 0 when it's wholly on screen now and where the camera is heading, or a moving
+    // gesture holds the camera; otherwise the time left in the glide that brings it on screen (the glide Recentre plans)
+    public double Reveal(Vector2 at)
+    {
+        if (space == null || gestureMoved)
+        {
+            return 0;
+        }
+        FinishOpening();
+        if (space.ShowsNowAndAhead(view, Heading, ToCore(at)))
+        {
+            return 0;
+        }
+        if (space.PlanRecentre(view, Heading, playerZoom, ToCore(at)) is { } plan)
+        {
+            Begin(plan);
+        }
+        return glide == null ? 0 : Math.Max(0, glide.Delay + glide.Seconds - glideElapsed);
+    }
+
     // Runs before BoardView's _Process (tree order), which reads the canvas transform this sets
     public override void _Process(double delta)
     {

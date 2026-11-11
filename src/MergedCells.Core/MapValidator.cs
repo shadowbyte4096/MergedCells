@@ -2,7 +2,8 @@ namespace MergedCells.Core;
 
 internal static class MapValidator
 {
-    public static IReadOnlyList<MapProblem> Validate(int[,] regions, Cell start, Cell end, Tile[,]? tiles = null)
+    public static IReadOnlyList<MapProblem> Validate(
+        int[,] regions, Cell start, Cell end, Tile[,]? tiles = null, IReadOnlyList<TeleporterPair>? teleporters = null)
     {
         ArgumentNullException.ThrowIfNull(regions);
         var rows = regions.GetLength(0);
@@ -19,6 +20,11 @@ internal static class MapValidator
         if (tiles != null)
         {
             AddTileProblems(problems, tiles, rows, columns, start, end);
+        }
+        if (teleporters != null)
+        {
+            var sizedTiles = tiles != null && tiles.GetLength(0) == rows && tiles.GetLength(1) == columns ? tiles : null;
+            AddTeleporterProblems(problems, teleporters, sizedTiles, rows, columns, start, end);
         }
         return problems;
     }
@@ -146,6 +152,77 @@ internal static class MapValidator
             problems.Add(new MapProblem(MapProblemKind.TrapOnEnd, $"The end {Describe(end)} is a trap."));
         }
     }
+
+    // One pass per kind keeps the problems in MapProblemKind order
+    private static void AddTeleporterProblems(
+        List<MapProblem> problems, IReadOnlyList<TeleporterPair> pairs, Tile[,]? tiles, int rows, int columns, Cell start, Cell end)
+    {
+        for (var index = 0; index < pairs.Count; index++)
+        {
+            foreach (var cell in Squares(pairs[index]))
+            {
+                if (!Map.IsInside(cell, rows, columns))
+                {
+                    problems.Add(new MapProblem(
+                        MapProblemKind.TeleporterOutsideMap,
+                        $"Teleporter pair {index}'s square {Describe(cell)} is outside the {rows}x{columns} grid."));
+                }
+            }
+        }
+        for (var index = 0; index < pairs.Count; index++)
+        {
+            if (pairs[index].First == pairs[index].Second)
+            {
+                problems.Add(new MapProblem(
+                    MapProblemKind.TeleporterPairOnOneSquare, $"Teleporter pair {index} has both squares on {Describe(pairs[index].First)}."));
+            }
+        }
+        var used = new HashSet<Cell>();
+        for (var index = 0; index < pairs.Count; index++)
+        {
+            var squares = Squares(pairs[index]);
+            foreach (var cell in squares)
+            {
+                if (Map.IsInside(cell, rows, columns) && used.Contains(cell))
+                {
+                    problems.Add(new MapProblem(
+                        MapProblemKind.TeleporterSquareReused, $"Teleporter pair {index}'s square {Describe(cell)} is already in an earlier pair."));
+                }
+            }
+            used.UnionWith(squares);
+        }
+        AddTeleporterSquareProblems(problems, pairs, rows, columns, MapProblemKind.TeleporterOnStart, cell => cell == start ? "is the start" : null);
+        AddTeleporterSquareProblems(problems, pairs, rows, columns, MapProblemKind.TeleporterOnEnd, cell => cell == end ? "is the end" : null);
+        if (tiles != null)
+        {
+            AddTeleporterSquareProblems(problems, pairs, rows, columns, MapProblemKind.TeleporterOnTile, cell => tiles[cell.Row, cell.Column] switch
+            {
+                Tile.Wall => "is a wall",
+                Tile.Sticky => "is a sticky square",
+                Tile.Trap => "is a trap",
+                _ => null,
+            });
+        }
+    }
+
+    // A problem for each on-map square that the test describes; null means no problem
+    private static void AddTeleporterSquareProblems(
+        List<MapProblem> problems, IReadOnlyList<TeleporterPair> pairs, int rows, int columns, MapProblemKind kind, Func<Cell, string?> problemWith)
+    {
+        for (var index = 0; index < pairs.Count; index++)
+        {
+            foreach (var cell in Squares(pairs[index]))
+            {
+                if (Map.IsInside(cell, rows, columns) && problemWith(cell) is { } problem)
+                {
+                    problems.Add(new MapProblem(kind, $"Teleporter pair {index}'s square {Describe(cell)} {problem}."));
+                }
+            }
+        }
+    }
+
+    // A pair on one square is looked at once
+    private static Cell[] Squares(TeleporterPair pair) => pair.First == pair.Second ? [pair.First] : [pair.First, pair.Second];
 
     private static Cell? FirstUndefined(Tile[,] tiles)
     {

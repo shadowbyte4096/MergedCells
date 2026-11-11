@@ -43,7 +43,6 @@ public class LevelFileTests
         Valid.Replace("[4,5,2,3]", "null"),
         Valid.Replace("\"start\":[0,0]", "\"start\":[0]"),
         Valid.Replace("\"end\":[3,3]", "\"end\":[3,3,3]"),
-        Valid.Replace("\"teleporters\":null", "\"teleporters\":[[[0,1],[3,2]]]"),
         Valid.Replace("\"Two Down, One Across\"", "\"\""),
         Valid.Replace("\"Two Down, One Across\"", "\"  \""),
         Valid.Replace("\"id\":3", "\"id\":0"),
@@ -191,14 +190,6 @@ public class LevelFileTests
         var text = Valid.Replace("\"par\":3", "\"par\":3,\"par\":99");
 
         Assert.Contains("\"par\"", Assert.Throws<JsonException>(() => LevelFile.Parse(text)).Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Teleporters_are_named_in_the_error()
-    {
-        var text = Valid.Replace("\"teleporters\":null", "\"teleporters\":[[[0,1],[3,2]]]");
-
-        Assert.Contains("teleporters aren't supported yet", Assert.Throws<JsonException>(() => LevelFile.Parse(text)).Message, StringComparison.Ordinal);
     }
 
     [Theory]
