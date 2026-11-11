@@ -129,10 +129,18 @@ public sealed class Map
     /// Slides from <paramref name="from"/> until the next square is off the map (stopping on the last
     /// square) or in a different rectangle (stopping on that first square inside it). Reaching the end
     /// square wins and stops there. A wall stops the slide on the square before it, and a sticky square stops it on
-    /// that square. A slide that can't move returns <paramref name="from"/> with
-    /// <see cref="SlideResult.ReachedEnd"/> false.
+    /// that square. Entering a trap sends the player to the start, with <see cref="SlideResult.Trapped"/> true. A slide
+    /// that can't move returns <paramref name="from"/> with <see cref="SlideResult.ReachedEnd"/> false.
     /// </summary>
-    public SlideResult Slide(Cell from, Direction direction)
+    public SlideResult Slide(Cell from, Direction direction) => Walk(from, direction, out _);
+
+    /// <summary>
+    /// As <see cref="Slide"/>, also giving the square the straight slide reached: the trap that caught the player, or
+    /// otherwise the stop. For animation; the solver uses <see cref="Slide"/>.
+    /// </summary>
+    public SlideTrace Trace(Cell from, Direction direction) => new(Walk(from, direction, out var reached), reached);
+
+    private SlideResult Walk(Cell from, Direction direction, out Cell reached)
     {
         if (!Contains(from))
         {
@@ -145,25 +153,35 @@ public sealed class Map
             var next = current.Step(direction);
             if (!Contains(next))
             {
+                reached = current;
                 return new SlideResult(current, false);
             }
             var tile = tiles == null ? Tile.None : tiles[next.Row * Columns + next.Column];
             if (tile == Tile.Wall)
             {
+                reached = current;
                 return new SlideResult(current, false);
             }
             // Before the boundary check, so a slide passing over an end that shares a rectangle would
             // still win. Validation keeps the end 1x1 today; this is the safety net if that ever changes.
             if (next == End)
             {
+                reached = End;
                 return new SlideResult(End, true);
             }
             if (tile == Tile.Sticky)
             {
+                reached = next;
                 return new SlideResult(next, false);
+            }
+            if (tile == Tile.Trap)
+            {
+                reached = next;
+                return new SlideResult(Start, false, true);
             }
             if (RegionAt(next) != RegionAt(current))
             {
+                reached = next;
                 return new SlideResult(next, false);
             }
             current = next;

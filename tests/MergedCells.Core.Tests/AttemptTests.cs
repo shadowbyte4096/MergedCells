@@ -150,6 +150,39 @@ public class AttemptTests
     }
 
     [Fact]
+    public void Trap_hit_from_the_start_counts()
+    {
+        var attempt = new Attempt(TestMaps.TrapBesideTheStart());
+
+        var outcome = attempt.Move(Direction.Right);
+
+        Assert.Equal((MoveOutcome.Moved, TestMaps.ExampleStart, 1), (outcome, attempt.Position, attempt.Moves));
+    }
+
+    [Fact]
+    public void Trapped_move_lands_on_the_start()
+    {
+        var attempt = new Attempt(TestMaps.TrappedLane());
+        attempt.Move(Direction.Right);
+
+        var outcome = attempt.Move(Direction.Right);
+
+        Assert.Equal((MoveOutcome.Moved, TestMaps.ExampleStart, 2), (outcome, attempt.Position, attempt.Moves));
+    }
+
+    [Fact]
+    public void Undo_after_a_trap_returns_to_where_the_move_began()
+    {
+        var attempt = new Attempt(TestMaps.TrappedLane());
+        attempt.Move(Direction.Right);
+        attempt.Move(Direction.Right);
+
+        attempt.Undo();
+
+        Assert.Equal((new Cell(0, 1), 1), (attempt.Position, attempt.Moves));
+    }
+
+    [Fact]
     public void Null_map_throws()
     {
         Assert.Throws<ArgumentNullException>(() => new Attempt(null!));

@@ -31,6 +31,7 @@ public partial class BoardView : Node2D
     private StyleBoxFlat dotBox;
     private WallTextures wallTextures;
     private StickyTextures stickyTextures;
+    private TrapTextures trapTextures;
     // Blocks keep their old drawing until they're rebuilt, so a replaced theme's tile textures are kept until then
     private readonly List<object> retiredTileTextures = [];
     // One entry per Map.Rectangles index; null for regions that are rectangles
@@ -259,6 +260,7 @@ public partial class BoardView : Node2D
                 {
                     Tile.Wall => wallTextures?.For(WallNeighbours.Of(map, cell), outlined),
                     Tile.Sticky => stickyTextures?.For(StickyNeighbours.Of(map, cell), outlined),
+                    Tile.Trap => trapTextures?.For(outlined),
                     _ => null,
                 };
                 if (texture != null)
@@ -352,7 +354,7 @@ public partial class BoardView : Node2D
         RenderingServer.CanvasItemSetParent(item, GetCanvasItem());
         RenderingServer.CanvasItemSetDrawBehindParent(item, true);
         RenderingServer.CanvasItemSetDrawIndex(item, block);
-        // For the wall and sticky textures; nothing else in a block is textured
+        // For the tile textures; nothing else in a block is textured
         RenderingServer.CanvasItemSetDefaultTextureFilter(item, RenderingServer.CanvasItemTextureFilter.LinearWithMipmaps);
         return item;
     }
@@ -469,8 +471,13 @@ public partial class BoardView : Node2D
         {
             retiredTileTextures.Add(stickyTextures);
         }
+        if (trapTextures != null)
+        {
+            retiredTileTextures.Add(trapTextures);
+        }
         wallTextures = null;
         stickyTextures = null;
+        trapTextures = null;
         if (theme == null)
         {
             return;
@@ -491,6 +498,16 @@ public partial class BoardView : Node2D
         {
             stickyTextures = new StickyTextures(theme);
         }
+        if (!AllPositive(theme.TrapSizeFraction, theme.TrapStrokeFraction, theme.TrapFlatSizeFraction, theme.TrapFlatStrokeFraction))
+        {
+            GD.PushError(
+                $"The board theme's trap sizes ({theme.TrapSizeFraction}, {theme.TrapFlatSizeFraction}) and strokes "
+                + $"({theme.TrapStrokeFraction}, {theme.TrapFlatStrokeFraction}) must all be positive and finite.");
+        }
+        else
+        {
+            trapTextures = new TrapTextures(theme);
+        }
     }
 
     private StyleBoxFlat RoundedBox(Color fill, int corner)
@@ -500,6 +517,8 @@ public partial class BoardView : Node2D
         box.SetCornerRadiusAll(corner);
         return box;
     }
+
+    private static bool AllPositive(params float[] values) => values.All(value => float.IsFinite(value) && value > 0);
 
     private void Recolor()
     {

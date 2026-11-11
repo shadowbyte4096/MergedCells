@@ -39,7 +39,10 @@ public partial class Play : Node2D, IScreen
 
     private PlayerSlide? sliding;
     private double elapsed;
+    // The straight slide's time, and the whole move's: a trapped one adds the return to the start
     private double duration;
+    private double total;
+    private bool caught;
     private bool dark;
 
     public event Action NextPressed;
@@ -198,13 +201,27 @@ public partial class Play : Node2D, IScreen
 
         elapsed += delta;
         // A loop, because a long frame can finish one slide and part of the remembered one after it
-        while (sliding is { } current && elapsed >= duration)
+        while (sliding is { } current)
         {
+            // Its own step, so a frame that skips past the catch still releases the trail and sends the camera back
+            if (current.Trapped && !caught && elapsed >= duration)
+            {
+                Catch(current);
+            }
+            if (elapsed < total)
+            {
+                break;
+            }
+            if (!current.Trapped)
+            {
+                trail.Stretch(board.CellCentre(current.To));
+                trail.Release();
+            }
             player.Cell = current.To;
-            trail.Stretch(board.CellCentre(current.To));
-            trail.Release();
-            var leftover = elapsed - duration;
+            SetPlayerScale(1);
+            var leftover = elapsed - total;
             sliding = null;
+            caught = false;
             if (session.FinishSlide() is { } next)
             {
                 Begin(next);
@@ -216,11 +233,41 @@ public partial class Play : Node2D, IScreen
             }
         }
 
-        if (sliding is { } moving)
+        if (sliding is not { } moving)
+        {
+            return;
+        }
+        if (caught)
+        {
+            var (onStart, scale) = TrapTiming.At(elapsed - duration, GameConfigFile.Current.Slide);
+            player.Cell = onStart ? moving.To : moving.Reached;
+            SetPlayerScale(scale);
+        }
+        else
         {
             var progress = (float)(elapsed / duration);
-            player.Position = board.CellCentre(moving.From).Lerp(board.CellCentre(moving.To), progress);
+            player.Position = board.CellCentre(moving.From).Lerp(board.CellCentre(moving.Reached), progress);
             trail.Stretch(player.Position);
+        }
+    }
+
+    // The slide has reached a trap: the player shrinks into it and grows back on the start, while the camera heads there
+    private void Catch(PlayerSlide slide)
+    {
+        caught = true;
+        player.Cell = slide.Reached;
+        trail.Stretch(board.CellCentre(slide.Reached));
+        trail.Release();
+        camera.Recentre(board.CellCentre(slide.To));
+    }
+
+    // Hidden at 0: a node scaled to exactly 0 has a singular transform
+    private void SetPlayerScale(double scale)
+    {
+        player.Visible = scale > 0;
+        if (scale > 0)
+        {
+            player.Scale = new Vector2((float)scale, (float)scale);
         }
     }
 
@@ -325,20 +372,26 @@ public partial class Play : Node2D, IScreen
     private void Begin(PlayerSlide slide)
     {
         // Worked out first, so a throw leaves no half-started slide behind
-        duration = SlideTiming.Seconds(slide.Squares, GameConfigFile.Current.Slide);
+        var config = GameConfigFile.Current.Slide;
+        duration = SlideTiming.Seconds(slide.Squares, config);
+        total = duration + (slide.Trapped ? TrapTiming.Seconds(config) : 0);
         sliding = slide;
         elapsed = 0;
+        caught = false;
         trail.Begin(board.CellCentre(slide.From));
-        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.To), duration);
+        camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.Reached), duration);
         RefreshMoves();
         var won = slide.Wins ? ", won" : "";
-        GD.Print($"Move {DirectionOf(slide)} to {Format(slide.To)}{won}");
+        var trapped = slide.Trapped ? $", trapped, back to {Format(slide.To)}" : "";
+        GD.Print($"Move {slide.Direction} to {Format(slide.Reached)}{won}{trapped}");
     }
 
     private void StopSlide()
     {
         sliding = null;
         elapsed = 0;
+        caught = false;
+        SetPlayerScale(1);
         trail.Clear();
     }
 
@@ -442,9 +495,4 @@ public partial class Play : Node2D, IScreen
     private static string Plural(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count} {noun}s";
 
     private static string Format(Cell cell) => $"[{cell.Row}, {cell.Column}]";
-
-    private static Direction DirectionOf(PlayerSlide slide) =>
-        slide.To.Row != slide.From.Row
-            ? (slide.To.Row < slide.From.Row ? Direction.Up : Direction.Down)
-            : (slide.To.Column < slide.From.Column ? Direction.Left : Direction.Right);
 }

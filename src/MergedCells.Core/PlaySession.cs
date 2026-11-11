@@ -107,7 +107,7 @@ public sealed class PlaySession
             return null;
         }
 
-        Current = new PlayerSlide(from, attempt.Position, attempt.IsWon);
+        Current = new PlayerSlide(direction, from, Map.Trace(from, direction).Reached, attempt.Position, attempt.IsWon);
         return Current;
     }
 }

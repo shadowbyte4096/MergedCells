@@ -23,7 +23,7 @@ public sealed class Attempt
     /// <summary>
     /// Slides the player and counts the move. Returns <see cref="MoveOutcome.Ignored"/>, changing nothing,
     /// when the slide wouldn't move the player or the attempt is already won (an input buffered during
-    /// the winning slide's animation can still arrive).
+    /// the winning slide's animation can still arrive). A trap that sends the player back to where they began still counts.
     /// </summary>
     public MoveOutcome Move(Direction direction)
     {
@@ -33,7 +33,7 @@ public sealed class Attempt
         }
 
         var slide = Map.Slide(Position, direction);
-        if (slide.Stop == Position && !slide.ReachedEnd)
+        if (slide.Stop == Position && !slide.ReachedEnd && !slide.Trapped)
         {
             return MoveOutcome.Ignored;
         }

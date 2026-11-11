@@ -83,6 +83,17 @@ public class LevelFingerprintTests
 
     [Theory]
     [AutoData]
+    public void Trap_wall_sticky_and_plain_squares_give_different_fingerprints(int par)
+    {
+        var fingerprints = new[] { TestMaps.Traps(4, 4, (1, 1)), TestMaps.Walls(4, 4, (1, 1)), TestMaps.Sticky(4, 4, (1, 1)), null }
+            .Select(tiles => LevelFingerprint.Of(
+                Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, tiles), Positive(par)));
+
+        Assert.Equal(4, fingerprints.Distinct().Count());
+    }
+
+    [Theory]
+    [AutoData]
     public void Adding_a_sticky_square_changes_the_fingerprint(int par)
     {
         var map = Map.Create(TestMaps.ExampleRegions(), TestMaps.ExampleStart, TestMaps.ExampleEnd, TestMaps.Sticky(4, 4, (1, 1)));

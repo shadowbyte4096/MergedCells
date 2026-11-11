@@ -55,6 +55,12 @@ internal static class TestMaps
     // X touches all of A, B, C, D and F, which form a ring of five, so the map needs four colours
     public static Map OddWheel() => Map.Create(Grid("ABCC", "AXXD", "AFFD"), new(0, 0), new(0, 1));
 
+    // A trap at [0, 3] in the top lane: Right from the start stops on [0, 1], and Right again is caught
+    public static Map TrappedLane() => Map.Create(Grid("ABBBB", "CCCCZ"), new(0, 0), new(1, 4), Traps(2, 5, (0, 3)));
+
+    // A trap on [0, 1]: Right from the start is caught after one square
+    public static Map TrapBesideTheStart() => Map.Create(Grid("AAAAA", "BCDEF"), new(0, 0), new(1, 2), Traps(2, 5, (0, 1)));
+
     // Draws a region grid as rows of letters, one per square; squares with the same letter share a region.
     // Tests that depend on the ID values themselves use number grids instead.
     public static int[,] Grid(params string[] rows)
@@ -93,6 +99,8 @@ internal static class TestMaps
     public static Tile[,] Walls(int rows, int columns, params (int Row, int Column)[] walls) => Tiles(rows, columns, Tile.Wall, walls);
 
     public static Tile[,] Sticky(int rows, int columns, params (int Row, int Column)[] sticky) => Tiles(rows, columns, Tile.Sticky, sticky);
+
+    public static Tile[,] Traps(int rows, int columns, params (int Row, int Column)[] traps) => Tiles(rows, columns, Tile.Trap, traps);
 
     private static Tile[,] Tiles(int rows, int columns, Tile tile, (int Row, int Column)[] squares)
     {

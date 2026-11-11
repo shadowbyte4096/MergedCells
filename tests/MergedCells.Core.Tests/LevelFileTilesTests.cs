@@ -55,11 +55,11 @@ public class LevelFileTilesTests
     }
 
     [Fact]
-    public void Tile_code_for_traps_is_rejected()
+    public void Tile_code_3_is_read_as_a_trap()
     {
-        var ex = Assert.Throws<JsonException>(() => LevelFile.Parse(WithTiles(NoWalls.Replace("[0,0,0,0]]", "[0,3,0,0]]"))));
+        var map = LevelFile.Parse(WithTiles("[[0,0,0,0],[0,3,0,0],[0,0,0,0],[0,0,0,0]]")).Map;
 
-        Assert.Contains("trap", ex.Message);
+        Assert.Equal(Tile.Trap, map.TileAt(new(1, 1)));
     }
 
     [Theory]

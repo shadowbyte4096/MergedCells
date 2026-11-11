@@ -11,7 +11,7 @@ public static class LevelFile
     /// <summary>
     /// Parses a level file's text. Throws <see cref="JsonException"/>, naming the problem, when a value is missing, null,
     /// of the wrong type or out of range, when a key is unknown or repeated, when a grid's rows differ in length, when a tile code is
-    /// unknown or a later twist's, when teleporters are given (not supported yet), when a tutorial has no lines, more than
+    /// unknown, when teleporters are given (not supported yet), when a tutorial has no lines, more than
     /// two or a blank one, or an unknown swipe direction, or when the text isn't JSON. Throws
     /// <see cref="InvalidMapException"/> when the map breaks a map rule.
     /// </summary>
@@ -131,7 +131,7 @@ public static class LevelFile
                     0 => Tile.None,
                     1 => Tile.Wall,
                     2 => Tile.Sticky,
-                    3 => throw new JsonException($"The level's \"tiles\" has a trap at [{row}, {column}]: traps aren't supported yet."),
+                    3 => Tile.Trap,
                     var code => throw new JsonException($"The level's \"tiles\" has the unknown code {code} at [{row}, {column}]."),
                 };
             }
@@ -155,7 +155,7 @@ internal sealed record LevelJson
 
     public required int[][] Regions { get; init; }
 
-    // Codes 0 (none), 1 (wall) and 2 (sticky); 3 (trap) is rejected until its chunk
+    // Codes 0 (none), 1 (wall), 2 (sticky) and 3 (trap)
     public int[][]? Tiles { get; init; }
 
     // Chunk 17 reads these; until then a value is rejected rather than silently ignored

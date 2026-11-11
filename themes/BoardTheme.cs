@@ -38,6 +38,17 @@ public partial class BoardTheme : Resource
     // Measured across a stripe
     [Export] public float StickyStripeFraction { get; set; } = 0.085f;
 
+    // A trap's cross: its centre lines span the size on each axis, with round ends. Zoomed out it's bolder
+    [Export] public Color Trap { get; set; } = new("#235e56");
+
+    [Export] public float TrapSizeFraction { get; set; } = 0.4f;
+
+    [Export] public float TrapStrokeFraction { get; set; } = 0.11f;
+
+    [Export] public float TrapFlatSizeFraction { get; set; } = 0.68f;
+
+    [Export] public float TrapFlatStrokeFraction { get; set; } = 0.22f;
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

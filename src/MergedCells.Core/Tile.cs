@@ -6,4 +6,5 @@ public enum Tile : byte
     None = 0,
     Wall = 1,
     Sticky = 2,
+    Trap = 3,
 }

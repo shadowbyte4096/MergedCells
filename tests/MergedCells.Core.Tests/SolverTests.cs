@@ -48,6 +48,24 @@ public class SolverTests
             20,
             1,
             true),
+        // Level 30: the top lane's trap catches the quick route along it, so the player goes down first
+        new(
+            "TrapInTheLane",
+            () => Map.Create(Grid("AAAAB", "CCCCB", "DDDDZ"), new(0, 0), new(2, 4), Traps(3, 5, (0, 2))),
+            3,
+            "DDR",
+            9,
+            2,
+            true),
+        // Level 31: the right-hand column's first square is a trap, so the player drops two rows and comes in below it
+        new(
+            "TrapWhereYoudStop",
+            () => Map.Create(Grid("AAAAA", "BBBBC", "DDDDC", "EEEEC", "FFFFZ"), new(0, 0), new(4, 4), Traps(5, 5, (1, 4))),
+            4,
+            "DDRD",
+            14,
+            1,
+            true),
     ];
 
     public static TheoryData<string> CaseNames => new(Cases.Select(c => c.Name));

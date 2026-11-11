@@ -8,7 +8,8 @@ public class CameraFollowTests
 {
     private const float Square = 64;
     private static readonly Vector2 Phone = new(720, 1300);
-    private static readonly SlideConfig Slide = new() { SquaresPerSecond = 15, MaxSeconds = 0.4 };
+    private static readonly SlideConfig Slide =
+        new() { SquaresPerSecond = 15, MaxSeconds = 0.4, TrapShrinkSeconds = 0.2, TrapPauseSeconds = 0.1, TrapGrowSeconds = 0.2 };
 
     // (board side, from column, from row, to column, to row)
     public static TheoryData<int, int, int, int, int> NearAnEdge => new()

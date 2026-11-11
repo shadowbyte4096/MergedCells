@@ -1,0 +1,22 @@
+{
+  "id": 30,
+  "name": "Trap",
+  "chapter": 5,
+  "regions": [
+    [1, 1, 1, 1, 2],
+    [3, 3, 3, 3, 2],
+    [4, 4, 4, 4, 5]
+  ],
+  "tiles": [
+    [0, 0, 3, 0, 0],
+    [0, 0, 0, 0, 0],
+    [0, 0, 0, 0, 0]
+  ],
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [2, 4],
+  "par": 3,
+  "tutorial": {
+    "lines": ["Traps send you back to the start", "and the move still counts"]
+  }
+}

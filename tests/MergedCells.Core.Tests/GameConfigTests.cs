@@ -13,10 +13,12 @@ public class GameConfigTests
     private const string StarsGroup =
         """{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""";
 
+    private const string SlideGroup = """{"squaresPerSecond":1,"maxSeconds":1,"trapShrinkSeconds":1,"trapPauseSeconds":1,"trapGrowSeconds":1}""";
+
     private const string CampaignGroup = """{"gatePercent":1,"chapterGatePercent":{},"chapterStars":{},"levelStars":{},"undoLimit":1}""";
 
     private const string Valid =
-        """{"input":{"swipeThreshold":1},"slide":{"squaresPerSecond":1,"maxSeconds":1},"stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
+        """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
         + CameraGroup + ""","campaign":""" + CampaignGroup + "}";
 
     private const string ChapterThreeStars =
@@ -26,6 +28,9 @@ public class GameConfigTests
         float threshold = 1,
         double squaresPerSecond = 1,
         double maxSeconds = 1,
+        double trapShrink = 1,
+        double trapPause = 1,
+        double trapGrow = 1,
         int twoStarMin = 1,
         int twoStarPercent = 1,
         int oneStarMin = 1,
@@ -36,7 +41,7 @@ public class GameConfigTests
         double glide = 1,
         double opening = 1,
         double hold = 1,
-        float zoomStep = 1,
+        float zoomStep = 2,
         float slop = 1,
         int gatePercent = 1,
         string chapterStars = "{}",
@@ -45,7 +50,7 @@ public class GameConfigTests
         int undoLimit = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -54,14 +59,17 @@ public class GameConfigTests
     {
         "{}",
         Valid.Replace("""{"input":{"swipeThreshold":1},""", "{"),
-        Valid.Replace(""","slide":{"squaresPerSecond":1,"maxSeconds":1}""", ""),
+        Valid.Replace(""","slide":""" + SlideGroup, ""),
         Valid.Replace(""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""", ""),
         Valid.Replace("""{"swipeThreshold":1}""", "null"),
-        Valid.Replace("""{"squaresPerSecond":1,"maxSeconds":1}""", "null"),
+        Valid.Replace(SlideGroup, "null"),
         Valid.Replace("""{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1}""", "null"),
         Valid.Replace("""{"swipeThreshold":1}""", "{}"),
         Valid.Replace("""{"squaresPerSecond":1,""", "{"),
         Valid.Replace(""","maxSeconds":1""", ""),
+        Valid.Replace(""","trapShrinkSeconds":1""", ""),
+        Valid.Replace(""","trapPauseSeconds":1""", ""),
+        Valid.Replace(""","trapGrowSeconds":1""", ""),
         Valid.Replace("""{"twoStarMinExtraMoves":1,""", "{"),
         Valid.Replace(""","twoStarExtraParPercent":1""", ""),
         Valid.Replace(""","oneStarMinExtraMoves":1""", ""),
@@ -125,6 +133,15 @@ public class GameConfigTests
         var slide = GameConfig.Parse(ConfigText(squaresPerSecond: squaresPerSecond, maxSeconds: maxSeconds)).Slide;
 
         Assert.Equal((squaresPerSecond, maxSeconds), (slide.SquaresPerSecond, slide.MaxSeconds));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_trap_times(double shrink, double pause, double grow)
+    {
+        var slide = GameConfig.Parse(ConfigText(trapShrink: shrink, trapPause: pause, trapGrow: grow)).Slide;
+
+        Assert.Equal((shrink, pause, grow), (slide.TrapShrinkSeconds, slide.TrapPauseSeconds, slide.TrapGrowSeconds));
     }
 
     [Theory]
@@ -261,12 +278,22 @@ public class GameConfigTests
         Assert.Null(Record.Exception(() => Shipped().CheckRanges(ShippedCampaignTests.Campaign().Levels)));
     }
 
+    // The base the out-of-range cases change one value of: if it failed, every case below would pass for the wrong reason
+    [Fact]
+    public void Default_test_config_passes_the_range_check()
+    {
+        Assert.Null(Record.Exception(() => GameConfig.Parse(ConfigText()).CheckRanges([])));
+    }
+
     // Each is the nearest value its user rejects
     public static TheoryData<string> OutOfRangeTexts => new()
     {
         ConfigText(threshold: 0),
         ConfigText(squaresPerSecond: 0),
         ConfigText(maxSeconds: 0),
+        ConfigText(trapShrink: 0),
+        ConfigText(trapPause: -1),
+        ConfigText(trapGrow: 0),
         ConfigText(twoStarMin: -1),
         ConfigText(oneStarPercent: -1),
         ConfigText(readable: 0),

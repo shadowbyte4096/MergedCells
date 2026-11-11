@@ -16,6 +16,8 @@ public enum MapProblemKind
     WallOnStart,
     WallOnEnd,
     StickyOnEnd,
+    TrapOnStart,
+    TrapOnEnd,
 }
 
 public sealed record MapProblem(MapProblemKind Kind, string Message);

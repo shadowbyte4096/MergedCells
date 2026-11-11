@@ -1,11 +1,22 @@
+using AutoFixture;
+
 namespace MergedCells.Core.Tests;
 
 public class SlideTimingTests
 {
     private const double Tolerance = 1e-9;
 
-    private static SlideConfig Config(double squaresPerSecond, double maxSeconds) =>
-        new() { SquaresPerSecond = squaresPerSecond, MaxSeconds = maxSeconds };
+    // The trap's return times play no part in a slide's
+    private static readonly Fixture Anonymous = new();
+
+    private static SlideConfig Config(double squaresPerSecond, double maxSeconds) => new()
+    {
+        SquaresPerSecond = squaresPerSecond,
+        MaxSeconds = maxSeconds,
+        TrapShrinkSeconds = Anonymous.Create<double>(),
+        TrapPauseSeconds = Anonymous.Create<double>(),
+        TrapGrowSeconds = Anonymous.Create<double>(),
+    };
 
     [Theory]
     [InlineData(1, 1.0 / 15)]

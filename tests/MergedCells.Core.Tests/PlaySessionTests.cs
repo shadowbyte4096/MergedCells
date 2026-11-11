@@ -35,17 +35,6 @@ public class PlaySessionTests
         return session;
     }
 
-    [Theory]
-    [InlineData(0, 0, 1, 0, 1)]
-    [InlineData(3, 0, 3, 3, 3)]
-    [InlineData(5, 2, 1, 2, 4)]
-    public void Squares_is_the_distance_travelled(int fromRow, int fromColumn, int toRow, int toColumn, int expected)
-    {
-        var slide = new PlayerSlide(new Cell(fromRow, fromColumn), new Cell(toRow, toColumn), false);
-
-        Assert.Equal(expected, slide.Squares);
-    }
-
     [Fact]
     public void Request_with_no_slide_in_flight_returns_its_slide_and_counts_it()
     {
@@ -53,7 +42,7 @@ public class PlaySessionTests
 
         var slide = session.Request(Direction.Down);
 
-        PlayerSlide? expected = new PlayerSlide(Start, new Cell(1, 0), false);
+        PlayerSlide? expected = new PlayerSlide(Direction.Down, Start, new Cell(1, 0), new Cell(1, 0), false);
         Assert.Equal((expected, 1, expected), (slide, session.Moves, session.Current));
     }
 
@@ -85,7 +74,7 @@ public class PlaySessionTests
 
         var next = session.FinishSlide();
 
-        PlayerSlide? expected = new PlayerSlide(new Cell(1, 0), new Cell(3, 0), false);
+        PlayerSlide? expected = new PlayerSlide(Direction.Down, new Cell(1, 0), new Cell(3, 0), new Cell(3, 0), false);
         Assert.Equal((expected, 2), (next, session.Moves));
     }
 
@@ -377,5 +366,46 @@ public class PlaySessionTests
         var undone = session.Undo();
 
         Assert.Equal(((Direction?)null, 1), (undone, session.Moves));
+    }
+
+    // On [0, 1], with a trap at [0, 3] further along the lane
+    private static PlaySession OnTheLaneBesideTheStart()
+    {
+        var session = new PlaySession(TestMaps.TrappedLane());
+        session.Request(Direction.Right);
+        session.FinishSlide();
+        return session;
+    }
+
+    [Fact]
+    public void Trapped_move_gives_a_slide_into_the_trap_ending_on_the_start()
+    {
+        var session = OnTheLaneBesideTheStart();
+
+        var slide = session.Request(Direction.Right);
+
+        Assert.Equal(new PlayerSlide(Direction.Right, new(0, 1), new(0, 3), Start, false), slide);
+    }
+
+    [Fact]
+    public void Trap_beside_the_start_gives_a_counted_one_square_slide()
+    {
+        var session = new PlaySession(TestMaps.TrapBesideTheStart());
+
+        var slide = session.Request(Direction.Right);
+
+        Assert.Equal((new PlayerSlide(Direction.Right, Start, new(0, 1), Start, false), 1), (slide, session.Moves));
+    }
+
+    [Fact]
+    public void Move_remembered_during_a_trapped_slide_starts_from_the_start()
+    {
+        var session = OnTheLaneBesideTheStart();
+        session.Request(Direction.Right);
+        session.Request(Direction.Down);
+
+        var next = session.FinishSlide();
+
+        Assert.Equal(new PlayerSlide(Direction.Down, Start, new(1, 0), new(1, 0), false), next);
     }
 }

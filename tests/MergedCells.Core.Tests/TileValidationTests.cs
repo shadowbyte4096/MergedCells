@@ -84,6 +84,39 @@ public class TileValidationTests
     }
 
     [Fact]
+    public void Traps_off_the_start_and_end_are_valid()
+    {
+        Assert.Empty(ExampleKinds(Traps(4, 4, (1, 1), (0, 3))));
+    }
+
+    [Fact]
+    public void Trap_on_the_start_is_a_problem()
+    {
+        Assert.Equal(new[] { TrapOnStart }, ExampleKinds(Traps(4, 4, (0, 0))));
+    }
+
+    [Fact]
+    public void Trap_on_the_end_is_a_problem()
+    {
+        Assert.Equal(new[] { TrapOnEnd }, ExampleKinds(Traps(4, 4, (3, 3))));
+    }
+
+    [Fact]
+    public void Trap_on_the_start_comes_after_a_sticky_end()
+    {
+        var tiles = Traps(4, 4, (0, 0));
+        tiles[3, 3] = Tile.Sticky;
+
+        Assert.Equal(new[] { StickyOnEnd, TrapOnStart }, ExampleKinds(tiles));
+    }
+
+    [Fact]
+    public void Trap_on_the_end_comes_after_a_trap_on_the_start()
+    {
+        Assert.Equal(new[] { TrapOnStart, TrapOnEnd }, ExampleKinds(Traps(4, 4, (0, 0), (3, 3))));
+    }
+
+    [Fact]
     public void Tile_problems_come_after_the_existing_ones()
     {
         var kinds = Kinds(AllSingles3x3(), new(0, 2), new(2, 0), Walls(3, 3, (0, 2), (2, 0)));

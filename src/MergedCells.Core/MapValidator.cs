@@ -137,6 +137,14 @@ internal static class MapValidator
         {
             problems.Add(new MapProblem(MapProblemKind.StickyOnEnd, $"The end {Describe(end)} is a sticky square."));
         }
+        if (Map.IsInside(start, rows, columns) && tiles[start.Row, start.Column] == Tile.Trap)
+        {
+            problems.Add(new MapProblem(MapProblemKind.TrapOnStart, $"The start {Describe(start)} is a trap."));
+        }
+        if (Map.IsInside(end, rows, columns) && tiles[end.Row, end.Column] == Tile.Trap)
+        {
+            problems.Add(new MapProblem(MapProblemKind.TrapOnEnd, $"The end {Describe(end)} is a trap."));
+        }
     }
 
     private static Cell? FirstUndefined(Tile[,] tiles)
