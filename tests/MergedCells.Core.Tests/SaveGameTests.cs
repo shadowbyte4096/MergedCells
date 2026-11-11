@@ -139,6 +139,45 @@ public class SaveGameTests
         Assert.Equal((int?)7, save.BestMoves(first));
     }
 
+    [Theory]
+    [AutoData]
+    public void Clearing_progress_forgets_every_best(int firstId, int offset)
+    {
+        var save = new SaveGame();
+        var first = LevelWith(Positive(firstId));
+        var second = LevelWith(Positive(firstId) + Positive(offset));
+        save.RecordFinish(first, 7, Shipped);
+        save.RecordFinish(second, 3, Shipped);
+
+        save.ClearProgress();
+
+        Assert.Equal((0, (int?)null, (int?)null), (save.LevelCount, save.BestMoves(first), save.BestMoves(second)));
+    }
+
+    // Appearance is a setting, not progress
+    [Theory]
+    [InlineData(Appearance.Light)]
+    [InlineData(Appearance.Dark)]
+    public void Clearing_progress_keeps_the_appearance(Appearance appearance)
+    {
+        var save = new SaveGame { Appearance = appearance };
+
+        save.ClearProgress();
+
+        Assert.Equal(appearance, save.Appearance);
+    }
+
+    [Fact]
+    public void Cleared_save_writes_no_levels()
+    {
+        var save = new SaveGame();
+        save.RecordFinish(LevelWith(4), 3, Shipped);
+
+        save.ClearProgress();
+
+        Assert.Equal(0, SaveGame.Parse(save.ToJson()).LevelCount);
+    }
+
     public static TheoryData<int, int, int, int> Configs => new()
     {
         { 2, 50, 4, 100 },

@@ -13,6 +13,8 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private StarsView star;
     private Label totalLabel;
     private Button testBoards;
+    private Button resetSave;
+    private bool resetArmed;
     private Label saveNotice;
     private SettingsSheet settings;
     private Appearance appearance;
@@ -23,6 +25,9 @@ public partial class ModeSelect : CanvasLayer, IScreen
     public event Action CreditsPressed;
 
     public event Action TestBoardsPressed;
+
+    // Debug builds only, after a second tap: the first only asks
+    public event Action ResetSaveConfirmed;
 
     public event Action<Appearance> AppearanceChosen;
 
@@ -45,12 +50,14 @@ public partial class ModeSelect : CanvasLayer, IScreen
         star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
         totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
         testBoards = GetNode<Button>("Root/Centre/Column/TestBoards");
+        resetSave = GetNode<Button>("Root/Centre/Column/ResetSave");
         saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
         settings = GetNode<SettingsSheet>("Root/Settings");
 
         star.Looks = [StarLook.Earned];
         GetNode<Button>("Root/Centre/Column/Campaign").Pressed += () => CampaignPressed?.Invoke();
         testBoards.Pressed += () => TestBoardsPressed?.Invoke();
+        resetSave.Pressed += OnResetSavePressed;
         GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();
         GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open(appearance);
         settings.AppearanceChosen += choice =>
@@ -63,15 +70,27 @@ public partial class ModeSelect : CanvasLayer, IScreen
         ApplySafeArea();
     }
 
-    // saveNotice: why this run's progress isn't being kept, or null while saving works
-    public void Open(int totalStars, bool showTestBoards, Appearance saved, string saveNotice)
+    // debug shows Test boards and Reset save. saveNotice: why this run's progress isn't being kept, or null while saving works
+    public void Open(int totalStars, bool debug, Appearance saved, string saveNotice)
     {
         totalLabel.Text = totalStars.ToString();
-        testBoards.Visible = showTestBoards;
+        testBoards.Visible = debug;
+        resetSave.Visible = debug;
         this.saveNotice.Text = saveNotice ?? "";
         this.saveNotice.Visible = saveNotice != null;
         appearance = saved;
         GD.Print("Screen: mode select");
+    }
+
+    private void OnResetSavePressed()
+    {
+        if (!resetArmed)
+        {
+            resetArmed = true;
+            resetSave.Text = "Tap again to reset";
+            return;
+        }
+        ResetSaveConfirmed?.Invoke();
     }
 
     public bool CloseOverlay()

@@ -139,6 +139,7 @@ public partial class Main : Node
         menu.CampaignPressed += () => ShowLevelSelect(Progress().Furthest);
         menu.CreditsPressed += ShowCredits;
         menu.TestBoardsPressed += () => ShowTestBoard(0);
+        menu.ResetSaveConfirmed += ResetSave;
         menu.AppearanceChosen += OnAppearanceChosen;
         menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Current.Appearance, SaveGameFile.Notice);
         back = null;
@@ -198,6 +199,15 @@ public partial class Main : Node
         SaveGameFile.Save();
         GD.Print($"Setting: appearance {choice.ToString().ToLowerInvariant()}");
         ApplyAppearance();
+    }
+
+    // Debug builds only: every level unplayed again, for playtesting from the start. The appearance stays
+    private void ResetSave()
+    {
+        SaveGameFile.Current.ClearProgress();
+        SaveGameFile.Save();
+        GD.Print("Save: progress cleared");
+        ShowModeSelect();
     }
 
     private CampaignProgress Progress() => CampaignProgress.Of(campaign, SaveGameFile.Current, GameConfigFile.Current);
