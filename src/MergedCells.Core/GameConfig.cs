@@ -18,6 +18,8 @@ public sealed record GameConfig
 
     public required CampaignConfig Campaign { get; init; }
 
+    public required GeneratorConfig Generator { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -46,6 +48,7 @@ public sealed record GameConfig
         _ = new PinchTracker(Camera.GestureSlop);
         _ = new DragTracker(Camera.GestureSlop);
         _ = new PlayRules(Campaign.UndoLimit);
+        _ = new MapGenerator(Generator);
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -97,6 +100,10 @@ public sealed record GameConfig
         if (config.Campaign is null)
         {
             throw new JsonException("The config's \"campaign\" group is null.");
+        }
+        if (config.Generator is null)
+        {
+            throw new JsonException("The config's \"generator\" group is null.");
         }
         if (config.Campaign.ChapterStars is null)
         {
@@ -223,6 +230,39 @@ public sealed record CampaignConfig
 
     // Undos per attempt; a restart gives them all back
     public required int UndoLimit { get; init; }
+}
+
+// Every number is a whole number, so a seed generates the same map on every device
+public sealed record GeneratorConfig
+{
+    // Relative chances of each kind of region, in the order across, down, single, block
+    public required int AcrossWeight { get; init; }
+
+    public required int DownWeight { get; init; }
+
+    public required int SingleWeight { get; init; }
+
+    public required int BlockWeight { get; init; }
+
+    // The longest strip, as a percentage of the map's side (rounded up, at least 2 squares)
+    public required int MaxStripPercent { get; init; }
+
+    // In squares, on each side of a block
+    public required int MaxBlockSide { get; init; }
+
+    // When a request turns bends on: the chance, in percent, that two neighbouring thin regions are joined
+    public required int BendPercent { get; init; }
+
+    public required int MaxBendSquares { get; init; }
+
+    // The side of the top-left area the start is in, and of the bottom-right area the end is in, as a percentage of the map's side
+    public required int CornerPercent { get; init; }
+
+    // Rows plus columns between the start and the end, as a percentage of the corner-to-corner distance
+    public required int MinDistancePercent { get; init; }
+
+    // Maps tried per request before giving up
+    public required int MaxAttempts { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

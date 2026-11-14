@@ -17,9 +17,12 @@ public class GameConfigTests
 
     private const string CampaignGroup = """{"gatePercent":1,"chapterGatePercent":{},"chapterStars":{},"levelStars":{},"undoLimit":1}""";
 
+    private const string GeneratorGroup =
+        """{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":2,"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":1}""";
+
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
-        + CameraGroup + ""","campaign":""" + CampaignGroup + "}";
+        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + "}";
 
     private const string ChapterThreeStars =
         """{"3":{"twoStarMinExtraMoves":9,"twoStarExtraParPercent":9,"oneStarMinExtraMoves":9,"oneStarExtraParPercent":9}}""";
@@ -49,10 +52,12 @@ public class GameConfigTests
         string chapterStars = "{}",
         string chapterGatePercent = "{}",
         string levelStars = "{}",
-        int undoLimit = 1) =>
+        int undoLimit = 1,
+        int maxBlockSide = 2,
+        int maxAttempts = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -121,6 +126,11 @@ public class GameConfigTests
         Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":" + StarsGroup.Replace("}", ",\"extra\":1}") + "}"),
         Valid.Replace("\"undoLimit\":1", "\"undoLimit\":2,\"undoLimit\":1"),
         Valid.Replace("\"levelStars\":{}", "\"levelStars\":{\"2\":" + StarsGroup + ",\"02\":" + StarsGroup + "}"),
+        Valid.Replace(""","generator":""" + GeneratorGroup, ""),
+        Valid.Replace(GeneratorGroup, "null"),
+        Valid.Replace(""","maxAttempts":1""", ""),
+        Valid.Replace("\"maxAttempts\":1", "\"maxAttempts\":1,\"extra\":1"),
+        Valid.Replace("\"bendPercent\":1", "\"bendPercent\":2.5"),
     };
 
     [Theory]
@@ -251,6 +261,27 @@ public class GameConfigTests
     }
 
     [Fact]
+    public void Shipped_generator_numbers()
+    {
+        Assert.Equal(
+            new GeneratorConfig
+            {
+                AcrossWeight = 40,
+                DownWeight = 40,
+                SingleWeight = 10,
+                BlockWeight = 10,
+                MaxStripPercent = 100,
+                MaxBlockSide = 3,
+                BendPercent = 35,
+                MaxBendSquares = 8,
+                CornerPercent = 40,
+                MinDistancePercent = 50,
+                MaxAttempts = 200,
+            },
+            Shipped().Generator);
+    }
+
+    [Fact]
     public void Shipped_config_parses_and_its_threshold_is_accepted()
     {
         var config = Shipped();
@@ -326,6 +357,8 @@ public class GameConfigTests
         ConfigText(zoomStep: 1),
         ConfigText(slop: -1),
         ConfigText(undoLimit: -1),
+        ConfigText(maxBlockSide: 1),
+        ConfigText(maxAttempts: 0),
     };
 
     [Theory]

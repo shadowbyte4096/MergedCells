@@ -44,5 +44,18 @@
       "8": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 }
     },
     "undoLimit": 5
+  },
+  "generator": {
+    "acrossWeight": 40,
+    "downWeight": 40,
+    "singleWeight": 10,
+    "blockWeight": 10,
+    "maxStripPercent": 100,
+    "maxBlockSide": 3,
+    "bendPercent": 35,
+    "maxBendSquares": 8,
+    "cornerPercent": 40,
+    "minDistancePercent": 50,
+    "maxAttempts": 200
   }
 }
