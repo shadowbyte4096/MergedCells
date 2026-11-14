@@ -10,4 +10,7 @@ public readonly record struct Cell(int Row, int Column)
         Direction.Right => this with { Column = Column + 1 },
         _ => throw new ArgumentOutOfRangeException(nameof(direction)),
     };
+
+    // Rows plus columns, the distance a player judges "toward the end" by
+    internal int DistanceTo(Cell other) => Math.Abs(Row - other.Row) + Math.Abs(Column - other.Column);
 }

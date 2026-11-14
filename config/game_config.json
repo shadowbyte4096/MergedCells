@@ -58,5 +58,12 @@
     "minDistancePercent": 50,
     "maxAttempts": 200,
     "maxWallRun": 3
+  },
+  "difficulty": {
+    "nearOptimalExtraMoves": 2,
+    "bruteForceLookahead": 3,
+    "caps": { "awayMoves": 3, "greedyGap": 4, "decoys": 8, "nearOptimalRoutes": 100, "bruteForceExtraMoves": 5 },
+    "weights": { "awayMoves": 100, "greedyGap": 100, "decoys": 100, "nearOptimalRoutes": 100, "bruteForceExtraMoves": 100 },
+    "modeWeights": {}
   }
 }

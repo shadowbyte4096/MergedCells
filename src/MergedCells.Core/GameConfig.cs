@@ -20,6 +20,8 @@ public sealed record GameConfig
 
     public required GeneratorConfig Generator { get; init; }
 
+    public required DifficultyConfig Difficulty { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -49,6 +51,7 @@ public sealed record GameConfig
         _ = new DragTracker(Camera.GestureSlop);
         _ = new PlayRules(Campaign.UndoLimit);
         _ = new MapGenerator(Generator);
+        _ = new DifficultyRater(Difficulty);
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -146,7 +149,39 @@ public sealed record GameConfig
                 throw new JsonException($"The config's \"levelStars\" entry for level {id} is null.");
             }
         }
+        CheckDifficulty(config.Difficulty);
         return config;
+    }
+
+    private static void CheckDifficulty(DifficultyConfig? difficulty)
+    {
+        if (difficulty is null)
+        {
+            throw new JsonException("The config's \"difficulty\" group is null.");
+        }
+        if (difficulty.Caps is null)
+        {
+            throw new JsonException("The config's \"difficulty.caps\" is null.");
+        }
+        if (difficulty.Weights is null)
+        {
+            throw new JsonException("The config's \"difficulty.weights\" is null.");
+        }
+        if (difficulty.ModeWeights is null)
+        {
+            throw new JsonException("The config's \"difficulty.modeWeights\" is null.");
+        }
+        foreach (var (key, weights) in difficulty.ModeWeights)
+        {
+            if (!DifficultyConfig.IsModeKey(key))
+            {
+                throw new JsonException($"The config's \"difficulty.modeWeights\" key {DifficultyConfig.NotAModeMessage(key)}");
+            }
+            if (weights is null)
+            {
+                throw new JsonException($"The config's \"difficulty.modeWeights\" entry for {key} is null.");
+            }
+        }
     }
 }
 
@@ -266,6 +301,58 @@ public sealed record GeneratorConfig
 
     // The longest straight run of walls placed at once, in squares
     public required int MaxWallRun { get; init; }
+}
+
+public sealed record DifficultyConfig
+{
+    // Near-optimal routes are those winning in par + 1 up to par + this many moves
+    public required int NearOptimalExtraMoves { get; init; }
+
+    // The deepest lookahead player: players looking 1 up to this many moves ahead are tried
+    public required int BruteForceLookahead { get; init; }
+
+    public required DifficultyCaps Caps { get; init; }
+
+    public required DifficultyWeights Weights { get; init; }
+
+    // Weights for modes that don't use the shared ones, keyed by the mode's camelCase name
+    public required IReadOnlyDictionary<string, DifficultyWeights> ModeWeights { get; init; }
+
+    internal static string KeyOf(DifficultyMode mode) => JsonNamingPolicy.CamelCase.ConvertName(mode.ToString());
+
+    // Exact words rather than .NET's enum converter, which accepts undefined values on .NET 8
+    internal static bool IsModeKey(string key) => Enum.GetValues<DifficultyMode>().Any(mode => KeyOf(mode) == key);
+
+    internal static string NotAModeMessage(string key) =>
+        $"\"{key}\" isn't a mode: use {string.Join(", ", Enum.GetValues<DifficultyMode>().Select(KeyOf))}.";
+}
+
+// Each metric counts towards the score up to its cap, and no further
+public sealed record DifficultyCaps
+{
+    public required int AwayMoves { get; init; }
+
+    public required int GreedyGap { get; init; }
+
+    public required int Decoys { get; init; }
+
+    public required int NearOptimalRoutes { get; init; }
+
+    public required int BruteForceExtraMoves { get; init; }
+}
+
+// Whole-number percentages, 100 being 1x; only how they compare matters
+public sealed record DifficultyWeights
+{
+    public required int AwayMoves { get; init; }
+
+    public required int GreedyGap { get; init; }
+
+    public required int Decoys { get; init; }
+
+    public required int NearOptimalRoutes { get; init; }
+
+    public required int BruteForceExtraMoves { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

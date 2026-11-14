@@ -2,8 +2,8 @@ namespace MergedCells.Core;
 
 public static class Solver
 {
-    // The order the path tie-break reads moves in
-    private static readonly Direction[] Directions = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
+    // The order the path tie-break reads moves in, and the order of each stop's moves in MoveGraph
+    internal static readonly Direction[] Directions = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
 
     /// <summary>
     /// Searches every square the player can stop on, from the map's start, and returns par, the first optimal
@@ -18,109 +18,64 @@ public static class Solver
     // The test hook: tests pass in made-up slide rules here
     internal static SolveResult Solve(Cell start, Func<Cell, Direction, SlideResult> slide)
     {
-        ArgumentNullException.ThrowIfNull(slide);
-
-        var cells = new List<Cell> { start };
-        var indexOf = new Dictionary<Cell, int> { [start] = 0 };
-        var distance = new List<int> { 0 };
-        var parent = new List<(int Node, Direction Direction)> { (-1, default) };
-        var routes = new List<long> { 1 };
-        var predecessors = new List<List<int>> { new() };
-        var wins = new List<(int Node, Direction Direction)>();
-        var loopingSlides = 0;
-
-        // Nodes are listed in distance order, so every route into a node is counted before the node itself is expanded
-        for (var node = 0; node < cells.Count; node++)
+        var graph = MoveGraph.Build(start, slide);
+        var deadEnds = 0;
+        for (var stop = 0; stop < graph.StopCount; stop++)
         {
-            foreach (var direction in Directions)
+            if (graph.MovesToEnd(stop) == MoveGraph.None)
             {
-                var result = slide(cells[node], direction);
-                if (result.Looped)
-                {
-                    loopingSlides++;
-                    continue;
-                }
-                if (result.ReachedEnd)
-                {
-                    wins.Add((node, direction));
-                    continue;
-                }
-                if (result.Stop == cells[node])
-                {
-                    continue;
-                }
-                if (!indexOf.TryGetValue(result.Stop, out var next))
-                {
-                    next = cells.Count;
-                    indexOf[result.Stop] = next;
-                    cells.Add(result.Stop);
-                    distance.Add(distance[node] + 1);
-                    parent.Add((node, direction));
-                    routes.Add(0);
-                    predecessors.Add(new());
-                }
-                if (distance[next] == distance[node] + 1)
-                {
-                    routes[next] = SaturatingAdd(routes[next], routes[node]);
-                }
-                predecessors[next].Add(node);
+                deadEnds++;
             }
         }
-
-        var deadEnds = CountDeadEnds(cells.Count, predecessors, wins);
-        if (wins.Count == 0)
+        if (graph.MovesToEnd(0) == MoveGraph.None)
         {
-            return new SolveResult(null, [], cells.Count, deadEnds, 0, loopingSlides);
+            return new SolveResult(null, [], graph.StopCount, deadEnds, 0, graph.LoopingSlides);
         }
 
-        var first = wins[0];
+        // Stops are in distance order, so every route into a stop is counted before the stop passes its own on, and the
+        // first winning move in stop and direction order is the path's last
+        var routes = new long[graph.StopCount];
+        routes[0] = 1;
+        var parent = new (int Stop, int Direction)[graph.StopCount];
+        Array.Fill(parent, (MoveGraph.None, 0));
+        var first = (Stop: MoveGraph.None, Direction: 0);
         var optimalRoutes = 0L;
-        foreach (var win in wins)
+        for (var stop = 0; stop < graph.StopCount; stop++)
         {
-            if (distance[win.Node] == distance[first.Node])
+            for (var direction = 0; direction < 4; direction++)
             {
-                optimalRoutes = SaturatingAdd(optimalRoutes, routes[win.Node]);
-            }
-        }
-
-        var path = new Direction[distance[first.Node] + 1];
-        path[^1] = first.Direction;
-        var step = path.Length - 2;
-        for (var node = first.Node; node != 0; node = parent[node].Node)
-        {
-            path[step--] = parent[node].Direction;
-        }
-        return new SolveResult(path.Length, path, cells.Count + 1, deadEnds, optimalRoutes, loopingSlides);
-    }
-
-    private static int CountDeadEnds(int nodeCount, List<List<int>> predecessors, List<(int Node, Direction Direction)> wins)
-    {
-        var canWin = new bool[nodeCount];
-        var queue = new Queue<int>();
-        foreach (var win in wins)
-        {
-            if (!canWin[win.Node])
-            {
-                canWin[win.Node] = true;
-                queue.Enqueue(win.Node);
-            }
-        }
-
-        var winners = queue.Count;
-        while (queue.Count > 0)
-        {
-            foreach (var predecessor in predecessors[queue.Dequeue()])
-            {
-                if (!canWin[predecessor])
+                var next = graph.Move(stop, direction);
+                if (next == MoveGraph.Win)
                 {
-                    canWin[predecessor] = true;
-                    queue.Enqueue(predecessor);
-                    winners++;
+                    if (first.Stop == MoveGraph.None)
+                    {
+                        first = (stop, direction);
+                    }
+                    if (graph.DistanceFromStart(stop) == graph.DistanceFromStart(first.Stop))
+                    {
+                        optimalRoutes = SaturatingAdd(optimalRoutes, routes[stop]);
+                    }
+                }
+                else if (next >= 0 && graph.DistanceFromStart(next) == graph.DistanceFromStart(stop) + 1)
+                {
+                    routes[next] = SaturatingAdd(routes[next], routes[stop]);
+                    if (parent[next].Stop == MoveGraph.None)
+                    {
+                        parent[next] = (stop, direction);
+                    }
                 }
             }
         }
-        return nodeCount - winners;
+
+        var path = new Direction[graph.DistanceFromStart(first.Stop) + 1];
+        path[^1] = Directions[first.Direction];
+        var step = path.Length - 2;
+        for (var stop = first.Stop; stop != 0; stop = parent[stop].Stop)
+        {
+            path[step--] = Directions[parent[stop].Direction];
+        }
+        return new SolveResult(path.Length, path, graph.StopCount + 1, deadEnds, optimalRoutes, graph.LoopingSlides);
     }
 
-    private static long SaturatingAdd(long a, long b) => a > long.MaxValue - b ? long.MaxValue : a + b;
+    internal static long SaturatingAdd(long a, long b) => a > long.MaxValue - b ? long.MaxValue : a + b;
 }
