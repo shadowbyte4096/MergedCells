@@ -263,6 +263,9 @@ public sealed record GeneratorConfig
 
     // Maps tried per request before giving up
     public required int MaxAttempts { get; init; }
+
+    // The longest straight run of walls placed at once, in squares
+    public required int MaxWallRun { get; init; }
 }
 
 // Source-generated, so parsing needs no reflection and survives trimming

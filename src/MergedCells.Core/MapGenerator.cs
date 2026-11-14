@@ -2,8 +2,9 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// Makes random maps from a seed: the start and end in opposite corner areas, the grid cut into mostly thin regions,
-/// and only maps the solver can win, with no dead ends and par in range, kept. One seed, request and config always give
-/// one map on every device. Immutable, so one generator can serve several threads.
+/// the request's twists placed, and only maps the solver can win, with no dead ends, no looping slides and par in range,
+/// kept. One seed, request and config always give one map on every device. Immutable, so one generator can serve several
+/// threads.
 /// </summary>
 public sealed class MapGenerator
 {
@@ -30,6 +31,8 @@ public sealed class MapGenerator
         CheckRange(config.CornerPercent, 1, 100, "generator.cornerPercent");
         CheckRange(config.MinDistancePercent, 0, 100, "generator.minDistancePercent");
         ArgumentOutOfRangeException.ThrowIfLessThan(config.MaxAttempts, 1, "generator.maxAttempts");
+        // A run is clipped by the map anyway; the cap keeps maxWallRun + 1 from overflowing
+        CheckRange(config.MaxWallRun, 1, 100, "generator.maxWallRun");
         this.config = config;
     }
 
@@ -40,10 +43,10 @@ public sealed class MapGenerator
     }
 
     /// <summary>
-    /// Tries up to the config's <c>maxAttempts</c> maps from one random stream started at <paramref name="seed"/>, and
-    /// returns the first that is solvable, has no dead ends and has par in the requested range, or null when none does.
-    /// Throws <see cref="ArgumentOutOfRangeException"/> for a size below 2, a minimum par below 1, or a maximum below the
-    /// minimum.
+    /// Tries up to the config's <c>maxAttempts</c> maps from one random stream started at <paramref name="seed"/>, each
+    /// with the request's twists, and returns the first that is solvable, has no dead ends and no looping slides, and has
+    /// par in the requested range, or null when none does. Throws <see cref="ArgumentOutOfRangeException"/> for a size
+    /// below 2, a minimum par below 1, a maximum below the minimum, or a twist density outside 0 to 100.
     /// </summary>
     public GeneratedMap? Generate(MapRequest request, ulong seed)
     {
@@ -51,13 +54,23 @@ public sealed class MapGenerator
         ArgumentOutOfRangeException.ThrowIfLessThan(request.Size, 2, nameof(request.Size));
         ArgumentOutOfRangeException.ThrowIfLessThan(request.MinPar, 1, nameof(request.MinPar));
         ArgumentOutOfRangeException.ThrowIfLessThan(request.MaxPar, request.MinPar, nameof(request.MaxPar));
+        if (request.Twists is { } twists)
+        {
+            CheckRange(twists.WallPercent, 0, 100, "Twists.WallPercent");
+            CheckRange(twists.StickyPercent, 0, 100, "Twists.StickyPercent");
+            CheckRange(twists.TrapPercent, 0, 100, "Twists.TrapPercent");
+            CheckRange(twists.TeleporterPercent, 0, 100, "Twists.TeleporterPercent");
+        }
 
         var random = new GameRandom(seed);
         for (var attempt = 0; attempt < config.MaxAttempts; attempt++)
         {
             var (start, end) = StartAndEnd.Place(request.Size, config, random);
             var regions = RegionCutter.Cut(request.Size, end, config, request.Bends, random);
-            var map = Map.Create(regions, start, end);
+            var (tiles, teleporters) = request.Twists is null
+                ? (null, [])
+                : TwistPlacer.Place(request.Size, start, end, request.Twists, config.MaxWallRun, random);
+            var map = Map.Create(regions, start, end, tiles, teleporters);
             var solution = Solver.Solve(map);
             if (Keeps(solution, request))
             {
@@ -67,7 +80,9 @@ public sealed class MapGenerator
         return null;
     }
 
-    // Dead ends are rejected because nothing on the board would show the player why they're stuck (a ring made by bends)
+    // Dead ends are rejected because nothing on the board may show the player why they're stuck (a ring made by bends, a
+    // pocket a teleporter leads into), and looping slides because one is a silent no-op, like a swipe that didn't register
     internal static bool Keeps(SolveResult solution, MapRequest request) =>
-        solution.IsSolvable && solution.DeadEnds == 0 && solution.Par >= request.MinPar && solution.Par <= request.MaxPar;
+        solution.IsSolvable && solution.DeadEnds == 0 && solution.LoopingSlides == 0
+        && solution.Par >= request.MinPar && solution.Par <= request.MaxPar;
 }

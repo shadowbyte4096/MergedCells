@@ -2,13 +2,14 @@ namespace MergedCells.Core;
 
 public sealed class SolveResult
 {
-    internal SolveResult(int? par, Direction[] path, int reachableStops, int deadEnds, long optimalRoutes)
+    internal SolveResult(int? par, Direction[] path, int reachableStops, int deadEnds, long optimalRoutes, int loopingSlides)
     {
         Par = par;
         Path = Array.AsReadOnly(path);
         ReachableStops = reachableStops;
         DeadEnds = deadEnds;
         OptimalRoutes = optimalRoutes;
+        LoopingSlides = loopingSlides;
     }
 
     public bool IsSolvable => Par is not null;
@@ -29,4 +30,10 @@ public sealed class SolveResult
 
     /// <summary>The number of move sequences that win in <see cref="Par"/> moves, capped at <see cref="long.MaxValue"/>.</summary>
     public long OptimalRoutes { get; }
+
+    /// <summary>
+    /// Slides from the start and every other reachable stop (not the end) that would never stop
+    /// (<see cref="SlideResult.Looped"/>).
+    /// </summary>
+    public int LoopingSlides { get; }
 }

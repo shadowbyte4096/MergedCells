@@ -25,6 +25,8 @@ public class MapGeneratorTests
         GeneratorConfigs.With(minDistancePercent: -1),
         GeneratorConfigs.With(minDistancePercent: 101),
         GeneratorConfigs.With(maxAttempts: 0),
+        GeneratorConfigs.With(maxWallRun: 0),
+        GeneratorConfigs.With(maxWallRun: 101),
     };
 
     [Theory]
@@ -37,7 +39,7 @@ public class MapGeneratorTests
     [Fact]
     public void Accepts_every_range_s_edge()
     {
-        var config = GeneratorConfigs.With(0, 0, 0, 1, maxStripPercent: 1, maxBlockSide: 2, bendPercent: 0, maxBendSquares: 3, cornerPercent: 100, minDistancePercent: 0, maxAttempts: 1);
+        var config = GeneratorConfigs.With(0, 0, 0, 1, maxStripPercent: 1, maxBlockSide: 2, bendPercent: 0, maxBendSquares: 3, cornerPercent: 100, minDistancePercent: 0, maxAttempts: 1, maxWallRun: 1);
 
         Assert.Null(Record.Exception(() => new MapGenerator(config)));
     }
@@ -46,6 +48,12 @@ public class MapGeneratorTests
     public void Accepts_the_largest_block_side()
     {
         Assert.Null(Record.Exception(() => new MapGenerator(GeneratorConfigs.With(maxBlockSide: 10))));
+    }
+
+    [Fact]
+    public void Accepts_the_longest_wall_run()
+    {
+        Assert.Null(Record.Exception(() => new MapGenerator(GeneratorConfigs.With(maxWallRun: 100))));
     }
 
     [Theory]
@@ -168,6 +176,168 @@ public class MapGeneratorTests
         Assert.NotNull(generated);
     }
 
+    public static TheoryData<TwistDensities> OutOfRangeDensities => new()
+    {
+        new TwistDensities(WallPercent: -1),
+        new TwistDensities(WallPercent: 101),
+        new TwistDensities(StickyPercent: -1),
+        new TwistDensities(StickyPercent: 101),
+        new TwistDensities(TrapPercent: -1),
+        new TwistDensities(TrapPercent: 101),
+        new TwistDensities(TeleporterPercent: -1),
+        new TwistDensities(TeleporterPercent: 101),
+    };
+
+    [Theory]
+    [MemberData(nameof(OutOfRangeDensities))]
+    public void Rejects_a_twist_density_out_of_range(TwistDensities twists)
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With());
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(new MapRequest(5, 1, 10, Twists: twists), Seed()));
+    }
+
+    // Par 2 with no dead ends, but Left and Right from the start both loop
+    [Fact(Timeout = 10_000)]
+    public async Task Keeps_rejects_a_map_with_a_looping_slide()
+    {
+        var solution = await Task.Run(() => Solver.Solve(TestMaps.LoopingLane()), TestContext.Current.CancellationToken);
+
+        Assert.False(MapGenerator.Keeps(solution, new MapRequest(5, 1, 10)));
+    }
+
+    public static TheoryData<TwistDensities> TwistMixes => new()
+    {
+        new TwistDensities(WallPercent: 8),
+        new TwistDensities(StickyPercent: 8),
+        new TwistDensities(TrapPercent: 6),
+        new TwistDensities(TeleporterPercent: 4),
+        new TwistDensities(6, 4, 3, 2),
+    };
+
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(TwistMixes))]
+    public async Task Map_with_twists_is_solvable_with_no_dead_ends_no_loops_and_par_in_range(TwistDensities twists)
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With());
+
+        var solutions = await Task.Run(
+            () => new Fixture().CreateMany<ulong>(30)
+                .Select(seed => generator.Generate(new MapRequest(10, 3, 12, Twists: twists), seed))
+                .OfType<GeneratedMap>()
+                .Select(generated => Solver.Solve(generated.Map))
+                .ToList(),
+            TestContext.Current.CancellationToken);
+
+        Assert.NotEmpty(solutions);
+        Assert.All(solutions, solution =>
+        {
+            Assert.True(
+                solution.IsSolvable && solution.DeadEnds == 0 && solution.LoopingSlides == 0,
+                $"Dead ends: {solution.DeadEnds}, looping slides: {solution.LoopingSlides}");
+            Assert.InRange(Assert.NotNull(solution.Par), 3, 12);
+        });
+    }
+
+    [Fact(Timeout = 10_000)]
+    public async Task Map_has_the_twists_it_asked_for()
+    {
+        var map = (await Task.Run(
+            () => Generated(new MapRequest(10, 1, 100, Twists: new TwistDensities(6, 4, 3, 2)), Seed()),
+            TestContext.Current.CancellationToken)).Map;
+
+        var tiles = Enumerable.Range(0, map.Rows * map.Columns).Select(i => map.TileAt(new Cell(i / map.Columns, i % map.Columns))).ToHashSet();
+        Assert.Equal((true, true, true, true), (tiles.Contains(Tile.Wall), tiles.Contains(Tile.Sticky), tiles.Contains(Tile.Trap), map.Teleporters.Count > 0));
+    }
+
+    [Fact]
+    public void No_generated_map_has_a_trap_on_the_start_or_the_end()
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With());
+
+        var maps = new Fixture().CreateMany<ulong>(30)
+            .Select(seed => generator.Generate(new MapRequest(8, 1, 100, Twists: new TwistDensities(TrapPercent: 20)), seed))
+            .OfType<GeneratedMap>()
+            .Select(generated => generated.Map)
+            .ToList();
+
+        Assert.NotEmpty(maps);
+        Assert.All(maps, map => Assert.Equal((Tile.None, Tile.None), (map.TileAt(map.Start), map.TileAt(map.End))));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Zero_densities_give_the_plain_map(ulong seed)
+    {
+        var plain = Generated(new MapRequest(8, 1, 100), seed);
+
+        var zeros = Generated(new MapRequest(8, 1, 100, Twists: new TwistDensities()), seed);
+
+        Assert.Equal(Picture(plain), Picture(zeros));
+    }
+
+    [Theory(Timeout = 10_000)]
+    [AutoData]
+    public async Task One_seed_gives_one_twisted_map(ulong seed)
+    {
+        var request = new MapRequest(12, 1, 100, Bends: true, Twists: new TwistDensities(6, 4, 3, 2));
+
+        var (first, second) = await Task.Run(
+            () => (Picture(Generated(request, seed)), Picture(Generated(request, seed))), TestContext.Current.CancellationToken);
+
+        Assert.Equal(first, second);
+    }
+
+    // Two free squares, both walled, so no try can be won
+    [Fact(Timeout = 10_000)]
+    public async Task Overfull_densities_never_throw()
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With(maxAttempts: 5));
+
+        var exception = await Task.Run(
+            () => Record.Exception(() => generator.Generate(new MapRequest(2, 1, 100, Twists: new TwistDensities(100, 100, 100, 100)), Seed())),
+            TestContext.Current.CancellationToken);
+
+        Assert.Null(exception);
+    }
+
+    // Any change to the twist pass changes this
+    [Fact(Timeout = 10_000)]
+    public async Task Generated_map_with_twists_is_pinned()
+    {
+        var generated = await Task.Run(
+            () => Generated(new MapRequest(8, 1, 100, Twists: new TwistDensities(10, 5, 5, 4)), 18), TestContext.Current.CancellationToken);
+
+        Assert.Equal(PinnedTwists, Picture(generated));
+    }
+
+    // The plain pin's regions, then walls in runs of 2, 3 and 2, four sticky squares, four traps and two pairs
+    private static readonly string[] PinnedTwists =
+    [
+        "AABBCDEE",
+        "FGBBCDEE",
+        "FGHICDJK",
+        "FLHMNOJK",
+        "FLHPNOJK",
+        "FLHQROSK",
+        "FTTTTTTK",
+        "UUUUVWWK",
+        ".....#..",
+        "..x..#s.",
+        "..s.....",
+        "........",
+        "...#s##x",
+        "...#....",
+        "..x#....",
+        "...s.x..",
+        "pairs [3,4]-[2,0] [6,6]-[7,0]",
+        "start Cell { Row = 0, Column = 2 }",
+        "end Cell { Row = 5, Column = 4 }",
+        "par 5",
+    ];
+
+    private static ulong Seed() => new Fixture().Create<ulong>();
+
     // Any change to the random numbers, the placement or the cutting changes these, and with them every daily puzzle
     [Fact]
     public void Generated_map_is_pinned()
@@ -248,14 +418,31 @@ public class MapGeneratorTests
         return generated;
     }
 
-    // The region grid as rows of letters (A for region 1), then the start, the end and par
+    // The region grid as rows of letters (A for region 1); on a map with twists, the tiles as rows of . # s x and the pairs
+    // in order; then the start, the end and par
     private static string[] Picture(GeneratedMap generated)
     {
         var map = generated.Map;
         var rows = Enumerable.Range(0, map.Rows)
             .Select(row => new string(Enumerable.Range(0, map.Columns).Select(column => Letter(map.RegionAt(new Cell(row, column)))).ToArray()));
-        return [.. rows, $"start {map.Start}", $"end {map.End}", $"par {generated.Solution.Par}"];
+        string[] tiles = map.HasTiles
+            ? Enumerable.Range(0, map.Rows)
+                .Select(row => new string(Enumerable.Range(0, map.Columns).Select(column => TileLetter(map.TileAt(new Cell(row, column)))).ToArray()))
+                .ToArray()
+            : [];
+        string[] pairs = map.Teleporters.Count > 0
+            ? ["pairs " + string.Join(" ", map.Teleporters.Select(pair => $"[{pair.First.Row},{pair.First.Column}]-[{pair.Second.Row},{pair.Second.Column}]"))]
+            : [];
+        return [.. rows, .. tiles, .. pairs, $"start {map.Start}", $"end {map.End}", $"par {generated.Solution.Par}"];
     }
+
+    private static char TileLetter(Tile tile) => tile switch
+    {
+        Tile.Wall => '#',
+        Tile.Sticky => 's',
+        Tile.Trap => 'x',
+        _ => '.',
+    };
 
     private static char Letter(int id) => (char)(id <= 26 ? 'A' + id - 1 : 'a' + id - 27);
 }

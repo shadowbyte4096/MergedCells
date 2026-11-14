@@ -18,6 +18,12 @@ internal sealed class MoveRule
         return this;
     }
 
+    public MoveRule Loop(Cell from, Direction direction)
+    {
+        moves[(from, direction)] = new SlideResult(from, false, Looped: true);
+        return this;
+    }
+
     public SlideResult Apply(Cell from, Direction direction) =>
         moves.TryGetValue((from, direction), out var result) ? result : new SlideResult(from, false);
 }

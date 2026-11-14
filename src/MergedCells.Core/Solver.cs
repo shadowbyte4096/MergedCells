@@ -27,6 +27,7 @@ public static class Solver
         var routes = new List<long> { 1 };
         var predecessors = new List<List<int>> { new() };
         var wins = new List<(int Node, Direction Direction)>();
+        var loopingSlides = 0;
 
         // Nodes are listed in distance order, so every route into a node is counted before the node itself is expanded
         for (var node = 0; node < cells.Count; node++)
@@ -34,6 +35,11 @@ public static class Solver
             foreach (var direction in Directions)
             {
                 var result = slide(cells[node], direction);
+                if (result.Looped)
+                {
+                    loopingSlides++;
+                    continue;
+                }
                 if (result.ReachedEnd)
                 {
                     wins.Add((node, direction));
@@ -64,7 +70,7 @@ public static class Solver
         var deadEnds = CountDeadEnds(cells.Count, predecessors, wins);
         if (wins.Count == 0)
         {
-            return new SolveResult(null, [], cells.Count, deadEnds, 0);
+            return new SolveResult(null, [], cells.Count, deadEnds, 0, loopingSlides);
         }
 
         var first = wins[0];
@@ -84,7 +90,7 @@ public static class Solver
         {
             path[step--] = parent[node].Direction;
         }
-        return new SolveResult(path.Length, path, cells.Count + 1, deadEnds, optimalRoutes);
+        return new SolveResult(path.Length, path, cells.Count + 1, deadEnds, optimalRoutes, loopingSlides);
     }
 
     private static int CountDeadEnds(int nodeCount, List<List<int>> predecessors, List<(int Node, Direction Direction)> wins)

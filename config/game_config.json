@@ -56,6 +56,7 @@
     "maxBendSquares": 8,
     "cornerPercent": 40,
     "minDistancePercent": 50,
-    "maxAttempts": 200
+    "maxAttempts": 200,
+    "maxWallRun": 3
   }
 }

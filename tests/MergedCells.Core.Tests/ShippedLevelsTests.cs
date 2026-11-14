@@ -47,35 +47,9 @@ public class ShippedLevelsTests
     {
         var map = Load(file).Map;
 
-        var looping = await Task.Run(() => LoopingSlides(map), TestContext.Current.CancellationToken);
+        var solution = await Task.Run(() => Solver.Solve(map), TestContext.Current.CancellationToken);
 
-        Assert.Empty(looping);
-    }
-
-    private static readonly Direction[] Directions = [Direction.Up, Direction.Down, Direction.Left, Direction.Right];
-
-    private static List<(Cell From, Direction Direction)> LoopingSlides(Map map)
-    {
-        var looping = new List<(Cell, Direction)>();
-        var seen = new HashSet<Cell> { map.Start };
-        var queue = new Queue<Cell>([map.Start]);
-        while (queue.Count > 0)
-        {
-            var at = queue.Dequeue();
-            foreach (var direction in Directions)
-            {
-                var result = map.Slide(at, direction);
-                if (result.Looped)
-                {
-                    looping.Add((at, direction));
-                }
-                else if (!result.ReachedEnd && seen.Add(result.Stop))
-                {
-                    queue.Enqueue(result.Stop);
-                }
-            }
-        }
-        return looping;
+        Assert.Equal(0, solution.LoopingSlides);
     }
 
     [Fact]

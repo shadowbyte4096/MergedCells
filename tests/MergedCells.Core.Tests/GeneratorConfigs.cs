@@ -14,7 +14,8 @@ internal static class GeneratorConfigs
         int maxBendSquares = 8,
         int cornerPercent = 40,
         int minDistancePercent = 50,
-        int maxAttempts = 200) => new()
+        int maxAttempts = 200,
+        int maxWallRun = 3) => new()
     {
         AcrossWeight = acrossWeight,
         DownWeight = downWeight,
@@ -27,5 +28,6 @@ internal static class GeneratorConfigs
         CornerPercent = cornerPercent,
         MinDistancePercent = minDistancePercent,
         MaxAttempts = maxAttempts,
+        MaxWallRun = maxWallRun,
     };
 }

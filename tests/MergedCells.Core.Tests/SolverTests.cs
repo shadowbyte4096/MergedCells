@@ -298,6 +298,30 @@ public class SolverTests
         Assert.Equal(Directions("DR"), result.Path);
     }
 
+    // Left and Right from the start both loop; no other reachable stop has a looping slide
+    [Fact(Timeout = 10_000)]
+    public async Task Looping_slides_are_counted()
+    {
+        var result = await Task.Run(() => Solver.Solve(LoopingLane()), TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, result.LoopingSlides);
+    }
+
+    [Fact]
+    public void A_plain_map_has_no_looping_slides()
+    {
+        Assert.Equal(0, Solver.Solve(Example()).LoopingSlides);
+    }
+
+    [Fact]
+    public void Looped_results_of_a_rule_are_counted()
+    {
+        var start = Cells(1)[0];
+        var rule = new MoveRule().Loop(start, Direction.Up).Win(start, Direction.Right);
+
+        Assert.Equal(1, Solver.Solve(start, rule.Apply).LoopingSlides);
+    }
+
     [Fact]
     public void Win_is_decided_by_the_ReachedEnd_flag()
     {

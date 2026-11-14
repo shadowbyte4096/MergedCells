@@ -18,7 +18,7 @@ public class GameConfigTests
     private const string CampaignGroup = """{"gatePercent":1,"chapterGatePercent":{},"chapterStars":{},"levelStars":{},"undoLimit":1}""";
 
     private const string GeneratorGroup =
-        """{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":2,"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":1}""";
+        """{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":2,"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":1,"maxWallRun":1}""";
 
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
@@ -54,10 +54,11 @@ public class GameConfigTests
         string levelStars = "{}",
         int undoLimit = 1,
         int maxBlockSide = 2,
-        int maxAttempts = 1) =>
+        int maxAttempts = 1,
+        int maxWallRun = 1) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}}}""");
 
     private static GameConfig Shipped() =>
         GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json")));
@@ -277,6 +278,7 @@ public class GameConfigTests
                 CornerPercent = 40,
                 MinDistancePercent = 50,
                 MaxAttempts = 200,
+                MaxWallRun = 3,
             },
             Shipped().Generator);
     }
@@ -359,6 +361,8 @@ public class GameConfigTests
         ConfigText(undoLimit: -1),
         ConfigText(maxBlockSide: 1),
         ConfigText(maxAttempts: 0),
+        ConfigText(maxWallRun: 0),
+        ConfigText(maxWallRun: 101),
     };
 
     [Theory]
