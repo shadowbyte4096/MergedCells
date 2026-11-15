@@ -14,6 +14,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MergedCells.Core\MergedCells.Core.csproj" />
+    <ProjectReference Include="..\..\src\MergedCells.Curation\MergedCells.Curation.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Using Include="Xunit" />
@@ -22,6 +23,7 @@
     <None Include="..\..\config\game_config.json" Link="game_config.json" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\levels\*.json" LinkBase="levels" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\campaign\*.json" LinkBase="campaign" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\MergedCells.Curation\*.json" LinkBase="curation" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\*.json" LinkBase="credits" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\licences\*.txt" LinkBase="credits\licences" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\themes\fonts\OFL.txt" Link="themes\fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />

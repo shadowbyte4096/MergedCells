@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -45,6 +47,108 @@ public static class LevelFile
             file.Tiles is null ? null : Tiles(Grid(file.Tiles, "tiles")),
             file.Teleporters is null ? null : Teleporters(file.Teleporters));
         return new Level(file.Id, file.Name, file.Chapter, map, file.Par, ReadTutorial(file.Tutorial));
+    }
+
+    /// <summary>
+    /// The level's file text in the hand-written layout: one key per line in section 7's order, one grid row per line with
+    /// every number padded to the grid's widest, <c>tiles</c> and <c>teleporters</c> written as null when there are none,
+    /// one teleporter pair per line in the map's order, and the tutorial last. Region IDs are renumbered from 1 in reading
+    /// order, which changes no fingerprint. LF line endings and a final newline.
+    /// </summary>
+    public static string Write(Level level)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        var map = level.Map;
+        var text = new StringBuilder("{\n");
+        text.Append("  \"id\": ").Append(Number(level.Id)).Append(",\n");
+        text.Append("  \"name\": ").Append(JsonText.Quote(level.Name)).Append(",\n");
+        text.Append("  \"chapter\": ").Append(Number(level.Chapter)).Append(",\n");
+        text.Append("  \"regions\": [\n").Append(Rows(RenumberedRegions(map))).Append("  ],\n");
+        if (map.HasTiles)
+        {
+            text.Append("  \"tiles\": [\n").Append(Rows(TileCodes(map))).Append("  ],\n");
+        }
+        else
+        {
+            text.Append("  \"tiles\": null,\n");
+        }
+        if (map.Teleporters.Count > 0)
+        {
+            var pairs = map.Teleporters.Select(pair => $"    [{Square(pair.First)}, {Square(pair.Second)}]");
+            text.Append("  \"teleporters\": [\n").Append(string.Join(",\n", pairs)).Append("\n  ],\n");
+        }
+        else
+        {
+            text.Append("  \"teleporters\": null,\n");
+        }
+        text.Append("  \"start\": ").Append(Square(map.Start)).Append(",\n");
+        text.Append("  \"end\": ").Append(Square(map.End)).Append(",\n");
+        text.Append("  \"par\": ").Append(Number(level.Par));
+        if (level.Tutorial is { } tutorial)
+        {
+            var keys = new List<string> { $"    \"lines\": {Lines(tutorial.Lines)}" };
+            if (!tutorial.KeyboardLines.SequenceEqual(tutorial.Lines))
+            {
+                keys.Add($"    \"keyboardLines\": {Lines(tutorial.KeyboardLines)}");
+            }
+            if (tutorial.SwipeHint is { } hint)
+            {
+                keys.Add($"    \"swipeHint\": {JsonText.Quote(hint.ToString().ToLowerInvariant())}");
+            }
+            text.Append(",\n  \"tutorial\": {\n").Append(string.Join(",\n", keys)).Append("\n  }");
+        }
+        return text.Append("\n}\n").ToString();
+    }
+
+    private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
+
+    private static string Square(Cell cell) => $"[{Number(cell.Row)}, {Number(cell.Column)}]";
+
+    private static string Lines(IEnumerable<string> lines) => "[" + string.Join(", ", lines.Select(JsonText.Quote)) + "]";
+
+    // Every number left-padded to the grid's widest, so the columns line up as the hand-written files have them
+    private static string Rows(int[,] grid)
+    {
+        var width = 1;
+        foreach (var value in grid)
+        {
+            width = Math.Max(width, Number(value).Length);
+        }
+        var rows = Enumerable.Range(0, grid.GetLength(0)).Select(row =>
+            "    [" + string.Join(", ", Enumerable.Range(0, grid.GetLength(1)).Select(column => Number(grid[row, column]).PadLeft(width))) + "]");
+        return string.Join(",\n", rows) + "\n";
+    }
+
+    private static int[,] RenumberedRegions(Map map)
+    {
+        var grid = map.RegionGrid();
+        var numbers = new Dictionary<int, int>();
+        for (var row = 0; row < map.Rows; row++)
+        {
+            for (var column = 0; column < map.Columns; column++)
+            {
+                if (!numbers.TryGetValue(grid[row, column], out var number))
+                {
+                    number = numbers.Count + 1;
+                    numbers[grid[row, column]] = number;
+                }
+                grid[row, column] = number;
+            }
+        }
+        return grid;
+    }
+
+    private static int[,] TileCodes(Map map)
+    {
+        var codes = new int[map.Rows, map.Columns];
+        for (var row = 0; row < map.Rows; row++)
+        {
+            for (var column = 0; column < map.Columns; column++)
+            {
+                codes[row, column] = (int)map.TileAt(new Cell(row, column));
+            }
+        }
+        return codes;
     }
 
     // Only the shape is checked here; Map.Create checks where the pairs sit

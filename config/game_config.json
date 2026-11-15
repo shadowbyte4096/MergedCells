@@ -65,5 +65,14 @@
     "caps": { "awayMoves": 3, "greedyGap": 4, "decoys": 8, "nearOptimalRoutes": 100, "bruteForceExtraMoves": 5 },
     "weights": { "awayMoves": 100, "greedyGap": 100, "decoys": 100, "nearOptimalRoutes": 100, "bruteForceExtraMoves": 100 },
     "modeWeights": {}
+  },
+  "climb": {
+    "maxSteps": 4000,
+    "stallSteps": 500,
+    "splitWeight": 20,
+    "mergeWeight": 20,
+    "moveSquareWeight": 30,
+    "moveStartWeight": 10,
+    "moveTwistWeight": 20
   }
 }

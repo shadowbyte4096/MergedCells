@@ -16,5 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="MergedCells.Core.Tests" />
+    <!-- The offline curation tool reads its own files as strictly as Core reads the game's, through JsonKeys -->
+    <InternalsVisibleTo Include="MergedCells.Curation" />
   </ItemGroup>
 </Project>

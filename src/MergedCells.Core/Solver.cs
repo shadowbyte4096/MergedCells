@@ -16,9 +16,11 @@ public static class Solver
     }
 
     // The test hook: tests pass in made-up slide rules here
-    internal static SolveResult Solve(Cell start, Func<Cell, Direction, SlideResult> slide)
+    internal static SolveResult Solve(Cell start, Func<Cell, Direction, SlideResult> slide) => SolveGraph(MoveGraph.Build(start, slide));
+
+    // The climber's way in: it builds a step's graph once and reads the solution and the metrics from it
+    internal static SolveResult SolveGraph(MoveGraph graph)
     {
-        var graph = MoveGraph.Build(start, slide);
         var deadEnds = 0;
         for (var stop = 0; stop < graph.StopCount; stop++)
         {

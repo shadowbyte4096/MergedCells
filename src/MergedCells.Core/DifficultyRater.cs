@@ -65,9 +65,12 @@ public sealed class DifficultyRater
     }
 
     // The test hook, as Solver's: made-up slide rules, with the end's square for distances
-    internal DifficultyMetrics? Measure(Cell start, Cell end, Func<Cell, Direction, SlideResult> slide)
+    internal DifficultyMetrics? Measure(Cell start, Cell end, Func<Cell, Direction, SlideResult> slide) =>
+        Measure(MoveGraph.Build(start, slide), end);
+
+    // The climber's way in, with the graph its filter already built
+    internal DifficultyMetrics? Measure(MoveGraph graph, Cell end)
     {
-        var graph = MoveGraph.Build(start, slide);
         if (graph.MovesToEnd(0) == MoveGraph.None)
         {
             return null;

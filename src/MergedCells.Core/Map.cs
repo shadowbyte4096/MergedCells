@@ -114,6 +114,37 @@ public sealed class Map
 
     public bool Contains(Cell cell) => IsInside(cell, Rows, Columns);
 
+    // A fresh copy of the region grid, indexed [row, column], for code that builds a changed map
+    internal int[,] RegionGrid()
+    {
+        var grid = new int[Rows, Columns];
+        for (var row = 0; row < Rows; row++)
+        {
+            for (var column = 0; column < Columns; column++)
+            {
+                grid[row, column] = regions[row * Columns + column];
+            }
+        }
+        return grid;
+    }
+
+    // A fresh copy of the tile grid, all Tile.None when the map has no tiles
+    internal Tile[,] TileGrid()
+    {
+        var grid = new Tile[Rows, Columns];
+        if (tiles != null)
+        {
+            for (var row = 0; row < Rows; row++)
+            {
+                for (var column = 0; column < Columns; column++)
+                {
+                    grid[row, column] = tiles[row * Columns + column];
+                }
+            }
+        }
+        return grid;
+    }
+
     /// <summary>True when any square holds a twist tile.</summary>
     public bool HasTiles => tiles != null;
 

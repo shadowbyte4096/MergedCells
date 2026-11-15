@@ -22,6 +22,8 @@ public sealed record GameConfig
 
     public required DifficultyConfig Difficulty { get; init; }
 
+    public required ClimbConfig Climb { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -52,6 +54,7 @@ public sealed record GameConfig
         _ = new PlayRules(Campaign.UndoLimit);
         _ = new MapGenerator(Generator);
         _ = new DifficultyRater(Difficulty);
+        _ = new MapClimber(Generator, Difficulty, Climb);
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -150,6 +153,10 @@ public sealed record GameConfig
             }
         }
         CheckDifficulty(config.Difficulty);
+        if (config.Climb is null)
+        {
+            throw new JsonException("The config's \"climb\" group is null.");
+        }
         return config;
     }
 
@@ -325,6 +332,25 @@ public sealed record DifficultyConfig
 
     internal static string NotAModeMessage(string key) =>
         $"\"{key}\" isn't a mode: use {string.Join(", ", Enum.GetValues<DifficultyMode>().Select(KeyOf))}.";
+}
+
+// How MapClimber searches: steps in all, steps without getting nearer before it starts again from a fresh map, and the
+// relative chances of its five edits
+public sealed record ClimbConfig
+{
+    public required int MaxSteps { get; init; }
+
+    public required int StallSteps { get; init; }
+
+    public required int SplitWeight { get; init; }
+
+    public required int MergeWeight { get; init; }
+
+    public required int MoveSquareWeight { get; init; }
+
+    public required int MoveStartWeight { get; init; }
+
+    public required int MoveTwistWeight { get; init; }
 }
 
 // Each metric counts towards the score up to its cap, and no further

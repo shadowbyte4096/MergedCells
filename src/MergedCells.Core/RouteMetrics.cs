@@ -38,14 +38,18 @@ internal static class RouteMetrics
         return null;
     }
 
-    // Move sequences counted by length: those that end at each stop without having won, and the wins at each length
-    public static long NearOptimalRoutes(MoveGraph graph, int extraMoves)
+    public static long NearOptimalRoutes(MoveGraph graph, int extraMoves) =>
+        WinsByLength(graph, extraMoves).Aggregate(0L, Solver.SaturatingAdd);
+
+    // Entry k is the move sequences that first win in exactly par + 1 + k moves. They're counted by length: those that end
+    // at each stop without having won, and the wins at each length
+    public static long[] WinsByLength(MoveGraph graph, int extraMoves)
     {
         var par = graph.MovesToEnd(0);
         var endingAt = new long[graph.StopCount];
         var next = new long[graph.StopCount];
         endingAt[0] = 1;
-        var near = 0L;
+        var near = new long[extraMoves];
         for (var length = 1; length <= par + extraMoves; length++)
         {
             Array.Clear(next);
@@ -71,7 +75,7 @@ internal static class RouteMetrics
             }
             if (length > par)
             {
-                near = Solver.SaturatingAdd(near, wins);
+                near[length - par - 1] = wins;
             }
             (endingAt, next) = (next, endingAt);
         }
