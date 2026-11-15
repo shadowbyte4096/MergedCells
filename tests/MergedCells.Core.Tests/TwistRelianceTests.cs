@@ -4,6 +4,8 @@ namespace MergedCells.Core.Tests;
 
 public class TwistRelianceTests
 {
+    private static readonly DifficultyRater Rater = new(DifficultyConfigs.With());
+
     private static Level Shipped(int id) => ShippedCampaignTests.Campaign().Levels.Single(level => level.Id == id);
 
     // A ring round the end: no slide stops beside it, so only the wall at [0, 2] makes [0, 1] a stop
@@ -12,36 +14,70 @@ public class TwistRelianceTests
     [Fact]
     public void Plain_map_relies_on_nothing()
     {
-        Assert.Equal(0, TwistReliance.Of(Example()));
+        Assert.Equal(0, TwistReliance.Of(Example(), Rater));
     }
 
-    // Wall: par 2, and 3 without the wall. Teleport: par 2, and 4 without the pair
+    // Wall: par 2, and 3 without the wall (par changes). Teleport: par 2, and 4 without the pair (par changes)
     [Theory]
     [InlineData(26, 1)]
-    [InlineData(32, 2)]
-    public void Reliance_is_the_size_of_the_par_change(int id, int reliance)
+    [InlineData(32, 1)]
+    public void Reliance_counts_what_changes_without_the_twist(int id, int reliance)
     {
-        Assert.Equal(reliance, TwistReliance.Of(Shipped(id).Map));
+        Assert.Equal(reliance, TwistReliance.Of(Shipped(id).Map, Rater));
     }
 
-    // The trap at [0, 3] catches Right from [0, 2], which no optimal route makes
+    // The trap at [0, 3] catches Right from [0, 2], which no optimal route makes, and no tempting route either
     [Fact]
-    public void Twists_that_leave_par_alone_give_0()
+    public void A_twist_that_changes_nothing_gives_0()
     {
         var map = Map.Create(ExampleRegions(), ExampleStart, ExampleEnd, Traps(4, 4, (0, 3)));
 
-        Assert.Equal(0, TwistReliance.Of(map));
+        Assert.Equal(0, TwistReliance.Of(map, Rater));
     }
 
     [Fact]
-    public void Null_when_the_map_without_twists_cannot_be_won()
+    public void Counts_as_the_most_when_the_map_cannot_be_won_without_the_twist()
     {
-        Assert.Null(TwistReliance.Of(Ring(Walls(3, 3, (0, 2)))));
+        Assert.Equal(TwistReliance.Most, TwistReliance.Of(Ring(Walls(3, 3, (0, 2))), Rater));
     }
 
     [Fact]
     public void Unsolvable_map_throws()
     {
-        Assert.Throws<ArgumentException>(() => TwistReliance.Of(Ring()));
+        Assert.Throws<ArgumentException>(() => TwistReliance.Of(Ring(), Rater));
+    }
+
+    // Level 26's wall is what makes par 2, and a trap at [1, 4] changes nothing
+    [Fact]
+    public void A_kind_that_changes_nothing_gives_0_even_when_another_kind_matters()
+    {
+        var wall = Shipped(26).Map;
+        var tiles = wall.TileGrid();
+        tiles[1, 4] = Tile.Trap;
+        var map = Map.Create(wall.RegionGrid(), wall.Start, wall.End, tiles);
+
+        Assert.Equal(0, TwistReliance.Of(map, Rater));
+    }
+
+    // Level 27's walls leave par at 3 but are what makes a tempting route a red herring: they add a decoy
+    [Fact]
+    public void A_twist_that_only_makes_a_tempting_route_counts()
+    {
+        Assert.True(TwistReliance.Of(Shipped(27).Map, Rater) >= 1);
+    }
+
+    // The twist tutorials of chapters 3 to 6
+    [Theory]
+    [InlineData(26)]
+    [InlineData(27)]
+    [InlineData(28)]
+    [InlineData(29)]
+    [InlineData(30)]
+    [InlineData(31)]
+    [InlineData(32)]
+    [InlineData(33)]
+    public void Every_shipped_twist_level_relies_on_its_twist(int id)
+    {
+        Assert.True(TwistReliance.Of(Shipped(id).Map, Rater) >= 1);
     }
 }

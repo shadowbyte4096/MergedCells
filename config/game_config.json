@@ -41,7 +41,15 @@
       "23": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
       "24": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
       "25": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
-      "8": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 }
+      "8": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "36": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "46": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "47": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "48": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "49": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "50": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "51": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "53": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 }
     },
     "undoLimit": 5
   },

@@ -1,0 +1,19 @@
+{
+  "id": 34,
+  "name": "Bend",
+  "chapter": 2,
+  "regions": [
+    [1, 2, 3, 4],
+    [1, 2, 3, 4],
+    [1, 2, 3, 4],
+    [1, 1, 1, 5]
+  ],
+  "tiles": null,
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [3, 3],
+  "par": 2,
+  "tutorial": {
+    "lines": ["Blocks can bend round corners", "Slide down, then along"]
+  }
+}

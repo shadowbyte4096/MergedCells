@@ -1,0 +1,19 @@
+{
+  "id": 35,
+  "name": "Curl",
+  "chapter": 2,
+  "regions": [
+    [1, 1, 2, 3],
+    [4, 2, 2, 3],
+    [4, 2, 5, 3],
+    [4, 2, 2, 3]
+  ],
+  "tiles": null,
+  "teleporters": null,
+  "start": [1, 0],
+  "end": [2, 2],
+  "par": 3,
+  "tutorial": {
+    "lines": ["A block can curl round the end", "Find the way in"]
+  }
+}

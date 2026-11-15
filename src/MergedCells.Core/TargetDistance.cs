@@ -1,7 +1,7 @@
 namespace MergedCells.Core;
 
 // How far a map is from a target, in score points: 0 hits it. A metric's shortfall counts as its share of the metric's
-// cap, the scale the score itself uses, and each move of missing twist reliance as a whole metric's share. Integer only
+// cap, the scale the score itself uses, and each missing change of twist reliance as a whole metric's share. Integer only
 internal static class TargetDistance
 {
     public static void Check(DifficultyTarget target)
@@ -12,6 +12,7 @@ internal static class TargetDistance
         ArgumentOutOfRangeException.ThrowIfLessThan(target.MaxScore, target.MinScore, nameof(target.MaxScore));
         ArgumentOutOfRangeException.ThrowIfGreaterThan(target.MaxScore, 100, nameof(target.MaxScore));
         ArgumentOutOfRangeException.ThrowIfNegative(target.MinTwistReliance, nameof(target.MinTwistReliance));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(target.MinTwistReliance, TwistReliance.Most, nameof(target.MinTwistReliance));
         if (target.Minimums is { } minimums)
         {
             ArgumentOutOfRangeException.ThrowIfNegative(minimums.AwayMoves ?? 0, nameof(minimums.AwayMoves));

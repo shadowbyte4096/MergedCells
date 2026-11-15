@@ -76,7 +76,7 @@ public class MapClimberTests
 
         var metrics = rater.Measure(climbed.Map)!;
         var distance = TargetDistance.Of(
-            request.Target, metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(climbed.Map), DifficultyConfigs.Caps());
+            request.Target, metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(climbed.Map, rater), DifficultyConfigs.Caps());
         Assert.True(climbed.Distance > 0);
         Assert.Equal(distance, climbed.Distance);
     }

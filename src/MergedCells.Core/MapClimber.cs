@@ -141,7 +141,7 @@ public sealed class MapClimber
         }
         var metrics = rater.Measure(graph, map.End)!;
         var score = rater.Score(metrics, request.Mode);
-        var reliance = TwistReliance.Of(map, solution.Par!.Value);
+        int? reliance = request.Target.MinTwistReliance > 0 ? TwistReliance.Of(map, metrics, rater) : null;
         var distance = TargetDistance.Of(request.Target, metrics, score, reliance, caps);
         return new Evaluated(state, map, solution, metrics, score, reliance, distance);
     }

@@ -61,8 +61,8 @@ public class ShippedLevelsTests
     }
 
     [Fact]
-    public void There_are_at_most_a_hundred_levels()
+    public void There_are_at_most_a_hundred_and_fifty_levels()
     {
-        Assert.InRange(Files().Length, 1, 100);
+        Assert.InRange(Files().Length, 1, 150);
     }
 }

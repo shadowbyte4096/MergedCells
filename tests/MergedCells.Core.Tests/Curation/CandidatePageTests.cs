@@ -14,7 +14,7 @@ public class CandidatePageTests
         var map = GeneratedMaps.Make(new MapRequest(8, 1, 100, Twists: GeneratedMaps.EveryTwist), seed + (ulong)number);
         var rater = new DifficultyRater(DifficultyConfigs.With());
         var metrics = rater.Measure(map)!;
-        var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(map), 0);
+        var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(map, rater), 0);
         return new PageCandidate($"c{number}.json", climbed, StarLimits.Reachable(map, 10, 10, 2), $"promote builds/candidates/c{number}.json --name \"NAME\"");
     }
 

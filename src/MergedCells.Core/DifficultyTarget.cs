@@ -2,8 +2,8 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// What <see cref="MapClimber.Climb"/> aims at: a score from <paramref name="MinScore"/> to <paramref name="MaxScore"/>
-/// (0 to 100, in the request's mode), optional minimums for any of the metrics, and, for twist chapters, how far the
-/// twists must move par (<see cref="TwistReliance"/>).
+/// (0 to 100, in the request's mode), optional minimums for any of the metrics, and, for twist chapters, how many of par,
+/// decoys, brute-force excess and away moves each kind of twist must change (<see cref="TwistReliance"/>); measured only when asked for.
 /// </summary>
 public sealed record DifficultyTarget(int MinScore, int MaxScore, MetricMinimums? Minimums = null, int MinTwistReliance = 0);
 
