@@ -37,9 +37,9 @@ public class SolverTests
             1,
             true),
         new("WallPocket", WallPocket, 1, "D", 4, 1, true),
-        // Level 28: the sticky square stops the first slide right beside the end
+        // Retired level 28: the sticky square stops the first slide right beside the end
         new("StickyStopper", () => Map.Create(Grid("AB", "AC", "AZ", "AD", "AE"), new(0, 0), new(2, 1), Sticky(5, 2, (2, 0))), 2, "DR", 10, 1, true),
-        // Level 29: the right-hand lane's two sticky squares make it a move slower than going round. Column 2 can't be reached
+        // Retired level 29: the right-hand lane's two sticky squares make it a move slower than going round. Column 2 can't be reached
         new(
             "StickySlowLane",
             () => Map.Create(Grid("AAAAB", "CDDDB", "CEEEB", "CFFFB", "GGGGZ"), new(0, 0), new(4, 4), Sticky(5, 5, (1, 4), (2, 4))),

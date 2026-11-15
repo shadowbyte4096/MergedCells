@@ -66,12 +66,10 @@ public class TwistRelianceTests
         Assert.True(TwistReliance.Of(Shipped(27).Map, Rater) >= 1);
     }
 
-    // The twist tutorials of chapters 3 to 6
+    // The twist tutorials of chapters 3 to 5
     [Theory]
     [InlineData(26)]
     [InlineData(27)]
-    [InlineData(28)]
-    [InlineData(29)]
     [InlineData(30)]
     [InlineData(31)]
     [InlineData(32)]

@@ -4,7 +4,7 @@ namespace MergedCells.Core.Tests;
 
 public class StickySlideTests
 {
-    // Level 28 on its side: the top lane's sticky square sits right above the end
+    // Retired level 28 on its side: the top lane's sticky square sits right above the end
     private static Map TopLane(params (int Row, int Column)[] sticky) =>
         Map.Create(Grid("AAAAA", "BCDEF"), new(0, 0), new(1, 2), Sticky(2, 5, sticky));
 

@@ -8,7 +8,7 @@ A grid puzzle game for Android and desktop. The grid is split into regions, most
 
 Early development. What works now: playing a level, with 10 hand-made levels, par worked out by the solver, star ratings, unlimited undo, restart, and light and dark themes.
 
-Planned: a campaign with twists (walls, sticky squares, traps, teleporters), an infinite mode with generated maps, a daily puzzle, a timed mode and a versus mode.
+Planned: a campaign with twists (walls, traps, teleporters), an infinite mode with generated maps, a daily puzzle, a timed mode and a versus mode.
 
 ## Building
 

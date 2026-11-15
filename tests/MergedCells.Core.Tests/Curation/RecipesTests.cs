@@ -54,7 +54,7 @@ public class RecipesTests
     {
         var recipes = Recipes.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "curation", "recipes.json")));
 
-        Assert.Equal(Enumerable.Range(1, 9), recipes.Chapters.Keys.Order());
+        Assert.Equal(Enumerable.Range(1, 8), recipes.Chapters.Keys.Order());
     }
 
     [Fact]
