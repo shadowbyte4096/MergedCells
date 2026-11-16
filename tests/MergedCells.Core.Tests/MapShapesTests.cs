@@ -33,6 +33,8 @@ public class MapShapesTests
 
     private static readonly (int, int)[] FiveSquareL = [(0, 0), (0, 1), (0, 2), (1, 0), (2, 0)];
 
+    private static readonly (int, int)[] Block3x3 = [(0, 0), (0, 1), (0, 2), (1, 0), (1, 1), (1, 2), (2, 0), (2, 1), (2, 2)];
+
     [Theory(Timeout = 30_000)]
     [InlineData(false)]
     [InlineData(true)]
@@ -108,5 +110,25 @@ public class MapShapesTests
     public void End_that_is_not_its_own_square_does_not_fit()
     {
         Assert.False(MapShapes.Fits(Joined((Size - 1, Size - 2), (Size - 1, Size - 1)), End, GeneratorConfigs.With(), false));
+    }
+
+    // A 3x3 block is over the maximum side of 2, unless a skeleton fixed it
+    [Fact]
+    public void Fixed_region_over_the_shapes_does_not_fit_without_its_skeleton()
+    {
+        Assert.False(MapShapes.Fits(Joined(Block3x3), End, GeneratorConfigs.With(maxBlockSide: 2), false));
+    }
+
+    [Fact]
+    public void Fixed_region_is_exempt_from_the_shapes()
+    {
+        var regions = new int?[Size, Size];
+        foreach (var (row, column) in Block3x3)
+        {
+            regions[row, column] = 1;
+        }
+        var skeleton = new MapSkeleton(regions, new Tile?[Size, Size], End, []);
+
+        Assert.True(MapShapes.Fits(Joined(Block3x3), End, GeneratorConfigs.With(maxBlockSide: 2), false, skeleton));
     }
 }

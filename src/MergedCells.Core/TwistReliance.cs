@@ -51,6 +51,37 @@ public static class TwistReliance
         return without.Min(plain => rater.Measure(plain) is { } other ? Changes(metrics, other) : Most);
     }
 
+    // The traps, in reading order, that change none of par, decoys, brute-force excess and away moves when that one square
+    // alone is made plain. Traps on one slide cover for each other, so a kind that matters can still hold traps that don't.
+    // The curation tool shows these on its page; nothing in the climb measures them
+    internal static IReadOnlyList<Cell> TrapsThatDontMatter(Map map, DifficultyRater rater)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(rater);
+        var metrics = rater.Measure(map) ?? throw new ArgumentException("The map can't be won.", nameof(map));
+        var idle = new List<Cell>();
+        for (var row = 0; row < map.Rows; row++)
+        {
+            for (var column = 0; column < map.Columns; column++)
+            {
+                var cell = new Cell(row, column);
+                if (map.TileAt(cell) != Tile.Trap)
+                {
+                    continue;
+                }
+                var tiles = map.TileGrid();
+                tiles[row, column] = Tile.None;
+                // Taking a trap away only adds routes, so the plain map can always be won
+                var plain = rater.Measure(Map.Create(map.RegionGrid(), map.Start, map.End, tiles, map.Teleporters))!;
+                if (Changes(metrics, plain) == 0)
+                {
+                    idle.Add(cell);
+                }
+            }
+        }
+        return idle;
+    }
+
     internal static int Changes(DifficultyMetrics a, DifficultyMetrics b) =>
         (a.Par != b.Par ? 1 : 0)
         + (a.Decoys != b.Decoys ? 1 : 0)

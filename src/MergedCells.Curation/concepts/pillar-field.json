@@ -1,0 +1,31 @@
+{
+  "chapter": 3,
+  "band": "hard",
+  "par": [5, 16],
+  "bends": false,
+  "twists": { "wallPercent": 12, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 },
+  "maxWallRun": 1,
+  "candidates": 20,
+  "blocks": [
+    "A A A A A A A A A",
+    "A A A A A A A A A",
+    "A A A A A A A A A",
+    "A A A A A A A A A",
+    "A A A A A A A A A",
+    "A A A A A A E A A",
+    "A A A A A A A A A",
+    "A A A A A A A A A",
+    "A A A A A A A A A"
+  ],
+  "tiles": [
+    "s s . . . . . . .",
+    "s s . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . .",
+    ". . . . . . . . ."
+  ]
+}

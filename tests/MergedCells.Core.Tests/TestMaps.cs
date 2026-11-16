@@ -61,6 +61,13 @@ internal static class TestMaps
     // A trap on [0, 1]: Right from the start is caught after one square
     public static Map TrapBesideTheStart() => Map.Create(Grid("AAAAA", "BCDEF"), new(0, 0), new(1, 2), Traps(2, 5, (0, 1)));
 
+    // Level 30's layout: right along the top runs over the trap, so par is 3 with it and 2 without
+    public static Map TrapTutorial() => Map.Create(Grid("AAAAB", "CCCCB", "DDDDE"), new(0, 0), new(2, 4), Traps(3, 5, (0, 2)));
+
+    // Level 30's layout with two traps in the top lane. Together they close the quick route (par 3, not 2), but each
+    // catches the slide along the top without the other, so neither changes anything alone
+    public static Map CoveringTraps() => Map.Create(Grid("AAAAB", "CCCCB", "DDDDE"), new(0, 0), new(2, 4), Traps(3, 5, (0, 2), (0, 3)));
+
     // Right from the start enters [0, 2], comes out of [1, 4] and runs to the edge at [1, 5]
     public static Map TeleporterLane() =>
         Map.Create(Grid("AAAAAA", "BBBBBB", "CCCCCZ"), new(0, 0), new(2, 5), teleporters: [Pair(0, 2, 1, 4)]);

@@ -50,17 +50,7 @@ public sealed class MapGenerator
     /// </summary>
     public GeneratedMap? Generate(MapRequest request, ulong seed)
     {
-        ArgumentNullException.ThrowIfNull(request);
-        ArgumentOutOfRangeException.ThrowIfLessThan(request.Size, 2, nameof(request.Size));
-        ArgumentOutOfRangeException.ThrowIfLessThan(request.MinPar, 1, nameof(request.MinPar));
-        ArgumentOutOfRangeException.ThrowIfLessThan(request.MaxPar, request.MinPar, nameof(request.MaxPar));
-        if (request.Twists is { } twists)
-        {
-            CheckRange(twists.WallPercent, 0, 100, "Twists.WallPercent");
-            CheckRange(twists.StickyPercent, 0, 100, "Twists.StickyPercent");
-            CheckRange(twists.TrapPercent, 0, 100, "Twists.TrapPercent");
-            CheckRange(twists.TeleporterPercent, 0, 100, "Twists.TeleporterPercent");
-        }
+        Check(request);
 
         var random = new GameRandom(seed);
         for (var attempt = 0; attempt < config.MaxAttempts; attempt++)
@@ -78,6 +68,68 @@ public sealed class MapGenerator
             }
         }
         return null;
+    }
+
+    // A concept level's starting maps: what the skeleton fixes stays, and the start, the cut and the twists fill the rest
+    // in the order Generate draws them
+    internal GeneratedMap? Generate(MapRequest request, ulong seed, MapSkeleton skeleton)
+    {
+        Check(request);
+        ArgumentNullException.ThrowIfNull(skeleton);
+        if (request.Size != skeleton.Size)
+        {
+            throw new ArgumentException($"The request is {request.Size}×{request.Size} but the skeleton is {skeleton.Size}×{skeleton.Size}.", nameof(skeleton));
+        }
+        var starts = StartAndEnd.Starts(skeleton, config);
+        var end = skeleton.End;
+
+        var random = new GameRandom(seed);
+        for (var attempt = 0; attempt < config.MaxAttempts; attempt++)
+        {
+            var start = starts[random.Next(starts.Count)];
+            var regions = RegionCutter.Cut(request.Size, end, config, request.Bends, random, skeleton);
+            var (tiles, teleporters) = request.Twists is null
+                ? (null, [])
+                : TwistPlacer.Place(request.Size, start, end, request.Twists, config.MaxWallRun, random, skeleton);
+            var map = Map.Create(regions, start, end, WithFixedTiles(tiles, skeleton), teleporters);
+            var solution = Solver.Solve(map);
+            if (Keeps(solution, request))
+            {
+                return new GeneratedMap(map, solution);
+            }
+        }
+        return null;
+    }
+
+    private static Tile[,]? WithFixedTiles(Tile[,]? tiles, MapSkeleton skeleton)
+    {
+        for (var row = 0; row < skeleton.Size; row++)
+        {
+            for (var column = 0; column < skeleton.Size; column++)
+            {
+                if (skeleton.TileAt(new Cell(row, column)) is { } tile && tile != Tile.None)
+                {
+                    tiles ??= new Tile[skeleton.Size, skeleton.Size];
+                    tiles[row, column] = tile;
+                }
+            }
+        }
+        return tiles;
+    }
+
+    private static void Check(MapRequest request)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.Size, 2, nameof(request.Size));
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.MinPar, 1, nameof(request.MinPar));
+        ArgumentOutOfRangeException.ThrowIfLessThan(request.MaxPar, request.MinPar, nameof(request.MaxPar));
+        if (request.Twists is { } twists)
+        {
+            CheckRange(twists.WallPercent, 0, 100, "Twists.WallPercent");
+            CheckRange(twists.StickyPercent, 0, 100, "Twists.StickyPercent");
+            CheckRange(twists.TrapPercent, 0, 100, "Twists.TrapPercent");
+            CheckRange(twists.TeleporterPercent, 0, 100, "Twists.TeleporterPercent");
+        }
     }
 
     // Dead ends are rejected because nothing on the board may show the player why they're stuck (a ring made by bends, a

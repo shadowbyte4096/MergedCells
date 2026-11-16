@@ -15,6 +15,6 @@
   "end": [1, 2],
   "par": 2,
   "tutorial": {
-    "lines": ["Walls stop you on the square before them", "even in the middle of a block"]
+    "lines": ["Walls stop you one square short", "even in the middle of a block"]
   }
 }

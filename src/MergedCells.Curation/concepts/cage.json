@@ -1,0 +1,35 @@
+{
+  "chapter": 4,
+  "band": "insane",
+  "par": [6, 24],
+  "bends": true,
+  "twists": null,
+  "maxWallRun": null,
+  "candidates": 1,
+  "blocks": [
+    "T T T T T T T T T T T",
+    "P Z Z Z Z a Z Z Z Z Q",
+    "P Z b b b a c d f Z Q",
+    "P Z b b b a c d f Z Q",
+    "P Z g g g g g d f Z Q",
+    "P Z h i i i i i f Z Q",
+    "P Z h i j k i f f Z Q",
+    "P Z h h j j j j m Z Q",
+    "P Z h n n n n n m Z Q",
+    "P Z Z Z Z Z Z Z Z Z Q",
+    "P L L L L E R R R R R"
+  ],
+  "tiles": [
+    "- - - - - - - - - - -",
+    "- x x x x - x x x x -",
+    "- x - - - - - - - x -",
+    "- x - - - - - - - x -",
+    "- x - - - - - - - x -",
+    "- x - - - - - - - x -",
+    "- x - - - - - - - x -",
+    "- x - - - - - - - x -",
+    "- x - - - S - - - x -",
+    "- x x x x x x x x x -",
+    "- - - - - - - - - - -"
+  ]
+}

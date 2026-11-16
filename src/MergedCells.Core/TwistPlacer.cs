@@ -6,10 +6,10 @@ namespace MergedCells.Core;
 internal static class TwistPlacer
 {
     public static (Tile[,]? Tiles, TeleporterPair[] Teleporters) Place(
-        int size, Cell start, Cell end, TwistDensities twists, int maxWallRun, GameRandom random)
+        int size, Cell start, Cell end, TwistDensities twists, int maxWallRun, GameRandom random, MapSkeleton? skeleton = null)
     {
         var squares = size * size;
-        var free = new FreeSquares(size, start, end);
+        var free = new FreeSquares(size, start, end, skeleton);
         Tile[,]? tiles = null;
         foreach (var run in WallRuns(free, Percentage.Of(twists.WallPercent, squares), maxWallRun, random))
         {
@@ -101,9 +101,9 @@ internal static class TwistPlacer
     }
 }
 
-// The squares no twist has used yet, starting with every square in reading order but the start and the end. A pick
-// swaps the last square into the gap, so the order depends only on the picks, and a square a wall run grows into is
-// removed the same way, so Count is always the squares left
+// The squares no twist has used yet, starting with every square in reading order but the start, the end and any square a
+// skeleton fixes. A pick swaps the last square into the gap, so the order depends only on the picks, and a square a wall
+// run grows into is removed the same way, so Count is always the squares left
 internal sealed class FreeSquares
 {
     private readonly int size;
@@ -111,7 +111,7 @@ internal sealed class FreeSquares
     // Each square's place in the list, -1 once it's used (and for the start and the end)
     private readonly int[] places;
 
-    public FreeSquares(int size, Cell start, Cell end)
+    public FreeSquares(int size, Cell start, Cell end, MapSkeleton? skeleton = null)
     {
         this.size = size;
         squares = new List<Cell>(size * size);
@@ -121,7 +121,7 @@ internal sealed class FreeSquares
             for (var column = 0; column < size; column++)
             {
                 var cell = new Cell(row, column);
-                if (cell == start || cell == end)
+                if (cell == start || cell == end || skeleton?.HasFixedTile(cell) == true)
                 {
                     places[row * size + column] = -1;
                     continue;

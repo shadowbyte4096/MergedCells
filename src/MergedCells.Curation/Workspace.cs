@@ -15,6 +15,8 @@ internal sealed class Workspace(string root)
 
     public string RetiredFile => Path.Combine(Root, "src", "MergedCells.Curation", "retired-levels.json");
 
+    public string ConceptsFolder => Path.Combine(Root, "src", "MergedCells.Curation", "concepts");
+
     public string CandidatesFolder => Path.Combine(Root, "builds", "candidates");
 
     public string RetiredBackupFolder => Path.Combine(Root, "builds", "retired");

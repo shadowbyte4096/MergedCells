@@ -24,6 +24,7 @@
     <None Include="..\..\levels\*.json" LinkBase="levels" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\campaign\*.json" LinkBase="campaign" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\src\MergedCells.Curation\*.json" LinkBase="curation" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\src\MergedCells.Curation\concepts\*.json" LinkBase="curation\concepts" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\*.json" LinkBase="credits" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\credits\licences\*.txt" LinkBase="credits\licences" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\themes\fonts\OFL.txt" Link="themes\fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />

@@ -7,7 +7,12 @@ namespace MergedCells.Curation;
 
 internal sealed record PageLevel(Level Level, int Score);
 
-internal sealed record PageCandidate(string File, ClimbedMap Climbed, StarsConfig? Limits, string PromoteCommand);
+// TrapsThatDontMatter holds the map's trap squares whose removal alone changes nothing (TwistReliance.TrapsThatDontMatter)
+internal sealed record PageCandidate(
+    string File, ClimbedMap Climbed, StarsConfig? Limits, string PromoteCommand, IReadOnlyList<Cell> TrapsThatDontMatter);
+
+// A concept batch's page shows the concept's name and its two layers as drawn
+internal sealed record PageConcept(string Name, int? MaxWallRun, IReadOnlyList<string> Blocks, IReadOnlyList<string> Tiles);
 
 // The page generate writes beside its candidates: one self-contained HTML file, no scripts, that opens from disk. The
 // pictures follow chunks 18 and 19's sample pages, in the light board theme's colours
@@ -42,14 +47,30 @@ internal static class CandidatePage
         """;
 
     public static string Write(
-        int chapter, string band, BandRecipe recipe, ulong seed, int climbs, IReadOnlyList<PageLevel> shipped, IReadOnlyList<PageCandidate> candidates)
+        int chapter,
+        string band,
+        BandRecipe recipe,
+        ulong seed,
+        int climbs,
+        IReadOnlyList<PageLevel> shipped,
+        IReadOnlyList<PageCandidate> candidates,
+        PageConcept? concept = null)
     {
+        var title = concept is null
+            ? $"Chapter {chapter} · {Encode(band)} · seed {seed}"
+            : $"Concept {Encode(concept.Name)} · chapter {chapter} · {Encode(band)} · seed {seed}";
         var page = new StringBuilder();
         page.Append("<!DOCTYPE html>\n<html lang=\"en\"><head><meta charset=\"utf-8\">\n")
-            .Append($"<title>Chapter {chapter} · {Encode(band)} · seed {seed}</title>\n<style>\n{Css}</style></head><body>\n")
-            .Append($"<h1>Chapter {chapter} · {Encode(band)} · seed {seed}</h1>\n")
-            .Append($"<p class=\"recipe\">{Encode(Describe(recipe))}</p>\n")
-            .Append($"<p class=\"recipe\">{candidates.Count} of {climbs} climbs hit the target.</p>\n");
+            .Append($"<title>{title}</title>\n<style>\n{Css}</style></head><body>\n")
+            .Append($"<h1>{title}</h1>\n")
+            .Append($"<p class=\"recipe\">{Encode(Describe(recipe))}</p>\n");
+        if (concept is not null)
+        {
+            var wallRun = concept.MaxWallRun is { } run ? $"placed wall runs up to {run}" : "placed wall runs as the game config's";
+            page.Append($"<p class=\"recipe\">Skeleton (blocks, then tiles), {wallRun}:</p>\n")
+                .Append($"<pre>{Encode(string.Join("\n", concept.Blocks))}</pre>\n<pre>{Encode(string.Join("\n", concept.Tiles))}</pre>\n");
+        }
+        page.Append($"<p class=\"recipe\">{candidates.Count} of {climbs} climbs hit the target.</p>\n");
 
         page.Append("<h2>Already in the chapter</h2>\n<div class=\"shipped\">\n");
         foreach (var (level, score) in shipped)
@@ -67,7 +88,7 @@ internal static class CandidatePage
     private static string Card(PageCandidate candidate, BandRecipe recipe)
     {
         var (map, solution, metrics, score, _, _) = candidate.Climbed;
-        var rows = new (string Name, string Value)[]
+        var rows = new List<(string Name, string Value)>
         {
             ("Size", $"{map.Rows}×{map.Columns}"),
             ("Par", Number(solution.Par!.Value)),
@@ -79,6 +100,14 @@ internal static class CandidatePage
             ("Near-optimal routes", metrics.NearOptimalRoutes.ToString(CultureInfo.InvariantCulture)),
             ("Brute force", metrics.BruteForceExtraMoves is { } extra ? $"+{Number(extra)}" : "no lookahead player finishes"),
         };
+        if (Squares(map, Tile.Wall) > 0)
+        {
+            rows.Add(("Wall stops on the best route", Number(WallStops.Count(map, solution.Path))));
+        }
+        if (Squares(map, Tile.Trap) is var traps and > 0)
+        {
+            rows.Add(("Traps that matter", TrapsThatMatter(traps, candidate.TrapsThatDontMatter)));
+        }
         var card = new StringBuilder("<div class=\"candidate\">\n")
             .Append($"<h3>{Encode(candidate.File)}</h3>\n{Picture(map, 320)}\n<table class=\"numbers\">\n");
         foreach (var (name, value) in rows)
@@ -90,6 +119,31 @@ internal static class CandidatePage
             .Append($"<p class=\"note\">{Encode(Limits(candidate.Limits, recipe, solution.Par!.Value))}</p>\n")
             .Append($"<pre>{Encode(candidate.PromoteCommand)}</pre>\n</div>\n");
         return card.ToString();
+    }
+
+    private static int Squares(Map map, Tile tile)
+    {
+        var count = 0;
+        for (var row = 0; row < map.Rows; row++)
+        {
+            for (var column = 0; column < map.Columns; column++)
+            {
+                if (map.TileAt(new Cell(row, column)) == tile)
+                {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    // "3 of 4 (not row 2, column 5)", rows and columns from 1 as the concept files count them
+    private static string TrapsThatMatter(int traps, IReadOnlyList<Cell> idle)
+    {
+        var count = $"{Number(traps - idle.Count)} of {Number(traps)}";
+        return idle.Count == 0
+            ? count
+            : $"{count} (not {string.Join("; ", idle.Select(cell => $"row {Number(cell.Row + 1)}, column {Number(cell.Column + 1)}"))})";
     }
 
     private static string Describe(BandRecipe recipe)

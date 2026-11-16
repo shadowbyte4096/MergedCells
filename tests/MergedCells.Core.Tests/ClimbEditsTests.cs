@@ -188,3 +188,77 @@ public class ClimbEditsTests
             Map.Validate(result.After.Regions, result.After.Start, result.After.End, result.After.Tiles, result.After.Teleporters)));
     }
 }
+
+// Each edit on a map built from a skeleton with every kind of fixed square, and placed walls, traps and teleporters
+public class ClimbEditsSkeletonTests
+{
+    private static readonly MapSkeleton Skeleton = TestSkeletons.Fenced();
+
+    private static Map Fenced()
+    {
+        var request = new MapRequest(10, 1, 100, Bends: true, Twists: new TwistDensities(10, 0, 5, 4));
+        for (ulong seed = 3; ; seed++)
+        {
+            if (new MapGenerator(GeneratorConfigs.With()).Generate(request, seed, Skeleton) is { } generated)
+            {
+                return generated.Map;
+            }
+        }
+    }
+
+    private static List<ClimbMap> Applied(ClimbEdit edit)
+    {
+        var map = Fenced();
+        var startArea = StartAndEnd.Starts(Skeleton, GeneratorConfigs.With());
+        var results = new List<ClimbMap>();
+        for (ulong stream = 0; stream < 200; stream++)
+        {
+            var after = ClimbMap.From(map, Skeleton);
+            if (ClimbEdits.Apply(edit, after, new GameRandom(stream), startArea))
+            {
+                results.Add(after);
+            }
+        }
+        Assert.NotEmpty(results);
+        return results;
+    }
+
+    private static Task<List<ClimbMap>> AppliedAsync(ClimbEdit edit, CancellationToken token) => Task.Run(() => Applied(edit), token);
+
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(ClimbEditsTests.Edits), MemberType = typeof(ClimbEditsTests))]
+    public async Task Edit_keeps_every_fixed_region_exactly_as_drawn(int edit)
+    {
+        var results = await AppliedAsync((ClimbEdit)edit, TestContext.Current.CancellationToken);
+
+        Assert.All(results, after =>
+        {
+            foreach (var number in new[] { 1, 2 })
+            {
+                var drawn = TestSkeletons.Squares(10).Where(cell => Skeleton.RegionAt(cell) == number).ToList();
+                var region = after.Regions[drawn[0].Row, drawn[0].Column];
+                Assert.Equal(drawn, TestSkeletons.Squares(10).Where(cell => after.Regions[cell.Row, cell.Column] == region));
+            }
+        });
+    }
+
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(ClimbEditsTests.Edits), MemberType = typeof(ClimbEditsTests))]
+    public async Task Edit_keeps_every_fixed_tile_and_puts_no_twist_on_one(int edit)
+    {
+        var results = await AppliedAsync((ClimbEdit)edit, TestContext.Current.CancellationToken);
+
+        Assert.All(results, after => Assert.All(
+            TestSkeletons.Squares(10).Where(Skeleton.HasFixedTile),
+            cell => Assert.Equal((Skeleton.TileAt(cell), false), ((Tile?)after.Tiles[cell.Row, cell.Column], after.IsTeleporter(cell)))));
+    }
+
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(ClimbEditsTests.Edits), MemberType = typeof(ClimbEditsTests))]
+    public async Task Edit_keeps_the_start_on_a_skeleton_start(int edit)
+    {
+        var results = await AppliedAsync((ClimbEdit)edit, TestContext.Current.CancellationToken);
+
+        Assert.All(results, after => Assert.Contains(after.Start, Skeleton.Starts));
+    }
+}

@@ -1,0 +1,35 @@
+{
+  "chapter": 4,
+  "band": "insane",
+  "par": [6, 24],
+  "bends": true,
+  "twists": null,
+  "maxWallRun": null,
+  "candidates": 40,
+  "blocks": [
+    "T T T T T T T T T T T",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "P . . . . . . . . . Q",
+    "L L L L L E R R R R R"
+  ],
+  "tiles": [
+    ". . . . . . . . . . .",
+    ". x x . x x x x x x .",
+    ". x . . . . . . . x .",
+    ". x . . . . . . . x .",
+    ". x . . . . . . . x .",
+    ". x . . . . . . . x .",
+    ". x . . . . . . . x .",
+    ". x . . . . . . . x .",
+    ". x . . . S . . . x .",
+    ". x x x x x x x x x .",
+    ". . . . . . . . . . ."
+  ]
+}

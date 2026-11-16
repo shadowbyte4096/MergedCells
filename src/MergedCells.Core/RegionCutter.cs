@@ -8,10 +8,16 @@ internal static class RegionCutter
     private const int Empty = -1;
     private const int EndRegion = 0;
 
-    public static int[,] Cut(int size, Cell end, GeneratorConfig config, bool bends, GameRandom random)
+    // A skeleton's fixed regions are placed before anything is cut, so the cut only fills the free squares, and the fold
+    // and bend passes never join one. Without a skeleton nothing here draws a number differently
+    public static int[,] Cut(int size, Cell end, GeneratorConfig config, bool bends, GameRandom random, MapSkeleton? skeleton = null)
     {
         var grid = new Grid(size);
         grid.Assign(end.Row * size + end.Column, grid.NewRegion(meantSingle: false));
+        if (skeleton is not null)
+        {
+            PresetFixed(grid, skeleton);
+        }
         var stripCap = Math.Max(2, Percentage.Of(config.MaxStripPercent, size));
         Fill(grid, config, stripCap, random);
         FoldSqueezed(grid, stripCap, random);
@@ -21,6 +27,26 @@ internal static class RegionCutter
             Bend(grid, config, random);
         }
         return grid.Numbered();
+    }
+
+    // Each fixed number becomes one region, in reading order of its first square; the dictionary is only looked up
+    private static void PresetFixed(Grid grid, MapSkeleton skeleton)
+    {
+        var ids = new Dictionary<int, int>();
+        for (var square = 0; square < grid.Regions.Length; square++)
+        {
+            var (row, column) = grid.CellOf(square);
+            if (skeleton.RegionAt(new Cell(row, column)) is not { } number)
+            {
+                continue;
+            }
+            if (!ids.TryGetValue(number, out var id))
+            {
+                id = grid.NewRegion(meantSingle: false, isFixed: true);
+                ids[number] = id;
+            }
+            grid.Assign(square, id);
+        }
     }
 
     // Joins neighbouring thin regions into L, T and zigzag shapes: at most maxBendSquares squares, never a rectangle (two
@@ -57,7 +83,7 @@ internal static class RegionCutter
         {
             var first = grid.Regions[a];
             var second = grid.Regions[b];
-            if (first == second || first == EndRegion || second == EndRegion)
+            if (first == second || first == EndRegion || second == EndRegion || grid.Fixed[first] || grid.Fixed[second])
             {
                 continue;
             }
@@ -111,7 +137,7 @@ internal static class RegionCutter
         for (var square = 0; square < grid.Regions.Length; square++)
         {
             var id = grid.Regions[square];
-            if (id != EndRegion && !grid.MeantSingle[id] && grid.Bounds[id].Count == 1)
+            if (id != EndRegion && !grid.MeantSingle[id] && !grid.Fixed[id] && grid.Bounds[id].Count == 1)
             {
                 squeezed.Add(square);
             }
@@ -146,7 +172,7 @@ internal static class RegionCutter
             return;
         }
         var other = grid.Regions[grid.IndexOf(row, column)];
-        if (other == EndRegion || grid.MeantSingle[other])
+        if (other == EndRegion || grid.MeantSingle[other] || grid.Fixed[other])
         {
             return;
         }
@@ -289,10 +315,14 @@ internal static class RegionCutter
 
         public List<bool> MeantSingle { get; } = [];
 
-        public int NewRegion(bool meantSingle)
+        // A skeleton's region, which nothing joins or folds
+        public List<bool> Fixed { get; } = [];
+
+        public int NewRegion(bool meantSingle, bool isFixed = false)
         {
             Bounds.Add(NoSquares);
             MeantSingle.Add(meantSingle);
+            Fixed.Add(isFixed);
             return Bounds.Count - 1;
         }
 

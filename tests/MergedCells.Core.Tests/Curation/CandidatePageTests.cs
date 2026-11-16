@@ -15,7 +15,19 @@ public class CandidatePageTests
         var rater = new DifficultyRater(DifficultyConfigs.With());
         var metrics = rater.Measure(map)!;
         var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(map, rater), 0);
-        return new PageCandidate($"c{number}.json", climbed, StarLimits.Reachable(map, 10, 10, 2), $"promote builds/candidates/c{number}.json --name \"NAME\"");
+        return new PageCandidate(
+            $"c{number}.json", climbed, StarLimits.Reachable(map, 10, 10, 2), $"promote builds/candidates/c{number}.json --name \"NAME\"",
+            TwistReliance.TrapsThatDontMatter(map, rater));
+    }
+
+    // One card for a hand-made map, with its traps measured as generate measures them
+    private static string PageOf(Map map)
+    {
+        var rater = new DifficultyRater(DifficultyConfigs.With());
+        var metrics = rater.Measure(map)!;
+        var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), null, 0);
+        var candidate = new PageCandidate("c1.json", climbed, null, "promote c1.json", TwistReliance.TrapsThatDontMatter(map, rater));
+        return CandidatePage.Write(1, "hard", Band, 1, 1, [], [candidate]);
     }
 
     private static string Page(ulong seed, string shippedName = "Top Shelf")
@@ -58,5 +70,66 @@ public class CandidatePageTests
         var page = await Task.Run(() => Page(seed, "<Odd>"), TestContext.Current.CancellationToken);
 
         Assert.Contains("&lt;Odd&gt;", page, StringComparison.Ordinal);
+    }
+
+    private static readonly PageConcept Gap = new("the-gap", 1, ["A A E", ". . .", ". . ."], ["S . -", "# . #", ". . ."]);
+
+    [Theory(Timeout = 10_000)]
+    [AutoData]
+    public async Task Concept_page_names_the_concept_in_its_heading(ulong seed)
+    {
+        var page = await Task.Run(() => CandidatePage.Write(3, "medium", Band, 1, 2, [], [Candidate(seed, 1)], Gap), TestContext.Current.CancellationToken);
+
+        Assert.Contains("<h1>Concept the-gap · chapter 3 · medium · seed 1</h1>", page, StringComparison.Ordinal);
+    }
+
+    [Theory(Timeout = 10_000)]
+    [AutoData]
+    public async Task Concept_page_shows_both_layers(ulong seed)
+    {
+        var page = await Task.Run(() => CandidatePage.Write(3, "medium", Band, 1, 2, [], [Candidate(seed, 1)], Gap), TestContext.Current.CancellationToken);
+
+        Assert.All(["S . -\n# . #", "A A E\n. . ."], layers => Assert.Contains(layers, page, StringComparison.Ordinal));
+    }
+
+    [Theory(Timeout = 10_000)]
+    [AutoData]
+    public async Task Card_shows_wall_stops_for_a_map_with_walls(ulong seed)
+    {
+        var page = await Task.Run(() => Page(seed), TestContext.Current.CancellationToken);
+
+        Assert.Equal(2, Regex.Count(page, "<td>Wall stops on the best route</td>"));
+    }
+
+    // The traps chapter's maps have tiles but no walls, so the row would always read 0 there
+    [Fact]
+    public void Card_has_no_wall_stops_row_for_a_map_with_traps_but_no_walls()
+    {
+        Assert.DoesNotContain("Wall stops", PageOf(TestMaps.TrappedLane()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Card_has_no_wall_stops_row_for_a_plain_map()
+    {
+        Assert.DoesNotContain("Wall stops", PageOf(TestMaps.Example()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Card_names_the_traps_that_dont_matter()
+    {
+        Assert.Contains(
+            "<td>Traps that matter</td><td>0 of 2 (not row 1, column 3; row 1, column 4)</td>", PageOf(TestMaps.CoveringTraps()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Card_shows_all_traps_matter_without_a_list()
+    {
+        Assert.Contains("<td>Traps that matter</td><td>1 of 1</td>", PageOf(TestMaps.TrapTutorial()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Card_has_no_traps_row_for_a_map_without_traps()
+    {
+        Assert.DoesNotContain("Traps that matter", PageOf(TestMaps.Example()), StringComparison.Ordinal);
     }
 }

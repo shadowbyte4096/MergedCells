@@ -13,7 +13,8 @@ internal enum ClimbEdit
 // The climber's small edits. Each draws its random parts from the climb's stream and returns false when they give it
 // nothing to do; the climber then throws the copy away. Only valid maps come out: the end and its square never change,
 // the start stays in its area off every twist, and twists only move, onto free squares, so their counts and the pairs'
-// letters never change
+// letters never change. A skeleton's fixed regions and tiles are never touched: each refusal comes straight after the
+// draw it depends on, so a map without a skeleton draws and does what it always has
 internal static class ClimbEdits
 {
     public static bool Apply(ClimbEdit edit, ClimbMap map, GameRandom random, IReadOnlyList<Cell> startArea) => edit switch
@@ -31,7 +32,7 @@ internal static class ClimbEdits
     public static bool Split(ClimbMap map, GameRandom random)
     {
         var square = RandomSquare(map, random);
-        if (square == map.End)
+        if (square == map.End || map.HasFixedRegion(square))
         {
             return false;
         }
@@ -74,7 +75,8 @@ internal static class ClimbEdits
     public static bool Merge(ClimbMap map, GameRandom random)
     {
         var (square, neighbour) = RandomNeighbours(map, random);
-        if (square == map.End || !map.Contains(neighbour) || neighbour == map.End)
+        if (square == map.End || !map.Contains(neighbour) || neighbour == map.End
+            || map.HasFixedRegion(square) || map.HasFixedRegion(neighbour))
         {
             return false;
         }
@@ -99,7 +101,8 @@ internal static class ClimbEdits
     public static bool MoveSquare(ClimbMap map, GameRandom random)
     {
         var (square, neighbour) = RandomNeighbours(map, random);
-        if (square == map.End || !map.Contains(neighbour) || neighbour == map.End)
+        if (square == map.End || !map.Contains(neighbour) || neighbour == map.End
+            || map.HasFixedRegion(square) || map.HasFixedRegion(neighbour))
         {
             return false;
         }
@@ -121,7 +124,7 @@ internal static class ClimbEdits
 
     public static bool MoveStart(ClimbMap map, GameRandom random, IReadOnlyList<Cell> startArea)
     {
-        var free = startArea.Where(map.IsFree).ToList();
+        var free = startArea.Where(map.CanHoldStart).ToList();
         if (free.Count == 0)
         {
             return false;
@@ -133,7 +136,9 @@ internal static class ClimbEdits
     // A random twist square moves: a wall its whole straight run, a sticky square or trap alone, a teleporter its own end
     public static bool MoveTwist(ClimbMap map, GameRandom random)
     {
-        var twists = map.Cells().Where(cell => map.Tiles[cell.Row, cell.Column] != Tile.None || map.IsTeleporter(cell)).ToList();
+        var twists = map.Cells()
+            .Where(cell => !map.HasFixedTile(cell) && (map.Tiles[cell.Row, cell.Column] != Tile.None || map.IsTeleporter(cell)))
+            .ToList();
         if (twists.Count == 0)
         {
             return false;
@@ -195,15 +200,18 @@ internal static class ClimbEdits
         return target == placed;
     }
 
+    // A skeleton's fixed walls never move, so a run beside one stops short of it
     private static List<Cell> Run(ClimbMap map, Cell square, Direction back, Direction forward)
     {
+        bool Movable(Cell cell) => map.Contains(cell) && map.Tiles[cell.Row, cell.Column] == Tile.Wall && !map.HasFixedTile(cell);
+
         var first = square;
-        while (map.Contains(first.Step(back)) && map.Tiles[first.Step(back).Row, first.Step(back).Column] == Tile.Wall)
+        while (Movable(first.Step(back)))
         {
             first = first.Step(back);
         }
         var run = new List<Cell>();
-        for (var cell = first; map.Contains(cell) && map.Tiles[cell.Row, cell.Column] == Tile.Wall; cell = cell.Step(forward))
+        for (var cell = first; Movable(cell); cell = cell.Step(forward))
         {
             run.Add(cell);
         }

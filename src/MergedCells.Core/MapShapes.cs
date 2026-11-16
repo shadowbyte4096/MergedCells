@@ -2,10 +2,11 @@ namespace MergedCells.Core;
 
 // The shapes MapGenerator makes, so a climbed map still looks generated (chunk 18's "long and thin"): the end its own
 // square; every other region a strip one square wide up to the strip cap, a small block, or, when bends are on, a thin
-// bend that isn't a rectangle, holds no 2x2 square and is at most maxBendSquares. Every generated map passes
+// bend that isn't a rectangle, holds no 2x2 square and is at most maxBendSquares. Every generated map passes. A skeleton's
+// fixed regions are skipped
 internal static class MapShapes
 {
-    public static bool Fits(int[,] regions, Cell end, GeneratorConfig config, bool bends)
+    public static bool Fits(int[,] regions, Cell end, GeneratorConfig config, bool bends, MapSkeleton? skeleton = null)
     {
         var size = regions.GetLength(0);
         var stripCap = Math.Max(2, Percentage.Of(config.MaxStripPercent, size));
@@ -43,6 +44,10 @@ internal static class MapShapes
         for (var region = 0; region < shapes.Count; region++)
         {
             var shape = shapes[region];
+            if (skeleton?.HasFixedRegion(new Cell(shape.FirstRow, shape.FirstColumn)) == true)
+            {
+                continue;
+            }
             if (region == index[end.Row, end.Column])
             {
                 if (shape.Count != 1)

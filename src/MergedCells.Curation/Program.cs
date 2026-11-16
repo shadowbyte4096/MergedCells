@@ -14,6 +14,12 @@ internal static class Program
               Climbs candidates for one band of the chapter's recipe (src/MergedCells.Curation/recipes.json)
               into builds/candidates/chapter-<n>-<band>-seed-<N>/, with a page of pictures to pick from.
               N defaults to 1, and --count to the band's candidates.
+          concept <name> [--seed N] [--count N]
+              Climbs candidates from a concept level's skeleton, src/MergedCells.Curation/concepts/<name>.json,
+              toward the band it names, into builds/candidates/concept-<name>-seed-<N>/. The file's "blocks"
+              layer fixes blocks (a letter each, E the end, . free) and its "tiles" layer fixes walls (#) and
+              traps (x), with - for nothing, . where the tool may add twists, and S for the start or s for
+              squares the start may use.
           promote <candidate file> --name "<name>" [--after <id>] [--band <band>]
               Makes the candidate a level file under the next unused ID, adds it to its chapter in
               campaign/chapters.json (at the end, or after level <id>) and sets its star limits from the
@@ -35,6 +41,8 @@ internal static class Program
           5. Play the chapter.
           6. Reorder levels by hand in campaign/chapters.json if needed.
           7. To rework a level, retire it, then promote the new version.
+        For a concept level, draw its file in src/MergedCells.Curation/concepts/, run concept <name> in place
+        of generate, then carry on from step 3.
 
         """;
 
@@ -72,6 +80,7 @@ internal static class Program
             "help" => new CommandResult(CommandResult.Done, HelpText),
             "generate" => WithWorkspace(root, workingFolder, workspace => GenerateCommand.Run(workspace, commandArgs)),
             "promote" => WithWorkspace(root, workingFolder, workspace => PromoteCommand.Run(workspace, commandArgs)),
+            "concept" => WithWorkspace(root, workingFolder, workspace => ConceptCommand.Run(workspace, commandArgs)),
             "retire" => WithWorkspace(root, workingFolder, workspace => RetireCommand.Run(workspace, commandArgs)),
             _ => new CommandResult(CommandResult.UsageMistake, $"Unknown command \"{command}\".\n\n{HelpText}"),
         };

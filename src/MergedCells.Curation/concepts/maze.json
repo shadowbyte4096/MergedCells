@@ -1,0 +1,37 @@
+{
+  "chapter": 3,
+  "band": "insane",
+  "par": [6, 30],
+  "bends": false,
+  "twists": null,
+  "maxWallRun": null,
+  "candidates": 1,
+  "blocks": [
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A E A A A A A",
+    "A A A A A A A A A A A A",
+    "A A A A A A A A A A A A"
+  ],
+  "tiles": [
+    "# # # . . S . . . . . #",
+    "# # # . # # # # # # . #",
+    ". . . . # . . . . . . #",
+    ". # # # # . # . # . . #",
+    ". . . . # . # . # . # #",
+    "# # # . # . # . . . . #",
+    "# . . . . . # . # # . #",
+    "# . # # # # # . . . . #",
+    ". . . . . # # # . . . .",
+    ". # # # # # . # . # # .",
+    ". . . . # . . . . . . .",
+    ". . # . . . . # . # . ."
+  ]
+}

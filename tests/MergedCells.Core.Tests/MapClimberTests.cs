@@ -29,6 +29,19 @@ public class MapClimberTests
         Assert.Equal((LevelFingerprint.Of(first.Map, first.Solution.Par!.Value), first.Distance), (LevelFingerprint.Of(second.Map, second.Solution.Par!.Value), second.Distance));
     }
 
+    // An unreachable target, so all 400 steps run and every edit kind is drawn: a climb without a skeleton must keep
+    // drawing and keeping exactly what it did before skeletons existed (the daily and infinite mode rely on it)
+    [Fact(Timeout = 60_000)]
+    public async Task Climb_without_a_skeleton_is_pinned()
+    {
+        var request = new ClimbRequest(
+            new MapRequest(10, 1, 100, Bends: true, Twists: GeneratedMaps.EveryTwist), new DifficultyTarget(100, 100, MinTwistReliance: 1));
+
+        var climbed = (await ClimbAsync(Climber(ClimbConfigs.With(maxSteps: 400, stallSteps: 100)), request, 21, TestContext.Current.CancellationToken))!;
+
+        Assert.Equal(("8fb49a254db86158", 30), (LevelFingerprint.Of(climbed.Map, climbed.Solution.Par!.Value), climbed.Distance));
+    }
+
     [Fact(Timeout = 60_000)]
     public async Task Climbs_up_to_the_hard_bar()
     {

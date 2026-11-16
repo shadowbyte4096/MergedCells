@@ -1,0 +1,25 @@
+{
+  "chapter": 4,
+  "band": "easy",
+  "par": [3, 8],
+  "bends": true,
+  "twists": null,
+  "maxWallRun": null,
+  "candidates": 20,
+  "blocks": [
+    "A A A A A A",
+    ". . . . . B",
+    ". . . . . B",
+    ". . . . . B",
+    ". . . . . B",
+    ". . . . . E"
+  ],
+  "tiles": [
+    "S . . . . .",
+    ". . . . . x",
+    ". . . . . .",
+    ". . . . . .",
+    ". . . . . .",
+    ". . . . . ."
+  ]
+}

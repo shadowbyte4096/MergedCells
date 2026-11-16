@@ -50,8 +50,8 @@ public sealed class MapClimber
     /// Climbs for up to the config's <c>maxSteps</c> steps from the random stream started at <paramref name="seed"/>, and
     /// returns the first map that hits the target, or the nearest found (the earliest of equals). Null only when the
     /// generator never gave a starting map within the steps. Throws <see cref="ArgumentOutOfRangeException"/> for a
-    /// target or request out of range or an undefined mode, and <see cref="ArgumentException"/> when the only edits with
-    /// a weight move twists and the request has none.
+    /// target or request out of range or an undefined mode, and <see cref="ArgumentException"/> for a skeleton of another
+    /// size or with no square for the start, or when the only edits with a weight move twists and the request has none.
     /// </summary>
     public ClimbedMap? Climb(ClimbRequest request, ulong seed)
     {
@@ -73,14 +73,23 @@ public sealed class MapClimber
         {
             throw new ArgumentException("Only twist moves have a weight, and the request has no twists.", nameof(request));
         }
+        var skeleton = request.Skeleton;
+        if (skeleton is not null && skeleton.Size != request.Map.Size)
+        {
+            throw new ArgumentException(
+                $"The request is {request.Map.Size}×{request.Map.Size} but the skeleton is {skeleton.Size}×{skeleton.Size}.", nameof(request));
+        }
+        // A skeleton's end is fixed, so its start area is known before the first map, and one that fits no start throws now
+        var skeletonStarts = skeleton is null ? null : StartAndEnd.Starts(skeleton, generatorConfig);
 
         var random = new GameRandom(seed);
         Evaluated? best = null;
         var steps = 0;
         while (steps < climb.MaxSteps)
         {
-            var start = generator.Generate(request.Map, ((ulong)random.NextUInt() << 32) | random.NextUInt());
-            var current = start is null ? null : Evaluate(ClimbMap.From(start.Map), request);
+            var startSeed = ((ulong)random.NextUInt() << 32) | random.NextUInt();
+            var start = skeleton is null ? generator.Generate(request.Map, startSeed) : generator.Generate(request.Map, startSeed, skeleton);
+            var current = start is null ? null : Evaluate(ClimbMap.From(start.Map, skeleton), request);
             if (current is null)
             {
                 steps += climb.StallSteps;
@@ -88,7 +97,7 @@ public sealed class MapClimber
             }
             steps++;
             best = Nearer(best, current);
-            var startArea = StartAndEnd.Starts(current.State.Size, current.State.End, generatorConfig);
+            var startArea = skeletonStarts ?? StartAndEnd.Starts(current.State.Size, current.State.End, generatorConfig);
             var climbBest = current.Distance;
             var stall = 0;
             while (current.Distance > 0 && steps < climb.MaxSteps && stall < climb.StallSteps)
@@ -128,7 +137,7 @@ public sealed class MapClimber
     // Null when the map breaks a shape or the generator's filter; otherwise everything measured from one move graph
     private Evaluated? Evaluate(ClimbMap state, ClimbRequest request)
     {
-        if (!MapShapes.Fits(state.Regions, state.End, generatorConfig, request.Map.Bends))
+        if (!MapShapes.Fits(state.Regions, state.End, generatorConfig, request.Map.Bends, request.Skeleton))
         {
             return null;
         }

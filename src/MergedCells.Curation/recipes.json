@@ -27,21 +27,21 @@
       "name": "Walls",
       "bends": true,
       "bands": {
-        "easy": { "sizes": [7, 8], "par": [2, 6], "twists": { "wallPercent": 6, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": null, "target": { "minScore": 0, "maxScore": 19, "minTwistReliance": 1 } },
-        "medium": { "sizes": [8, 10], "par": [4, 10], "twists": { "wallPercent": 6, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 2, "target": { "minScore": 20, "maxScore": 39, "minimums": { "bruteForceExtraMoves": 2 }, "minTwistReliance": 1 } },
-        "hard": { "sizes": [10, 12], "par": [6, 14], "twists": { "wallPercent": 6, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 40, "maxScore": 59, "minimums": { "bruteForceExtraMoves": 3, "awayMoves": 1 }, "minTwistReliance": 1 } },
-        "extreme": { "sizes": [10, 12], "par": [8, 16], "twists": { "wallPercent": 6, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 60, "maxScore": 79, "minimums": { "bruteForceExtraMoves": 4, "awayMoves": 1 }, "minTwistReliance": 1 } },
-        "insane": { "sizes": [11, 12], "par": [8, 16], "twists": { "wallPercent": 6, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 80, "maxScore": 100, "minimums": { "bruteForceExtraMoves": 5, "awayMoves": 1 }, "minTwistReliance": 1 } }
+        "easy": { "sizes": [5, 6], "par": [2, 6], "twists": { "wallPercent": 10, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": null, "target": { "minScore": 0, "maxScore": 19, "minTwistReliance": 1 } },
+        "medium": { "sizes": [5, 7], "par": [4, 10], "twists": { "wallPercent": 10, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 2, "target": { "minScore": 20, "maxScore": 39, "minimums": { "bruteForceExtraMoves": 2 }, "minTwistReliance": 1 } },
+        "hard": { "sizes": [5, 8], "par": [6, 14], "twists": { "wallPercent": 10, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 40, "maxScore": 59, "minimums": { "bruteForceExtraMoves": 3, "awayMoves": 1 }, "minTwistReliance": 1 } },
+        "extreme": { "sizes": [5, 8], "par": [8, 16], "twists": { "wallPercent": 10, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 60, "maxScore": 79, "minimums": { "bruteForceExtraMoves": 4, "awayMoves": 1 }, "minTwistReliance": 1 } },
+        "insane": { "sizes": [6, 9], "par": [8, 16], "twists": { "wallPercent": 10, "stickyPercent": 0, "trapPercent": 0, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 80, "maxScore": 100, "minimums": { "bruteForceExtraMoves": 5, "awayMoves": 1 }, "minTwistReliance": 1 } }
       }
     },
     "4": {
       "name": "Traps",
       "bends": true,
       "bands": {
-        "easy": { "sizes": [8, 9], "par": [3, 8], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 3, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": null, "target": { "minScore": 0, "maxScore": 19, "minTwistReliance": 1 } },
-        "medium": { "sizes": [9, 11], "par": [5, 14], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 3, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 2, "target": { "minScore": 20, "maxScore": 39, "minimums": { "bruteForceExtraMoves": 2 }, "minTwistReliance": 1 } },
-        "hard": { "sizes": [11, 13], "par": [7, 18], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 3, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 40, "maxScore": 59, "minimums": { "bruteForceExtraMoves": 3, "awayMoves": 1 }, "minTwistReliance": 1 } },
-        "extreme": { "sizes": [11, 13], "par": [9, 20], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 3, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 60, "maxScore": 79, "minimums": { "bruteForceExtraMoves": 4, "awayMoves": 1 }, "minTwistReliance": 1 } },
+        "easy": { "sizes": [5, 6], "par": [2, 6], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 6, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": null, "target": { "minScore": 0, "maxScore": 19, "minTwistReliance": 1 } },
+        "medium": { "sizes": [5, 7], "par": [4, 10], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 6, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 2, "target": { "minScore": 20, "maxScore": 39, "minimums": { "bruteForceExtraMoves": 2 }, "minTwistReliance": 1 } },
+        "hard": { "sizes": [5, 8], "par": [6, 14], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 6, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 40, "maxScore": 59, "minimums": { "bruteForceExtraMoves": 3, "awayMoves": 1 }, "minTwistReliance": 1 } },
+        "extreme": { "sizes": [5, 8], "par": [8, 16], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 6, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 60, "maxScore": 79, "minimums": { "bruteForceExtraMoves": 4, "awayMoves": 1 }, "minTwistReliance": 1 } },
         "insane": { "sizes": [12, 13], "par": [9, 20], "twists": { "wallPercent": 0, "stickyPercent": 0, "trapPercent": 3, "teleporterPercent": 0 }, "candidates": 20, "oneStarExtraMoves": 1, "target": { "minScore": 80, "maxScore": 100, "minimums": { "bruteForceExtraMoves": 5, "awayMoves": 1 }, "minTwistReliance": 1 } }
       }
     },

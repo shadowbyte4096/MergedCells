@@ -4,7 +4,8 @@ namespace MergedCells.Core;
 // order of each region's first square, so per-region data fits in arrays and no order depends on a dictionary
 internal sealed class ClimbMap
 {
-    private ClimbMap(int[,] regions, Tile[,] tiles, List<TeleporterPair> teleporters, Cell start, Cell end, int regionCount)
+    private ClimbMap(
+        int[,] regions, Tile[,] tiles, List<TeleporterPair> teleporters, Cell start, Cell end, int regionCount, MapSkeleton? skeleton)
     {
         Regions = regions;
         Tiles = tiles;
@@ -12,6 +13,7 @@ internal sealed class ClimbMap
         Start = start;
         End = end;
         RegionCount = regionCount;
+        Skeleton = skeleton;
     }
 
     public int Size => Regions.GetLength(0);
@@ -29,15 +31,18 @@ internal sealed class ClimbMap
 
     public Cell End { get; }
 
-    public static ClimbMap From(Map map)
+    // What the edits must leave alone, shared by every copy; null on a generated map
+    public MapSkeleton? Skeleton { get; }
+
+    public static ClimbMap From(Map map, MapSkeleton? skeleton = null)
     {
-        var climbMap = new ClimbMap(map.RegionGrid(), map.TileGrid(), [.. map.Teleporters], map.Start, map.End, 0);
+        var climbMap = new ClimbMap(map.RegionGrid(), map.TileGrid(), [.. map.Teleporters], map.Start, map.End, 0, skeleton);
         climbMap.Renumber();
         return climbMap;
     }
 
     public ClimbMap Copy() =>
-        new((int[,])Regions.Clone(), (Tile[,])Tiles.Clone(), [.. Teleporters], Start, End, RegionCount);
+        new((int[,])Regions.Clone(), (Tile[,])Tiles.Clone(), [.. Teleporters], Start, End, RegionCount, Skeleton);
 
     public Map ToMap() => Map.Create(Regions, Start, End, Tiles, Teleporters);
 
@@ -45,9 +50,16 @@ internal sealed class ClimbMap
 
     public int RegionAt(Cell cell) => Regions[cell.Row, cell.Column];
 
-    // Where a twist may go: on the map, not the start or the end, and holding no twist or teleporter
-    public bool IsFree(Cell cell) =>
+    // Where a twist may go: a square that could hold the start, and that no skeleton fixes
+    public bool IsFree(Cell cell) => CanHoldStart(cell) && !HasFixedTile(cell);
+
+    // On the map, not the start or the end, and holding no twist or teleporter
+    public bool CanHoldStart(Cell cell) =>
         Contains(cell) && cell != Start && cell != End && Tiles[cell.Row, cell.Column] == Tile.None && !IsTeleporter(cell);
+
+    public bool HasFixedRegion(Cell cell) => Skeleton?.HasFixedRegion(cell) == true;
+
+    public bool HasFixedTile(Cell cell) => Skeleton?.HasFixedTile(cell) == true;
 
     public bool IsTeleporter(Cell cell)
     {
