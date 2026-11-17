@@ -1,0 +1,460 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/CustomLevelsScreen.cs" id="1_screen"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="4_back"]
+[ext_resource type="Script" path="res://scenes/editor/BoardSheet.cs" id="5_board_sheet"]
+[ext_resource type="Script" path="res://scenes/menus/LevelSheet.cs" id="6_level_sheet"]
+[ext_resource type="Script" path="res://scenes/menus/ImportSheet.cs" id="7_import_sheet"]
+[ext_resource type="Script" path="res://scenes/menus/CopySheet.cs" id="8_copy_sheet"]
+
+[node name="CustomLevels" type="CanvasLayer"]
+script = ExtResource("1_screen")
+Looks = ExtResource("2_looks")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="Layout" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PageColumn"
+
+[node name="TopBar" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Root/Layout/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="Title" type="Label" parent="Root/Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text = "Custom levels"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Spacer" type="Control" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NewRow" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Layout/NewRow"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="New" type="Button" parent="Root/Layout/NewRow/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "+ New level"
+
+[node name="Import" type="Button" parent="Root/Layout/NewRow/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Import"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Root/Layout/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="List" type="VBoxContainer" parent="Root/Layout/Scroll/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Empty" type="Label" parent="Root/Layout/Scroll/Margin/List"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "No levels yet. Tap + New level to make one."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Notice" type="Label" parent="Root/Layout"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BottomPad" type="Control" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NewSheet" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("5_board_sheet")
+CanClear = false
+
+[node name="Wash" type="Panel" parent="Root/NewSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Root/NewSheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Root/NewSheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "New level"
+horizontal_alignment = 1
+
+[node name="Width" type="HBoxContainer" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Root/NewSheet/Sheet/Column/Width"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Width"
+
+[node name="Less" type="Button" parent="Root/NewSheet/Sheet/Column/Width"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Value" type="Label" parent="Root/NewSheet/Sheet/Column/Width"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "7"
+horizontal_alignment = 1
+
+[node name="More" type="Button" parent="Root/NewSheet/Sheet/Column/Width"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="Height" type="HBoxContainer" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Root/NewSheet/Sheet/Column/Height"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Height"
+
+[node name="Less" type="Button" parent="Root/NewSheet/Sheet/Column/Height"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Value" type="Label" parent="Root/NewSheet/Sheet/Column/Height"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "7"
+horizontal_alignment = 1
+
+[node name="More" type="Button" parent="Root/NewSheet/Sheet/Column/Height"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="Resize" type="Button" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Start blank"
+
+[node name="Or" type="Label" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "or"
+horizontal_alignment = 1
+
+[node name="Copy" type="Button" parent="Root/NewSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Copy a campaign level"
+
+[node name="CopyNote" type="Label" parent="Root/NewSheet/Sheet/Column"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "3-star a campaign level to copy it."
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Clear" type="Button" parent="Root/NewSheet/Sheet/Column"]
+visible = false
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Clear"
+
+[node name="LevelSheet" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_level_sheet")
+
+[node name="Wash" type="Panel" parent="Root/LevelSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Root/LevelSheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Root/LevelSheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Level"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Line" type="Label" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Play" type="Button" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Play"
+
+[node name="Share" type="Button" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Share code"
+
+[node name="Note" type="Label" parent="Root/LevelSheet/Sheet/Column"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Edit" type="Button" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Edit"
+
+[node name="Delete" type="Button" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Delete"
+
+[node name="ImportSheet" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("7_import_sheet")
+
+[node name="Wash" type="Panel" parent="Root/ImportSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Root/ImportSheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Root/ImportSheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Root/ImportSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Imported"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="RowSlot" type="VBoxContainer" parent="Root/ImportSheet/Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Line" type="Label" parent="Root/ImportSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Play" type="Button" parent="Root/ImportSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Play"
+
+[node name="Done" type="Button" parent="Root/ImportSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Done"
+
+[node name="CopySheet" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("8_copy_sheet")
+
+[node name="Wash" type="Panel" parent="Root/CopySheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Root/CopySheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Root/CopySheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Root/CopySheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Copy a level"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Root/CopySheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "Levels you've 3-starred"
+horizontal_alignment = 1
+
+[node name="Scroll" type="ScrollContainer" parent="Root/CopySheet/Sheet/Column"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="List" type="VBoxContainer" parent="Root/CopySheet/Sheet/Column/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 16

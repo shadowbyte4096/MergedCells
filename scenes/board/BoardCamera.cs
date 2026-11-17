@@ -6,7 +6,7 @@ using Numerics = System.Numerics;
 namespace MergedCells;
 
 // Applies Core's CameraSpace to the Camera2D: big levels open with a zoom in on the start, the camera glides after
-// the player, two fingers pan and pinch, a left-mouse drag pans, and the mouse wheel or the zoom keys zoom the board.
+// the player, two fingers pan and pinch, a mouse drag pans (with PanButton), and the mouse wheel or the zoom keys zoom the board.
 public partial class BoardCamera : Camera2D
 {
     private static readonly StringName ZoomInAction = "zoom_in";
@@ -35,6 +35,9 @@ public partial class BoardCamera : Camera2D
 
     // Off while the results are up, so the zoom keys do nothing, like the move keys
     public bool InputEnabled { get; set; } = true;
+
+    // The mouse button whose drag pans. The level editor pans with the right button, because a left drag there paints
+    [Export] public MouseButton PanButton { get; set; } = MouseButton.Left;
 
     public override void _Ready()
     {
@@ -160,8 +163,8 @@ public partial class BoardCamera : Camera2D
                 HandleTouch(touch);
                 break;
             // Android also sends a mouse event for every touch; those must never pan
-            case InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left } press
-                when press.Device != InputEvent.DeviceIdEmulation:
+            case InputEventMouseButton { Pressed: true } press
+                when press.ButtonIndex == PanButton && press.Device != InputEvent.DeviceIdEmulation:
                 drag.Press(press.Position.X, press.Position.Y);
                 GetViewport().SetInputAsHandled();
                 break;
@@ -203,7 +206,7 @@ public partial class BoardCamera : Camera2D
                     Queue(step);
                 }
                 break;
-            case InputEventMouseButton { Pressed: false, ButtonIndex: MouseButton.Left }:
+            case InputEventMouseButton { Pressed: false } release when release.ButtonIndex == PanButton:
                 drag.Release();
                 FlushGesture();
                 EndGesture();

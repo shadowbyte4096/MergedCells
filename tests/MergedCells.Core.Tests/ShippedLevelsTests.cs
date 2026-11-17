@@ -1,8 +1,12 @@
+using AutoFixture;
+
 namespace MergedCells.Core.Tests;
 
 // The level files in levels/, linked into the test output
 public class ShippedLevelsTests
 {
+    private readonly Fixture fixture = new();
+
     private static readonly string Folder = Path.Combine(AppContext.BaseDirectory, "levels");
 
     private static string[] Files() =>
@@ -29,6 +33,32 @@ public class ShippedLevelsTests
     // "Over the Top" is over-the-top.json: lowercase, with each run of other characters a single hyphen
     private static string FileNameFor(string name) =>
         System.Text.RegularExpressions.Regex.Replace(name.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-') + ".json";
+
+    // Sticky squares were dropped; a campaign copy and a share code both refuse one
+    [Theory]
+    [MemberData(nameof(LevelFiles))]
+    public void Shipped_level_has_no_sticky_square(string file)
+    {
+        var map = Load(file).Map;
+
+        Assert.DoesNotContain(
+            Enumerable.Range(0, map.Rows).SelectMany(row => Enumerable.Range(0, map.Columns).Select(column => new Cell(row, column))),
+            cell => map.TileAt(cell) == Tile.Sticky);
+    }
+
+    // Any level a player 3-stars can be copied, shared and imported as it is
+    [Theory]
+    [MemberData(nameof(LevelFiles))]
+    public void Shipped_level_copies_and_survives_a_share_code(string file)
+    {
+        var level = Load(file);
+        var copy = CustomLevelCopies.FromCampaign(level, fixture.Create<Guid>(), new DateTimeOffset(fixture.Create<DateTime>().Date, TimeSpan.Zero), 16);
+
+        var read = ShareCode.Read(ShareCode.Write(copy)).Level;
+
+        Assert.NotNull(read);
+        Assert.True(RegionGrids.SameLevel(level.Map, read.Map));
+    }
 
     [Theory]
     [MemberData(nameof(LevelFiles))]

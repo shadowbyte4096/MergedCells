@@ -27,6 +27,7 @@ Teleporter = Color(0.1372549, 0.36862745, 0.3372549, 1)
 TeleporterFont = ExtResource("2_font")
 TeleporterLetterFraction = 0.66
 TeleporterFlatLetterFraction = 0.95
+EditHighlight = Color(0.1372549, 0.36862745, 0.3372549, 0.3)
 GapFraction = 0.16
 OutlineFraction = 0.07
 CornerFraction = 0.2

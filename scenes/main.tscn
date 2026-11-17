@@ -6,6 +6,8 @@
 [ext_resource type="PackedScene" path="res://scenes/menus/level_select.tscn" id="4_select"]
 [ext_resource type="PackedScene" path="res://scenes/menus/credits.tscn" id="5_credits"]
 [ext_resource type="PackedScene" path="res://scenes/menus/chapter_card.tscn" id="6_card"]
+[ext_resource type="PackedScene" path="res://scenes/editor/level_editor.tscn" id="7_editor"]
+[ext_resource type="PackedScene" path="res://scenes/menus/custom_levels.tscn" id="8_custom"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -14,3 +16,5 @@ LevelSelectScene = ExtResource("4_select")
 CreditsScene = ExtResource("5_credits")
 ChapterCardScene = ExtResource("6_card")
 PlayScene = ExtResource("2_play")
+EditorScene = ExtResource("7_editor")
+CustomLevelsScene = ExtResource("8_custom")

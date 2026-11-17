@@ -34,9 +34,14 @@ public class GameConfigTests
 
     private const string ClimbGroup = """{"maxSteps":1,"stallSteps":1,""" + ClimbWeightsGroup + "}";
 
+    private const string BandsGroup = """[{"name":"A","minScore":0}]""";
+
+    private const string CustomLevelsGroup =
+        """{"newSide":2,"minSide":2,"maxSide":2,"maxNameLength":1,"undoLimit":1,"bands":""" + BandsGroup + "}";
+
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
-        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + "}";
+        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + ""","customLevels":""" + CustomLevelsGroup + "}";
 
     private const string ChapterThreeStars =
         """{"3":{"twoStarMinExtraMoves":9,"twoStarExtraParPercent":9,"oneStarMinExtraMoves":9,"oneStarExtraParPercent":9}}""";
@@ -77,10 +82,16 @@ public class GameConfigTests
         string modeWeights = "{}",
         int maxSteps = 1,
         int stallSteps = 1,
-        string climbWeights = ClimbWeightsGroup) =>
+        string climbWeights = ClimbWeightsGroup,
+        int newSide = 3,
+        int minSide = 2,
+        int maxSide = 4,
+        int maxNameLength = 1,
+        int customUndoLimit = 0,
+        string bands = BandsGroup) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}},"customLevels":{"newSide":{{{newSide}}},"minSide":{{{minSide}}},"maxSide":{{{maxSide}}},"maxNameLength":{{{maxNameLength}}},"undoLimit":{{{customUndoLimit}}},"bands":{{{bands}}}}}""");
 
     // A full set of five weights, each 1 unless given
     private static string Weights(int awayMoves = 1, int greedyGap = 1, int decoys = 1, int nearOptimalRoutes = 1, int bruteForceExtraMoves = 1) =>
@@ -176,7 +187,49 @@ public class GameConfigTests
         Valid.Replace(ClimbGroup, "null"),
         Valid.Replace(""","stallSteps":1""", ""),
         Valid.Replace("\"maxSteps\":1", "\"maxSteps\":1,\"extra\":1"),
+        Valid.Replace(""","customLevels":""" + CustomLevelsGroup, ""),
+        Valid.Replace(""","maxNameLength":1""", ""),
+        Valid.Replace("\"maxNameLength\":1", "\"maxNameLength\":1,\"extra\":1"),
+        Valid.Replace(BandsGroup, """[{"name":"A","minScore":0,"extra":1}]"""),
     };
+
+    public static TheoryData<string> NullCustomLevelsTexts => new()
+    {
+        Valid.Replace(CustomLevelsGroup, "null"),
+        Valid.Replace(BandsGroup, "null"),
+        Valid.Replace(BandsGroup, "[null]"),
+        Valid.Replace(BandsGroup, """[{"name":null,"minScore":0}]"""),
+    };
+
+    [Theory]
+    [MemberData(nameof(NullCustomLevelsTexts))]
+    public void Null_custom_levels_parts_are_rejected(string text)
+    {
+        Assert.Throws<JsonException>(() => GameConfig.Parse(text));
+    }
+
+    [Fact]
+    public void Shipped_custom_levels_group_is_read()
+    {
+        var custom = Shipped().CustomLevels;
+
+        Assert.Equal((7, 2, 30, 16, 5), (custom.NewSide, custom.MinSide, custom.MaxSide, custom.MaxNameLength, custom.UndoLimit));
+        Assert.Equal(
+            [("Easy", 0), ("Medium", 20), ("Hard", 40), ("Extreme", 60), ("Insane", 80)],
+            custom.Bands.Select(band => (band.Name, band.MinScore)));
+    }
+
+    [Theory]
+    [InlineData(0, "Easy")]
+    [InlineData(19, "Easy")]
+    [InlineData(20, "Medium")]
+    [InlineData(79, "Extreme")]
+    [InlineData(80, "Insane")]
+    [InlineData(100, "Insane")]
+    public void Band_for_a_score_is_the_last_band_starting_at_or_below_it(int score, string band)
+    {
+        Assert.Equal(band, Shipped().CustomLevels.BandFor(score).Name);
+    }
 
     [Theory]
     [AutoData]
@@ -447,6 +500,17 @@ public class GameConfigTests
         ConfigText(climbWeights: ClimbWeights(split: -1)),
         ConfigText(climbWeights: ClimbWeights(0, 0, 0, 0, 0)),
         ConfigText(climbWeights: ClimbWeights(split: int.MaxValue)),
+        ConfigText(minSide: 1, newSide: 3),
+        ConfigText(newSide: 1),
+        ConfigText(maxSide: 2),
+        ConfigText(maxSide: 101),
+        ConfigText(maxNameLength: 0),
+        ConfigText(customUndoLimit: -1),
+        ConfigText(bands: "[]"),
+        ConfigText(bands: """[{"name":"A","minScore":5}]"""),
+        ConfigText(bands: """[{"name":"A","minScore":0},{"name":"B","minScore":0}]"""),
+        ConfigText(bands: """[{"name":"A","minScore":0},{"name":"B","minScore":101}]"""),
+        ConfigText(bands: """[{"name":" ","minScore":0}]"""),
     };
 
     [Fact]

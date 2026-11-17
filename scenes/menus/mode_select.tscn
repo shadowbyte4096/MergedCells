@@ -97,6 +97,12 @@ focus_mode = 0
 theme_type_variation = &"PillPrimary"
 text = "Campaign"
 
+[node name="CustomLevels" type="Button" parent="Root/Centre/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Custom levels"
+
 [node name="Infinite" type="Button" parent="Root/Centre/Column"]
 layout_mode = 2
 focus_mode = 0

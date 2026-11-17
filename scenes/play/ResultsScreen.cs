@@ -44,9 +44,16 @@ public partial class ResultsScreen : Control
         nextButton.Pressed += () => NextPressed?.Invoke();
     }
 
+    // Hides Next, for a level with no next one (a custom level), rather than greying it
+    public bool ShowNext
+    {
+        set => nextButton.Visible = value;
+    }
+
     // A test board has no finish to compare with, so its stars show as earned or empty and it has no best line
     public void ShowResults(int moves, int par, int earned, int twoStarLimit, int oneStarLimit, LevelFinish finish)
     {
+        stars.Visible = true;
         stars.Looks = StarLooks.For(earned, finish is null ? earned : finish.PreviousStars ?? 0);
         movesLabel.Text = Plural(moves);
         bestLabel.Visible = finish?.PreviousBest is not null;
@@ -61,6 +68,16 @@ public partial class ResultsScreen : Control
             1 => $"Par {par} · 2 stars at {twoStarLimit}",
             _ => $"Par {par} · 1 star at {oneStarLimit}",
         };
+        Show();
+    }
+
+    // A level without stars (a custom level): the moves and par only
+    public void ShowPlain(int moves, int par)
+    {
+        stars.Visible = false;
+        movesLabel.Text = Plural(moves);
+        bestLabel.Visible = false;
+        parLabel.Text = $"Par {par}";
         Show();
     }
 

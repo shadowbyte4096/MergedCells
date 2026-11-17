@@ -103,5 +103,19 @@
     "moveSquareWeight": 30,
     "moveStartWeight": 10,
     "moveTwistWeight": 20
+  },
+  "customLevels": {
+    "newSide": 7,
+    "minSide": 2,
+    "maxSide": 30,
+    "maxNameLength": 16,
+    "undoLimit": 5,
+    "bands": [
+      { "name": "Easy", "minScore": 0 },
+      { "name": "Medium", "minScore": 20 },
+      { "name": "Hard", "minScore": 40 },
+      { "name": "Extreme", "minScore": 60 },
+      { "name": "Insane", "minScore": 80 }
+    ]
   }
 }

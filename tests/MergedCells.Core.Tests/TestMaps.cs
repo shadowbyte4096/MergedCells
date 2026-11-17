@@ -100,6 +100,29 @@ internal static class TestMaps
         return grid;
     }
 
+    // Each region as a letter, A for the first met in reading order, so equal layouts read the same however they're numbered
+    public static string[] Layout(Map map)
+    {
+        var grid = map.RegionGrid();
+        var letters = new Dictionary<int, char>();
+        var rows = new string[map.Rows];
+        for (var row = 0; row < map.Rows; row++)
+        {
+            var text = new char[map.Columns];
+            for (var column = 0; column < map.Columns; column++)
+            {
+                if (!letters.TryGetValue(grid[row, column], out var letter))
+                {
+                    letter = (char)('A' + letters.Count);
+                    letters[grid[row, column]] = letter;
+                }
+                text[column] = letter;
+            }
+            rows[row] = new string(text);
+        }
+        return rows;
+    }
+
     // Swaps a layout's 1-based labels for the given ids, keeping its shape
     public static int[,] Relabel(int[,] layout, IReadOnlyList<int> ids)
     {

@@ -24,6 +24,8 @@ public sealed record GameConfig
 
     public required ClimbConfig Climb { get; init; }
 
+    public required CustomLevelsConfig CustomLevels { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -55,6 +57,8 @@ public sealed record GameConfig
         _ = new MapGenerator(Generator);
         _ = new DifficultyRater(Difficulty);
         _ = new MapClimber(Generator, Difficulty, Climb);
+        CustomLevels.CheckRanges();
+        _ = new PlayRules(CustomLevels.UndoLimit);
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -157,7 +161,31 @@ public sealed record GameConfig
         {
             throw new JsonException("The config's \"climb\" group is null.");
         }
+        CheckCustomLevels(config.CustomLevels);
         return config;
+    }
+
+    private static void CheckCustomLevels(CustomLevelsConfig? customLevels)
+    {
+        if (customLevels is null)
+        {
+            throw new JsonException("The config's \"customLevels\" group is null.");
+        }
+        if (customLevels.Bands is null)
+        {
+            throw new JsonException("The config's \"customLevels.bands\" is null.");
+        }
+        for (var index = 0; index < customLevels.Bands.Count; index++)
+        {
+            if (customLevels.Bands[index] is null)
+            {
+                throw new JsonException($"The config's \"customLevels.bands\" entry {index} is null.");
+            }
+            if (customLevels.Bands[index].Name is null)
+            {
+                throw new JsonException($"The config's \"customLevels.bands\" entry {index} has a null \"name\".");
+            }
+        }
     }
 
     private static void CheckDifficulty(DifficultyConfig? difficulty)

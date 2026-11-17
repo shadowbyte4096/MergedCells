@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Godot;
 using MergedCells.Core;
 
@@ -23,6 +24,8 @@ public partial class Main : Node
 
     private Level level;
     private int? testBoard;
+    // The editor's tool, kept while the player is in the editor or its "Play it" (the session is kept by the screens' handlers)
+    private EditorTool editorTool;
     private bool refreshLogged;
     private double frameWindow;
     private double frameWorst;
@@ -38,6 +41,10 @@ public partial class Main : Node
     [Export] public PackedScene ChapterCardScene { get; set; }
 
     [Export] public PackedScene PlayScene { get; set; }
+
+    [Export] public PackedScene EditorScene { get; set; }
+
+    [Export] public PackedScene CustomLevelsScene { get; set; }
 
     public override void _Notification(int what)
     {
@@ -137,6 +144,7 @@ public partial class Main : Node
     {
         var menu = Open<ModeSelect>(ModeSelectScene);
         menu.CampaignPressed += () => ShowLevelSelect(Progress().Furthest);
+        menu.CustomLevelsPressed += ShowCustomLevels;
         menu.CreditsPressed += ShowCredits;
         menu.TestBoardsPressed += () => ShowTestBoard(0);
         menu.ResetSaveConfirmed += ResetSave;
@@ -193,6 +201,87 @@ public partial class Main : Node
         Swap(() => PlayTestBoard(OpenPlay(), index));
     }
 
+    public void ShowCustomLevels() => ShowCustomLevels(null);
+
+    // shown: an import just made, whose sheet opens over the reloaded list
+    private void ShowCustomLevels(ImportResult shown) => Swap(() =>
+    {
+        var list = Open<CustomLevelsScreen>(CustomLevelsScene);
+        list.BackPressed += ShowModeSelect;
+        list.NewPressed += NewCustomLevel;
+        list.ImportPressed += ImportCustomLevel;
+        list.EditPressed += custom =>
+        {
+            if (custom.IsImported)
+            {
+                OpenCopy(CustomLevelCopies.OwnCopy(custom, Guid.NewGuid(), Now()));
+            }
+            else
+            {
+                ShowEditor(NewSession(custom));
+            }
+        };
+        list.CopyChosen += level =>
+            OpenCopy(CustomLevelCopies.FromCampaign(level, Guid.NewGuid(), Now(), GameConfigFile.Current.CustomLevels.MaxNameLength));
+        list.PlayPressed += custom => PlayCustom(custom, ShowCustomLevels);
+        list.SharePressed += custom =>
+        {
+            var code = ShareCode.Write(custom);
+            DisplayServer.ClipboardSet(code);
+            // Only the player's own levels: an import of one of them stays theirs, so it can't be imported back for coins
+            if (!custom.IsImported && SaveGameFile.Current.RecordShared(custom.Id))
+            {
+                SaveGameFile.Save();
+            }
+            GD.Print($"Custom level shared: {custom.Name} ({code.Length} characters)");
+            list.ShowCopied();
+        };
+        list.DeletePressed += custom =>
+        {
+            CustomLevelFiles.Delete(custom.Id);
+            GD.Print($"Custom level deleted: {custom.Name}");
+            ShowCustomLevels();
+        };
+        var copyable = Progress().ThreeStarred
+            .Select(level => new CopyChoice(campaign.ChapterOf(level), campaign.NumberInChapter(level), level))
+            .ToArray();
+        list.Open(
+            CustomLevelFiles.LoadAll(),
+            new DifficultyRater(GameConfigFile.Current.Difficulty),
+            GameConfigFile.Current.CustomLevels,
+            CustomLevelFiles.Notice,
+            copyable,
+            shown);
+        back = ShowModeSelect;
+    });
+
+    public void ShowEditor(EditSession session) => Swap(() =>
+    {
+        var editor = Open<LevelEditor>(EditorScene);
+        editor.Changed += custom =>
+        {
+            CustomLevelFiles.Write(custom);
+            editor.SaveProblem = CustomLevelFiles.Notice;
+        };
+        editor.ToolChosen += tool => editorTool = tool;
+        editor.PlayPressed += custom => PlayCustom(custom, () => ShowEditor(session));
+        editor.BackPressed += LeaveEditor;
+        editor.Open(session, editorTool);
+        editor.SaveProblem = CustomLevelFiles.Notice;
+        back = LeaveEditor;
+    });
+
+    // backTo: where the back chevron, Menu and Android's back go, the editor or the list
+    public void PlayCustom(CustomLevel custom, Action backTo) => Swap(() =>
+    {
+        var play = OpenPlay();
+        var par = Solver.Solve(custom.Map).Par
+            ?? throw new InvalidOperationException($"The custom level \"{custom.Name}\" can't be won.");
+        GD.Print($"Custom level: {custom.Name} (par {par})");
+        play.Start(custom.Map, par, custom.Name, null, null, rules: new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit));
+        back = backTo;
+    });
+
     public void OnAppearanceChosen(Appearance choice)
     {
         SaveGameFile.Current.Appearance = choice;
@@ -209,6 +298,56 @@ public partial class Main : Node
         GD.Print("Save: progress cleared");
         ShowModeSelect();
     }
+
+    private void LeaveEditor()
+    {
+        editorTool = EditorTool.Blocks;
+        ShowCustomLevels();
+    }
+
+    private void NewCustomLevel(int rows, int columns)
+    {
+        var session = NewSession(new CustomLevel(Guid.NewGuid(), CustomLevelNames.Untitled, LevelEdits.Blank(rows, columns), Now()));
+        CustomLevelFiles.Write(session.Level);
+        GD.Print($"Custom level made: {columns}×{rows}");
+        ShowEditor(session);
+    }
+
+    // A copy of an imported or campaign level: the player's own, written at once like a new level, and opened in the editor
+    private void OpenCopy(CustomLevel copy)
+    {
+        CustomLevelFiles.Write(copy);
+        GD.Print($"Custom level copied: {copy.Name}");
+        ShowEditor(NewSession(copy));
+    }
+
+    // Reads the clipboard, writes the level when the import brings one, and reopens the list with what happened
+    private void ImportCustomLevel()
+    {
+        var result = LevelImport.Of(
+            DisplayServer.ClipboardGet(),
+            CustomLevelFiles.LoadAll(),
+            SaveGameFile.Current.SharedLevels,
+            GameConfigFile.Current.CustomLevels,
+            DateTimeOffset.UtcNow);
+        var name = result.Level is { } level ? $" ({level.Name})" : "";
+        if (result.Level is not null)
+        {
+            CustomLevelFiles.Write(result.Level);
+            // The notice is set by a write that fails and cleared by one that works
+            if (CustomLevelFiles.Notice is not null)
+            {
+                result = result.NotSaved();
+            }
+        }
+        GD.Print($"Custom level import: {result.Outcome}{name}");
+        ShowCustomLevels(result);
+    }
+
+    private static DateTimeOffset Now() => WholeSeconds.Of(DateTimeOffset.UtcNow);
+
+    // Edits are stamped with the device's clock
+    private static EditSession NewSession(CustomLevel custom) => new(custom, () => DateTimeOffset.UtcNow);
 
     private CampaignProgress Progress() => CampaignProgress.Of(campaign, SaveGameFile.Current, GameConfigFile.Current);
 

@@ -167,6 +167,19 @@ public class SaveGameTests
         Assert.Equal(appearance, save.Appearance);
     }
 
+    // The levels shared from this device aren't progress: they keep a shared level from coming back as imported
+    [Theory]
+    [AutoData]
+    public void Clearing_progress_keeps_shared_levels(Guid id)
+    {
+        var save = new SaveGame();
+        save.RecordShared(id);
+
+        save.ClearProgress();
+
+        Assert.Equal([id], save.SharedLevels);
+    }
+
     [Fact]
     public void Cleared_save_writes_no_levels()
     {

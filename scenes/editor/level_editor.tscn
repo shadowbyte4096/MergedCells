@@ -1,0 +1,410 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/editor/LevelEditor.cs" id="1_editor"]
+[ext_resource type="Script" path="res://scenes/board/BoardCamera.cs" id="2_camera"]
+[ext_resource type="PackedScene" path="res://scenes/board/board.tscn" id="3_board"]
+[ext_resource type="Script" path="res://scenes/editor/EditorInput.cs" id="4_input"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="5_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/undo.svg" id="6_undo"]
+[ext_resource type="Texture2D" path="res://themes/icons/redo.svg" id="7_redo"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="8_back"]
+[ext_resource type="Texture2D" path="res://themes/icons/more.svg" id="9_more"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="10_looks"]
+[ext_resource type="Script" path="res://scenes/play/BarBackdrop.cs" id="11_backdrop"]
+[ext_resource type="Script" path="res://scenes/editor/StrokeOverlay.cs" id="12_overlay"]
+[ext_resource type="Script" path="res://scenes/editor/RenameSheet.cs" id="13_rename"]
+[ext_resource type="Script" path="res://scenes/editor/BoardSheet.cs" id="14_board_sheet"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-blocks.svg" id="15_blocks"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-wall.svg" id="16_wall"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-trap.svg" id="17_trap"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-teleport.svg" id="18_teleport"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-start.svg" id="19_start"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-end.svg" id="20_end"]
+[ext_resource type="Texture2D" path="res://themes/icons/tool-eraser.svg" id="21_eraser"]
+
+[sub_resource type="ButtonGroup" id="ButtonGroup_tools"]
+
+[node name="LevelEditor" type="Node2D"]
+script = ExtResource("1_editor")
+Looks = ExtResource("10_looks")
+
+[node name="Camera" type="Camera2D" parent="."]
+script = ExtResource("2_camera")
+PanButton = 2
+
+[node name="Board" parent="." instance=ExtResource("3_board")]
+
+[node name="StrokeOverlay" type="Node2D" parent="Board"]
+script = ExtResource("12_overlay")
+
+[node name="Input" type="Node" parent="."]
+script = ExtResource("4_input")
+
+[node name="Hud" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="Hud"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("5_theme")
+
+[node name="BarBackdrop" type="Control" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("11_backdrop")
+
+[node name="TopBar" type="MarginContainer" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Hud/Root/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Hud/Root/TopBar/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("8_back")
+icon_alignment = 1
+
+[node name="Name" type="Button" parent="Hud/Root/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"TitleButton"
+text = "Untitled"
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="More" type="Button" parent="Hud/Root/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("9_more")
+icon_alignment = 1
+
+[node name="Status" type="Label" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 36.0
+offset_right = -36.0
+grow_horizontal = 2
+theme_type_variation = &"StatusLine"
+text = "Par 1 · Easy"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="BottomBar" type="MarginContainer" parent="Hud/Root"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Column" type="VBoxContainer" parent="Hud/Root/BottomBar"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 24
+
+[node name="Tools" type="HBoxContainer" parent="Hud/Root/BottomBar/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="Blocks" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Blocks"
+icon = ExtResource("15_blocks")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Wall" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Wall"
+icon = ExtResource("16_wall")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Trap" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Trap"
+icon = ExtResource("17_trap")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Teleport" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Teleport"
+icon = ExtResource("18_teleport")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Start" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Start"
+icon = ExtResource("19_start")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="End" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "End"
+icon = ExtResource("20_end")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Eraser" type="Button" parent="Hud/Root/BottomBar/Column/Tools"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_group = SubResource("ButtonGroup_tools")
+text = "Eraser"
+icon = ExtResource("21_eraser")
+icon_alignment = 1
+vertical_icon_alignment = 0
+
+[node name="Actions" type="HBoxContainer" parent="Hud/Root/BottomBar/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 40
+alignment = 1
+
+[node name="Undo" type="Button" parent="Hud/Root/BottomBar/Column/Actions"]
+layout_mode = 2
+focus_mode = 0
+icon = ExtResource("6_undo")
+icon_alignment = 1
+
+[node name="Redo" type="Button" parent="Hud/Root/BottomBar/Column/Actions"]
+layout_mode = 2
+focus_mode = 0
+icon = ExtResource("7_redo")
+icon_alignment = 1
+
+[node name="Play" type="Button" parent="Hud/Root/BottomBar/Column/Actions"]
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Play it"
+
+[node name="RenameSheet" type="Control" parent="Hud/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("13_rename")
+
+[node name="Wash" type="Panel" parent="Hud/Root/RenameSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Hud/Root/RenameSheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Hud/Root/RenameSheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Hud/Root/RenameSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Name"
+horizontal_alignment = 1
+
+[node name="Field" type="LineEdit" parent="Hud/Root/RenameSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"NameField"
+placeholder_text = "Level name"
+
+[node name="Problem" type="Label" parent="Hud/Root/RenameSheet/Sheet/Column"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+
+[node name="Done" type="Button" parent="Hud/Root/RenameSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Done"
+
+[node name="BoardSheet" type="Control" parent="Hud/Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("14_board_sheet")
+
+[node name="Wash" type="Panel" parent="Hud/Root/BoardSheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Hud/Root/BoardSheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Hud/Root/BoardSheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Hud/Root/BoardSheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Board"
+horizontal_alignment = 1
+
+[node name="Width" type="HBoxContainer" parent="Hud/Root/BoardSheet/Sheet/Column"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Hud/Root/BoardSheet/Sheet/Column/Width"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Width"
+
+[node name="Less" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column/Width"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Value" type="Label" parent="Hud/Root/BoardSheet/Sheet/Column/Width"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "7"
+horizontal_alignment = 1
+
+[node name="More" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column/Width"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="Height" type="HBoxContainer" parent="Hud/Root/BoardSheet/Sheet/Column"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Hud/Root/BoardSheet/Sheet/Column/Height"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Height"
+
+[node name="Less" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column/Height"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Value" type="Label" parent="Hud/Root/BoardSheet/Sheet/Column/Height"]
+custom_minimum_size = Vector2(72, 0)
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "7"
+horizontal_alignment = 1
+
+[node name="More" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column/Height"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="Resize" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Resize"
+
+[node name="Clear" type="Button" parent="Hud/Root/BoardSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Clear"

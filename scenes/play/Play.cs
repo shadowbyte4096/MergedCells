@@ -145,10 +145,11 @@ public partial class Play : Node2D, IScreen
         return open;
     }
 
-    // stars are the level's thresholds (in the campaign, from GameConfig.StarsFor). hasNext is asked when the results card appears,
-    // so a finish that opens the next chapter enables Next. recordFinish is called with the move count when the level is
-    // won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
-    // boards) records nothing. Null rules mean unlimited undo; a null tutorial shows no text.
+    // stars are the level's thresholds (in the campaign, from GameConfig.StarsFor), or null for a level without stars (a
+    // custom level), whose card shows only the moves and par. hasNext is asked when the results card appears, so a finish
+    // that opens the next chapter enables Next; null hides Next. recordFinish is called with the move count when the level
+    // is won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
+    // boards, custom levels) records nothing. Null rules mean unlimited undo; a null tutorial shows no text.
     public void Start(
         Map map,
         int par,
@@ -162,8 +163,6 @@ public partial class Play : Node2D, IScreen
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
         ArgumentException.ThrowIfNullOrEmpty(title);
-        ArgumentNullException.ThrowIfNull(stars);
-        ArgumentNullException.ThrowIfNull(hasNext);
 
         this.par = par;
         this.stars = stars;
@@ -425,13 +424,23 @@ public partial class Play : Node2D, IScreen
 
     private void Finish()
     {
-        var earned = Stars.Earned(session.Moves, par, stars);
         var finish = recordFinish?.Invoke(session.Moves);
         // Transparent rather than hidden, so the board's inset, and the board, stay where they are
         tutorialBlock.Modulate = Colors.Transparent;
         settings.Close();
         camera.InputEnabled = false;
-        results.HasNext = hasNext();
+        results.ShowNext = hasNext is not null;
+        if (hasNext is not null)
+        {
+            results.HasNext = hasNext();
+        }
+        if (stars is null)
+        {
+            results.ShowPlain(session.Moves, par);
+            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}");
+            return;
+        }
+        var earned = Stars.Earned(session.Moves, par, stars);
         results.ShowResults(session.Moves, par, earned, Stars.TwoStarLimit(par, stars), Stars.OneStarLimit(par, stars), finish);
         GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(earned, "star")}");
     }

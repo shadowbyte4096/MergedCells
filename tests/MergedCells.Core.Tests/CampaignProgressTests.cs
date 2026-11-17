@@ -50,6 +50,28 @@ public class CampaignProgressTests
 
     private static string Numbers(IEnumerable<Chapter> chapters) => string.Join(",", chapters.Select(chapter => chapter.Number));
 
+    // Level 2 earns 3 stars, level 1 two, level 3 three: campaign order, not the order they were finished in
+    [Fact]
+    public void Three_starred_lists_only_3_star_levels_in_order()
+    {
+        var campaign = Campaign();
+
+        var progress = CampaignProgress.Of(campaign, Finished(campaign, (3, 3), (1, 4), (2, 3)), Config());
+
+        Assert.Equal([2, 3], progress.ThreeStarred.Select(level => level.Id));
+    }
+
+    // Par is in the fingerprint, so a 3-star best from par 3 doesn't count once level 1's par is 4
+    [Fact]
+    public void Three_starred_skips_a_stale_best()
+    {
+        var save = Finished(Campaign(), (1, 3));
+
+        var progress = CampaignProgress.Of(Campaign(firstPar: 4), save, Config());
+
+        Assert.Empty(progress.ThreeStarred);
+    }
+
     [Fact]
     public void Fresh_save_has_no_stars()
     {

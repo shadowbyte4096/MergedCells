@@ -28,6 +28,10 @@ public sealed class CampaignProgress
 
     public Chapter Furthest => OpenChapters[^1];
 
+    // The levels the player can copy into the editor, in campaign order
+    public IReadOnlyList<Level> ThreeStarred =>
+        campaign.Chapters.SelectMany(chapter => chapter.Levels).Where(level => starsById[level.Id] == 3).ToArray();
+
     /// <summary>
     /// Throws <see cref="ArgumentOutOfRangeException"/> when the config's gate percentage, or any chapter's own, is
     /// outside 0 to 100.

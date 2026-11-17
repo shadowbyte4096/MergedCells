@@ -59,6 +59,9 @@ public partial class BoardTheme : Resource
 
     [Export] public float TeleporterFlatLetterFraction { get; set; } = 0.95f;
 
+    // The level editor's highlight over the squares a stroke has crossed: the ink, see-through
+    [Export] public Color EditHighlight { get; set; } = new(0.1372549f, 0.36862745f, 0.3372549f, 0.3f);
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

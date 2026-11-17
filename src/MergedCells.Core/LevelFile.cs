@@ -40,14 +40,18 @@ public static class LevelFile
             throw new JsonException("The level's \"name\" is blank.");
         }
 
-        var map = Map.Create(
-            Grid(file.Regions, "regions"),
-            Coordinate(file.Start, "start"),
-            Coordinate(file.End, "end"),
-            file.Tiles is null ? null : Tiles(Grid(file.Tiles, "tiles")),
-            file.Teleporters is null ? null : Teleporters(file.Teleporters));
+        var map = ReadMap(file.Regions, file.Tiles, file.Teleporters, file.Start, file.End);
         return new Level(file.Id, file.Name, file.Chapter, map, file.Par, ReadTutorial(file.Tutorial));
     }
+
+    // The map keys, shared with custom level files
+    internal static Map ReadMap(int[][] regions, int[][]? tiles, int[][][]? teleporters, int[] start, int[] end) =>
+        Map.Create(
+            Grid(regions, "regions"),
+            Coordinate(start, "start"),
+            Coordinate(end, "end"),
+            tiles is null ? null : Tiles(Grid(tiles, "tiles")),
+            teleporters is null ? null : Teleporters(teleporters));
 
     /// <summary>
     /// The level's file text in the hand-written layout: one key per line in section 7's order, one grid row per line with
@@ -58,11 +62,31 @@ public static class LevelFile
     public static string Write(Level level)
     {
         ArgumentNullException.ThrowIfNull(level);
-        var map = level.Map;
         var text = new StringBuilder("{\n");
         text.Append("  \"id\": ").Append(Number(level.Id)).Append(",\n");
         text.Append("  \"name\": ").Append(JsonText.Quote(level.Name)).Append(",\n");
         text.Append("  \"chapter\": ").Append(Number(level.Chapter)).Append(",\n");
+        AppendMap(text, level.Map);
+        text.Append(",\n  \"par\": ").Append(Number(level.Par));
+        if (level.Tutorial is { } tutorial)
+        {
+            var keys = new List<string> { $"    \"lines\": {Lines(tutorial.Lines)}" };
+            if (!tutorial.KeyboardLines.SequenceEqual(tutorial.Lines))
+            {
+                keys.Add($"    \"keyboardLines\": {Lines(tutorial.KeyboardLines)}");
+            }
+            if (tutorial.SwipeHint is { } hint)
+            {
+                keys.Add($"    \"swipeHint\": {JsonText.Quote(hint.ToString().ToLowerInvariant())}");
+            }
+            text.Append(",\n  \"tutorial\": {\n").Append(string.Join(",\n", keys)).Append("\n  }");
+        }
+        return text.Append("\n}\n").ToString();
+    }
+
+    // From "regions" to the end square, with no comma or newline after it, so each file adds its own keys after
+    internal static void AppendMap(StringBuilder text, Map map)
+    {
         text.Append("  \"regions\": [\n").Append(Rows(RenumberedRegions(map))).Append("  ],\n");
         if (map.HasTiles)
         {
@@ -82,22 +106,7 @@ public static class LevelFile
             text.Append("  \"teleporters\": null,\n");
         }
         text.Append("  \"start\": ").Append(Square(map.Start)).Append(",\n");
-        text.Append("  \"end\": ").Append(Square(map.End)).Append(",\n");
-        text.Append("  \"par\": ").Append(Number(level.Par));
-        if (level.Tutorial is { } tutorial)
-        {
-            var keys = new List<string> { $"    \"lines\": {Lines(tutorial.Lines)}" };
-            if (!tutorial.KeyboardLines.SequenceEqual(tutorial.Lines))
-            {
-                keys.Add($"    \"keyboardLines\": {Lines(tutorial.KeyboardLines)}");
-            }
-            if (tutorial.SwipeHint is { } hint)
-            {
-                keys.Add($"    \"swipeHint\": {JsonText.Quote(hint.ToString().ToLowerInvariant())}");
-            }
-            text.Append(",\n  \"tutorial\": {\n").Append(string.Join(",\n", keys)).Append("\n  }");
-        }
-        return text.Append("\n}\n").ToString();
+        text.Append("  \"end\": ").Append(Square(map.End));
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

@@ -9,11 +9,22 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
+    private readonly HashSet<Guid> sharedLevels = new();
+
     public Appearance Appearance { get; set; } = Appearance.System;
+
+    /// <summary>
+    /// The player's own custom levels that have been shared from this device. An import of one stays the player's own, so
+    /// sharing a level and importing it back never pays coins (chunk 27).
+    /// </summary>
+    public IReadOnlySet<Guid> SharedLevels => sharedLevels;
+
+    /// <summary>Records a level shared from this device. Returns whether it's new, so the caller writes the save only then.</summary>
+    public bool RecordShared(Guid id) => sharedLevels.Add(id);
 
     // Every saved record, including ones from levels that have since changed or that this build doesn't have
     public int LevelCount => levels.Count;
@@ -50,7 +61,8 @@ public sealed class SaveGame
         return finish;
     }
 
-    /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings stay.</summary>
+    /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings and the shared
+    /// levels stay.</summary>
     public void ClearProgress() => levels.Clear();
 
     /// <summary>
@@ -62,7 +74,7 @@ public sealed class SaveGame
         ArgumentNullException.ThrowIfNull(json);
         // Some Windows editors save UTF-8 with a byte order mark, which System.Text.Json rejects
         var text = json.TrimStart(ByteOrderMark);
-        CheckVersion(text);
+        var version = CheckVersion(text);
 
         var file = JsonSerializer.Deserialize(text, SaveJsonContext.Default.SaveJson)
             ?? throw new JsonException("The save is null.");
@@ -98,6 +110,24 @@ public sealed class SaveGame
             }
             save.levels[id] = new LevelRecord(record.BestMoves, record.Layout);
         }
+        if (version.HasShared != (version.Number >= 2))
+        {
+            throw new JsonException(version.Number >= 2
+                ? "The save has no \"sharedLevels\"."
+                : $"The save is version {version.Number}, which has no \"sharedLevels\".");
+        }
+        foreach (var shared in file.SharedLevels ?? (version.Number >= 2 ? throw new JsonException("The save's \"sharedLevels\" is null.") : []))
+        {
+            // Lowercase only, as the custom level files name them
+            if (shared is null || !Guid.TryParseExact(shared, "D", out var id) || id == Guid.Empty || shared != id.ToString("D"))
+            {
+                throw new JsonException($"The save's shared level \"{shared}\" isn't a lowercase GUID, or is all zeros.");
+            }
+            if (!save.sharedLevels.Add(id))
+            {
+                throw new JsonException($"The save lists shared level {shared} twice.");
+            }
+        }
         return save;
     }
 
@@ -111,6 +141,7 @@ public sealed class SaveGame
             Levels = levels.OrderBy(pair => pair.Key).ToDictionary(
                 pair => pair.Key,
                 pair => new LevelRecordJson { BestMoves = pair.Value.BestMoves, Layout = pair.Value.Layout }),
+            SharedLevels = sharedLevels.Select(id => id.ToString("D")).Order(StringComparer.Ordinal).ToArray(),
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
@@ -118,7 +149,7 @@ public sealed class SaveGame
     private const char ByteOrderMark = (char)0xFEFF;
 
     // The version decides how the rest is read, so a newer file with keys this build doesn't know is never called broken
-    private static void CheckVersion(string text)
+    private static (int Number, bool HasShared) CheckVersion(string text)
     {
         using var document = JsonDocument.Parse(text);
         var root = document.RootElement;
@@ -152,6 +183,8 @@ public sealed class SaveGame
         {
             throw new JsonException($"The save's \"version\" is {number}; it must be at least 1.");
         }
+        // Read here because the strict reader can't tell a missing key from a null one
+        return (number, root.TryGetProperty("sharedLevels", out _));
     }
 
     private static bool IsFingerprint(string? layout) =>
@@ -167,6 +200,9 @@ internal sealed record SaveJson
     public required SettingsJson Settings { get; init; }
 
     public required Dictionary<int, LevelRecordJson> Levels { get; init; }
+
+    // Since version 2
+    public string[]? SharedLevels { get; init; }
 }
 
 internal sealed record SettingsJson

@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The first screen: the title, the star total, Campaign, the modes still to come greyed out, Credits and the gear
+// The first screen: the title, the star total, Campaign, Custom levels, the modes still to come greyed out, Credits and the gear
 public partial class ModeSelect : CanvasLayer, IScreen
 {
     private Control root;
@@ -21,6 +21,8 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private bool dark;
 
     public event Action CampaignPressed;
+
+    public event Action CustomLevelsPressed;
 
     public event Action CreditsPressed;
 
@@ -56,6 +58,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
 
         star.Looks = [StarLook.Earned];
         GetNode<Button>("Root/Centre/Column/Campaign").Pressed += () => CampaignPressed?.Invoke();
+        GetNode<Button>("Root/Centre/Column/CustomLevels").Pressed += () => CustomLevelsPressed?.Invoke();
         testBoards.Pressed += () => TestBoardsPressed?.Invoke();
         resetSave.Pressed += OnResetSavePressed;
         GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();

@@ -12,6 +12,58 @@ public class SaveGameJsonTests
 
     private const string Record = """{"bestMoves":7,"layout":"c28a875eb682c187"}""";
 
+    private const string SharedId = "0f8e2c1a-4b6d-4c1e-9a3f-2d7b5e8c9a10";
+
+    // Version 2 adds the levels shared from this device
+    internal static string Valid2 => Valid.Replace("\"version\":1", "\"version\":2")[..^1] + $",\"sharedLevels\":[\"{SharedId}\"]}}";
+
+    [Fact]
+    public void Version_1_save_has_no_shared_levels()
+    {
+        Assert.Empty(SaveGame.Parse(Valid).SharedLevels);
+    }
+
+    [Fact]
+    public void Version_2_save_reads_its_shared_levels()
+    {
+        Assert.Equal([Guid.Parse(SharedId)], SaveGame.Parse(Valid2).SharedLevels);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Shared_levels_round_trip_in_ascending_order(Guid a, Guid b, Guid c)
+    {
+        var save = new SaveGame();
+        foreach (var id in new[] { a, b, c })
+        {
+            save.RecordShared(id);
+        }
+
+        var text = save.ToJson();
+
+        var expected = new[] { a, b, c }.Select(id => id.ToString("D")).Order(StringComparer.Ordinal).ToArray();
+        var written = JsonDocument.Parse(text).RootElement.GetProperty("sharedLevels").EnumerateArray().Select(id => id.GetString()).ToArray();
+        Assert.Equal(expected, written);
+        Assert.Equal(save.SharedLevels.Order(), SaveGame.Parse(text).SharedLevels.Order());
+    }
+
+    [Theory]
+    [AutoData]
+    public void Recording_a_shared_level_twice_returns_false(Guid id)
+    {
+        var save = new SaveGame();
+        save.RecordShared(id);
+
+        Assert.False(save.RecordShared(id));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Recording_a_new_shared_level_returns_true(Guid id)
+    {
+        Assert.True(new SaveGame().RecordShared(id));
+    }
+
     private static readonly StarsConfig Shipped = new()
     {
         TwoStarMinExtraMoves = 2,
@@ -83,7 +135,7 @@ public class SaveGameJsonTests
     {
         var text = new SaveGame { Appearance = Appearance.Dark }.ToJson();
 
-        Assert.Contains("\"version\": 1", text, StringComparison.Ordinal);
+        Assert.Contains("\"version\": 2", text, StringComparison.Ordinal);
         Assert.Contains("\"appearance\": \"dark\"", text, StringComparison.Ordinal);
     }
 
@@ -136,6 +188,14 @@ public class SaveGameJsonTests
         Valid.Replace("\"4\":" + Record, "\"4\":" + Record + ",\"4\":" + Record),
         Valid.Replace("\"4\":" + Record, "\"04\":" + Record + ",\"4\":" + Record),
         Valid.Replace("\"bestMoves\":7", "\"bestMoves\":9,\"bestMoves\":7"),
+        Valid2.Replace($",\"sharedLevels\":[\"{SharedId}\"]", ""),
+        Valid2.Replace($"[\"{SharedId}\"]", "null"),
+        Valid2.Replace($"[\"{SharedId}\"]", "[null]"),
+        Valid2.Replace(SharedId, "not-a-guid"),
+        Valid2.Replace(SharedId, SharedId.ToUpperInvariant()),
+        Valid2.Replace(SharedId, "00000000-0000-0000-0000-000000000000"),
+        Valid2.Replace($"\"{SharedId}\"", $"\"{SharedId}\",\"{SharedId}\""),
+        Valid[..^1] + ",\"sharedLevels\":[]}",
     };
 
     [Theory]
@@ -180,8 +240,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("2.0", 2)]
-    [InlineData("2e0", 2)]
+    [InlineData("3.0", 3)]
+    [InlineData("3e0", 3)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {
@@ -207,7 +267,7 @@ public class SaveGameJsonTests
     [AutoData]
     public void Newer_version_throws_NewerSaveException_with_its_version(int version)
     {
-        var newer = 2 + Math.Abs(version % 1000);
+        var newer = 3 + Math.Abs(version % 1000);
 
         var exception = Assert.Throws<NewerSaveException>(() => SaveGame.Parse(Valid.Replace("\"version\":1", $"\"version\":{newer}")));
 
@@ -217,7 +277,7 @@ public class SaveGameJsonTests
     [Fact]
     public void Newer_version_wins_over_other_problems()
     {
-        Assert.Throws<NewerSaveException>(() => SaveGame.Parse("""{"version":2,"somethingNew":true}"""));
+        Assert.Throws<NewerSaveException>(() => SaveGame.Parse("""{"version":3,"somethingNew":true}"""));
     }
 
     [Fact]
