@@ -71,7 +71,7 @@ internal static class CandidateBatch
                 ? StarLimits.Reachable(hit.Map, recipes.StarLimits.MinRoutes, recipes.StarLimits.MaxExtraMoves, oneStar)
                 : null;
             var promote = $"dotnet run --project src/MergedCells.Curation -c Release -- promote {workspace.Relative(path)} --name \"NAME\"";
-            candidates.Add(new PageCandidate(Path.GetFileName(path), hit, limits, promote, TwistReliance.TrapsThatDontMatter(hit.Map, rater)));
+            candidates.Add(new PageCandidate(Path.GetFileName(path), hit, limits, promote, TwistChecks.Of(hit.Map, hit.Metrics, rater)));
         }
         File.WriteAllText(Path.Combine(folder, "run.json"), new RunFile(chapter, band, seed, recipe.OneStarExtraMoves).Write());
         var page = Path.Combine(folder, "index.html");

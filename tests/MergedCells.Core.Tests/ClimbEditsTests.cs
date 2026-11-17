@@ -262,3 +262,59 @@ public class ClimbEditsSkeletonTests
         Assert.All(results, after => Assert.Contains(after.Start, Skeleton.Starts));
     }
 }
+
+// Each edit on a map whose skeleton fixes two pairs, with three more pairs placed: the drawn pairs keep their places and
+// their letters, which only the climber's edits could break
+public class ClimbEditsFixedPairTests
+{
+    private static readonly MapSkeleton Skeleton = TestSkeletons.Paired();
+
+    private static Map Paired()
+    {
+        var request = new MapRequest(10, 1, 100, Bends: true, Twists: new TwistDensities(0, 0, 0, 6));
+        for (ulong seed = 1; ; seed++)
+        {
+            if (new MapGenerator(GeneratorConfigs.With()).Generate(request, seed, Skeleton) is { } generated)
+            {
+                return generated.Map;
+            }
+        }
+    }
+
+    private static List<ClimbMap> Applied(ClimbEdit edit)
+    {
+        var map = Paired();
+        var startArea = StartAndEnd.Starts(Skeleton, GeneratorConfigs.With());
+        var results = new List<ClimbMap>();
+        for (ulong stream = 0; stream < 200; stream++)
+        {
+            var after = ClimbMap.From(map, Skeleton);
+            if (ClimbEdits.Apply(edit, after, new GameRandom(stream), startArea))
+            {
+                results.Add(after);
+            }
+        }
+        Assert.NotEmpty(results);
+        return results;
+    }
+
+    [Theory(Timeout = 10_000)]
+    [MemberData(nameof(ClimbEditsTests.Edits), MemberType = typeof(ClimbEditsTests))]
+    public async Task Edit_keeps_the_fixed_pairs_first_and_in_place(int edit)
+    {
+        var results = await Task.Run(() => Applied((ClimbEdit)edit), TestContext.Current.CancellationToken);
+
+        Assert.All(results, after => Assert.Equal(TestSkeletons.PairedPairs, after.Teleporters.Take(TestSkeletons.PairedPairs.Length)));
+    }
+
+    // So the test above sees moved pairs, not only edits that leave every pair alone
+    [Fact(Timeout = 10_000)]
+    public async Task Moving_a_twist_moves_placed_pairs()
+    {
+        var placed = Paired().Teleporters.Skip(TestSkeletons.PairedPairs.Length).ToList();
+
+        var results = await Task.Run(() => Applied(ClimbEdit.MoveTwist), TestContext.Current.CancellationToken);
+
+        Assert.Contains(results, after => !after.Teleporters.Skip(TestSkeletons.PairedPairs.Length).SequenceEqual(placed));
+    }
+}

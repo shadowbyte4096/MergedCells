@@ -22,8 +22,9 @@ internal static class TwistPlacer
         PlaceSingles(free, Percentage.Of(twists.StickyPercent, squares), Tile.Sticky, size, ref tiles, random);
         PlaceSingles(free, Percentage.Of(twists.TrapPercent, squares), Tile.Trap, size, ref tiles, random);
 
-        // No more pairs than letters, so no two pairs on a map look alike
-        var pairCount = Math.Min(TeleporterLetters.Count, (Percentage.Of(twists.TeleporterPercent, squares) + 1) / 2);
+        // No more pairs than letters, a skeleton's fixed pairs included, so no two pairs on a map look alike
+        var letters = TeleporterLetters.Count - (skeleton?.Teleporters.Count ?? 0);
+        var pairCount = Math.Min(letters, (Percentage.Of(twists.TeleporterPercent, squares) + 1) / 2);
         var pairs = new List<TeleporterPair>(pairCount);
         while (pairs.Count < pairCount && free.Count >= 2)
         {

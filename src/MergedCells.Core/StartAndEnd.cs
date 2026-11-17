@@ -45,7 +45,7 @@ internal static class StartAndEnd
         return starts;
     }
 
-    // A skeleton's own start squares, or else the start area for its end without the squares it fixes a twist on.
+    // A skeleton's own start squares, or else the start area for its end without the squares it fixes a twist or pair on.
     // Throws when that leaves nowhere, so a climb never spends its steps on a skeleton no start fits
     public static IReadOnlyList<Cell> Starts(MapSkeleton skeleton, GeneratorConfig config)
     {
@@ -60,7 +60,7 @@ internal static class StartAndEnd
                 "The skeleton's end is too near the top-left for the generator's start area, which needs the start far enough from it, so the start has nowhere to go. Give it start squares.",
                 nameof(skeleton));
         }
-        var starts = area.Where(cell => skeleton.TileAt(cell) is null or Tile.None).ToList();
+        var starts = area.Where(cell => (skeleton.TileAt(cell) is null or Tile.None) && !skeleton.IsFixedTeleporter(cell)).ToList();
         if (starts.Count == 0)
         {
             throw new ArgumentException(

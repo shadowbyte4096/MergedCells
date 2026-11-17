@@ -9,9 +9,9 @@ public class SkeletonGeneratorTests
 
     private static readonly MapGenerator Generator = new(GeneratorConfigs.With());
 
-    private static Map Generate(MapSkeleton skeleton, ulong seed, MapGenerator? generator = null)
+    private static Map Generate(MapSkeleton skeleton, ulong seed, MapGenerator? generator = null, MapRequest? request = null)
     {
-        var generated = (generator ?? Generator).Generate(Request, seed, skeleton);
+        var generated = (generator ?? Generator).Generate(request ?? Request, seed, skeleton);
         Assert.SkipWhen(generated is null, $"No map for seed {seed}");
         return generated!.Map;
     }
@@ -104,6 +104,50 @@ public class SkeletonGeneratorTests
         var problem = Assert.Throws<ArgumentException>(() => StartAndEnd.Starts(skeleton, GeneratorConfigs.With()));
 
         Assert.Contains("too near the top-left", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Fixed_pairs_come_first_and_unchanged(ulong seed)
+    {
+        var map = Generate(Gap(teleporters: GapPairs), seed, request: PairRequest);
+
+        Assert.Equal(GapPairs, map.Teleporters.Take(2));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Placed_pairs_never_land_on_fixed_pair_squares(ulong seed)
+    {
+        var map = Generate(Gap(teleporters: GapPairs), seed, request: PairRequest);
+        var fixedSquares = GapPairs.SelectMany(pair => new[] { pair.First, pair.Second }).ToHashSet();
+
+        Assert.DoesNotContain(map.Teleporters.Skip(GapPairs.Length), pair => fixedSquares.Contains(pair.First) || fixedSquares.Contains(pair.Second));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Start_never_lands_on_a_fixed_pair(ulong seed)
+    {
+        var map = Generate(Gap(teleporters: GapStartAreaPairs), seed, request: PairRequest);
+
+        Assert.DoesNotContain(map.Start, GapStartAreaPairs.SelectMany(pair => new[] { pair.First, pair.Second }));
+    }
+
+    // Each start-area square paired with a square outside the area, so the area holds no plain square for the start
+    [Fact]
+    public void Start_area_covered_by_fixed_pairs_throws_saying_so()
+    {
+        var config = GeneratorConfigs.With();
+        var end = new Cell(6, 6);
+        var area = StartAndEnd.Starts(7, end, config);
+        var outside = Squares(7).Where(cell => !area.Contains(cell) && cell != end).ToList();
+        var skeleton = new MapSkeleton(
+            new int?[7, 7], new Tile?[7, 7], end, [], area.Select((cell, i) => new TeleporterPair(cell, outside[i])).ToList());
+
+        var problem = Assert.Throws<ArgumentException>(() => StartAndEnd.Starts(skeleton, config));
+
+        Assert.Contains("holds a fixed twist", problem.Message, StringComparison.Ordinal);
     }
 
     [Theory]

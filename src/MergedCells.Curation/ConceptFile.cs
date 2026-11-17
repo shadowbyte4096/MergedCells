@@ -31,7 +31,8 @@ internal static class ConceptFile
 
     private const string BlockSymbols = ". for a free square, E for the end, or a letter for a fixed block";
 
-    private const string TileSymbols = ". where the tool may add twists, - for nothing, # for a wall, x for a trap, S for the start or s for a start square";
+    private const string TileSymbols =
+        ". where the tool may add twists, - for nothing, # for a wall, x for a trap, S for the start, s for a start square, or 1 to 9 for a teleporter pair";
 
     /// <summary>
     /// Throws <see cref="JsonException"/>, naming the key, and the row and column for a square, when a value is missing,
@@ -109,6 +110,8 @@ internal static class ConceptFile
         Cell? end = null;
         Cell? fixedStart = null;
         var starts = new List<Cell>();
+        // Index 1 to 9: each digit's squares in reading order
+        var digits = new List<Cell>?[10];
         for (var row = 0; row < size; row++)
         {
             for (var column = 0; column < size; column++)
@@ -156,6 +159,9 @@ internal static class ConceptFile
                         starts.Add(cell);
                         fixedTiles[row, column] = Tile.None;
                         break;
+                    case >= '1' and <= '9':
+                        (digits[tiles[row, column] - '0'] ??= []).Add(cell);
+                        break;
                     default:
                         throw Problem(Square("tiles", cell), $"has \"{tiles[row, column]}\": use {TileSymbols}");
                 }
@@ -165,8 +171,27 @@ internal static class ConceptFile
         Require(fixedStart is null || starts.Count == 0, "tiles", "can't mix S (a fixed start) with s (start squares)");
         var endCell = end!.Value;
         var startCells = fixedStart is { } start ? [start] : starts;
+        var pairs = Pairs(digits);
         CheckInFileTerms(blocks, tiles, endCell, startCells);
-        return new MapSkeleton(regions, fixedTiles, endCell, startCells);
+        return new MapSkeleton(regions, fixedTiles, endCell, startCells, pairs);
+    }
+
+    // Digit k's two squares become the kth fixed pair, so it shows the kth letter (1 is α)
+    private static List<TeleporterPair> Pairs(List<Cell>?[] digits)
+    {
+        var pairs = new List<TeleporterPair>();
+        var highest = Array.FindLastIndex(digits, squares => squares is not null);
+        for (var digit = 1; digit <= highest; digit++)
+        {
+            var squares = digits[digit];
+            Require(squares is not null, "tiles", $"digit {digit} is missing: pairs are numbered from 1 with no gap, and {highest} is used");
+            Require(
+                squares!.Count == 2,
+                "tiles",
+                $"digit {digit} marks {squares.Count} {(squares.Count == 1 ? "square" : "squares")} ({string.Join("; ", squares.Select(cell => $"row {cell.Row + 1}, column {cell.Column + 1}"))}); a pair needs exactly two");
+            pairs.Add(new TeleporterPair(squares[0], squares[1]));
+        }
+        return pairs;
     }
 
     // The skeleton rules a drawing can break, said with the file's rows and columns from 1 and the block's letter;

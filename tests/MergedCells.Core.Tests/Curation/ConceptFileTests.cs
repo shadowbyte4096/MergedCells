@@ -106,6 +106,17 @@ public class ConceptFileTests
         Assert.Equal(Tile.Trap, skeleton.TileAt(new(5, 2)));
     }
 
+    // 2 is drawn first in reading order, but 1 is still α; each pair starts on its square that comes first in reading order
+    [Fact]
+    public void Digits_read_as_fixed_pairs_in_digit_order()
+    {
+        var tiles = With(Tiles, (2, ". 2 . . . 1 ."), (4, ". . . . . 2 ."), (5, ". . 1 . . . ."));
+
+        var skeleton = ConceptFile.Parse(Text(tiles: tiles)).Skeleton;
+
+        Assert.Equal([TestMaps.Pair(2, 5, 5, 2), TestMaps.Pair(2, 1, 4, 5)], skeleton.Teleporters);
+    }
+
     [Fact]
     public void Example_parses_into_its_tiles()
     {
@@ -201,11 +212,30 @@ public class ConceptFileTests
         { Text(tiles: With(Tiles, (6, ". . . . . . #"))), "\"tiles row 7, column 7\"" },
         { Text(tiles: With(Tiles, (6, ". . . . . . x"))), "\"tiles row 7, column 7\"" },
         { Text(blocks: With(Blocks, (0, "X . . . . . ."), (6, ". . . . . X E"))), "letter \"X\"" },
+        { Text(tiles: With(Tiles, (2, ". . . . . 1 ."))), "digit 1" },
+        { Text(tiles: With(Tiles, (2, ". 1 . . . 1 ."), (4, ". . . . . 1 ."))), "digit 1" },
+        { Text(tiles: With(Tiles, (2, ". 1 . . . 3 ."), (4, ". . . . . 1 ."), (5, ". . 3 . . . ."))), "digit 2" },
+        { Text(tiles: With(Tiles, (2, ". 1 . . . . ."), (6, ". . . . . . 1"))), "\"tiles row 7, column 7\"" },
     };
 
     [Theory]
     [MemberData(nameof(SkeletonRuleTexts))]
     public void Skeleton_rule_errors_name_the_file_s_square_or_letter(string text, string named)
+    {
+        var problem = Assert.Throws<JsonException>(() => ConceptFile.Parse(text));
+
+        Assert.Contains(named, problem.Message, StringComparison.Ordinal);
+    }
+
+    public static TheoryData<string, string> DigitCountTexts => new()
+    {
+        { Text(tiles: With(Tiles, (2, ". . . . . 1 ."))), "digit 1 marks 1 square (row 3, column 6)" },
+        { Text(tiles: With(Tiles, (2, ". 1 . . . 1 ."), (4, ". . . . . 1 ."))), "digit 1 marks 3 squares (row 3, column 2; row 3, column 6; row 5, column 6)" },
+    };
+
+    [Theory]
+    [MemberData(nameof(DigitCountTexts))]
+    public void Digit_errors_count_its_squares(string text, string named)
     {
         var problem = Assert.Throws<JsonException>(() => ConceptFile.Parse(text));
 

@@ -28,8 +28,21 @@ internal static class TestSkeletons
         return tiles;
     }
 
-    public static MapSkeleton Gap(Tile?[,]? tiles = null, IReadOnlyList<Cell>? starts = null) =>
-        new(GapRegions(), tiles ?? GapTiles(), GapEnd, starts ?? []);
+    public static MapSkeleton Gap(Tile?[,]? tiles = null, IReadOnlyList<Cell>? starts = null, IReadOnlyList<TeleporterPair>? teleporters = null) =>
+        new(GapRegions(), tiles ?? GapTiles(), GapEnd, starts ?? [], teleporters);
+
+    // Two pairs off the Gap's wall line, the end and its start area
+    public static readonly TeleporterPair[] GapPairs = [new(new(1, 4), new(5, 1)), new(new(2, 6), new(4, 0))];
+
+    // Two pairs with a square in each of the Gap's corner start area, so the start has to keep off them
+    public static readonly TeleporterPair[] GapStartAreaPairs = [new(new(0, 1), new(5, 5)), new(new(1, 0), new(5, 3))];
+
+    public static readonly MapRequest PairRequest = new(7, 1, 30, Bends: true, Twists: new TwistDensities(10, 0, 0, 4));
+
+    // 10x10 with nothing fixed but two pairs, both clear of the corner start area and the end
+    public static readonly TeleporterPair[] PairedPairs = [new(new(2, 5), new(7, 2)), new(new(4, 8), new(8, 4))];
+
+    public static MapSkeleton Paired() => new(new int?[10, 10], new Tile?[10, 10], new(9, 9), [], PairedPairs);
 
     // 10x10, with something of every kind fixed: block 1 along row 0 from column 3, block 2 a 2x2 at [5, 1], walls on row
     // 4 from column 0 to 6, column 9 kept plain from row 1 to 8, and the start in the top-left 2x2

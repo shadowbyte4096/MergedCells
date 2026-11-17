@@ -10,11 +10,6 @@ public class TrapsThatDontMatterTests
     // a slower way to the end than down then right
     private static Map TrapOnTheSlowerRoute() => Map.Create(Grid("ABBBBC", "DDDDDZ"), new(0, 0), new(1, 5), Traps(2, 6, (0, 4)));
 
-    // Right from the start enters [0, 1] and comes out of [1, 4] still sliding right, into the end: par 1. The covering
-    // traps only catch the slide from [1, 0] that jumps back up into the lane; without the pair par would be 2
-    private static Map CoveringTrapsBesideAPair() =>
-        Map.Create(Grid("ABBBBC", "DDDDDZ"), new(0, 0), new(1, 5), Traps(2, 6, (0, 2), (0, 3)), [Pair(0, 1, 1, 4)]);
-
     [Fact]
     public void Map_without_traps_has_none()
     {
@@ -54,6 +49,15 @@ public class TrapsThatDontMatterTests
     public void Teleporter_pairs_stay_when_a_trap_is_taken_off()
     {
         Assert.Equal([new Cell(0, 2), new Cell(0, 3)], TwistReliance.TrapsThatDontMatter(CoveringTrapsBesideAPair(), Rater));
+    }
+
+    // The page passes the climb's own metrics rather than measuring the map again
+    [Fact]
+    public void Metrics_already_measured_give_the_same_list()
+    {
+        var map = CoveringTraps();
+
+        Assert.Equal(TwistReliance.TrapsThatDontMatter(map, Rater), TwistReliance.TrapsThatDontMatter(map, Rater.Measure(map)!, Rater));
     }
 
     // Every way out of the start's two stops runs into a trap

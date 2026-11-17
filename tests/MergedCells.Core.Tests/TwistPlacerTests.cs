@@ -165,6 +165,20 @@ public class TwistPlacerTests
         Assert.Equal(TeleporterLetters.Count, teleporters.Length);
     }
 
+    // 40 fixed pairs across rows 10 to 13 leave the letters for 5 more
+    [Theory]
+    [AutoData]
+    public void Placed_pairs_stop_at_the_letters_the_fixed_ones_leave(ulong seed)
+    {
+        var squares = Enumerable.Range(200, 80).Select(index => new Cell(index / 20, index % 20)).ToList();
+        var fixedPairs = Enumerable.Range(0, 40).Select(i => new TeleporterPair(squares[2 * i], squares[2 * i + 1])).ToList();
+        var skeleton = new MapSkeleton(new int?[20, 20], new Tile?[20, 20], FarCorner(20), [], fixedPairs);
+
+        var (_, teleporters) = TwistPlacer.Place(20, Corner, FarCorner(20), new TwistDensities(TeleporterPercent: 50), 3, new GameRandom(seed), skeleton);
+
+        Assert.Equal(TeleporterLetters.Count - 40, teleporters.Length);
+    }
+
     // Walls come first and take all 7 free squares
     [Theory]
     [AutoData]

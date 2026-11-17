@@ -17,16 +17,16 @@ public class CandidatePageTests
         var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), TwistReliance.Of(map, rater), 0);
         return new PageCandidate(
             $"c{number}.json", climbed, StarLimits.Reachable(map, 10, 10, 2), $"promote builds/candidates/c{number}.json --name \"NAME\"",
-            TwistReliance.TrapsThatDontMatter(map, rater));
+            TwistChecks.Of(map, metrics, rater));
     }
 
-    // One card for a hand-made map, with its traps measured as generate measures them
+    // One card for a hand-made map, with its traps and pairs measured as generate measures them
     private static string PageOf(Map map)
     {
         var rater = new DifficultyRater(DifficultyConfigs.With());
         var metrics = rater.Measure(map)!;
         var climbed = new ClimbedMap(map, Solver.Solve(map), metrics, rater.Score(metrics, DifficultyMode.Campaign), null, 0);
-        var candidate = new PageCandidate("c1.json", climbed, null, "promote c1.json", TwistReliance.TrapsThatDontMatter(map, rater));
+        var candidate = new PageCandidate("c1.json", climbed, null, "promote c1.json", TwistChecks.Of(map, metrics, rater));
         return CandidatePage.Write(1, "hard", Band, 1, 1, [], [candidate]);
     }
 
@@ -131,5 +131,34 @@ public class CandidatePageTests
     public void Card_has_no_traps_row_for_a_map_without_traps()
     {
         Assert.DoesNotContain("Traps that matter", PageOf(TestMaps.Example()), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Card_names_the_pairs_that_dont_matter_by_letter()
+    {
+        Assert.Contains("<td>Pairs that matter</td><td>1 of 2 (not β)</td>", PageOf(TestMaps.IdleSecondPair()), StringComparison.Ordinal);
+    }
+
+    // Its pairs are 2 and 1 squares apart
+    [Fact]
+    public void Card_shows_the_average_pair_distance()
+    {
+        Assert.Contains("<td>Average pair distance</td><td>1.5</td>", PageOf(TestMaps.IdleSecondPair()), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Pairs that matter")]
+    [InlineData("Average pair distance")]
+    public void Card_has_no_pair_rows_for_a_map_without_pairs(string row)
+    {
+        Assert.DoesNotContain(row, PageOf(TestMaps.Example()), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("<td>Traps that matter</td><td>0 of 2")]
+    [InlineData("<td>Pairs that matter</td><td>1 of 1</td>")]
+    public void Card_shows_both_twists_rows_for_a_map_with_traps_and_pairs(string row)
+    {
+        Assert.Contains(row, PageOf(TestMaps.CoveringTrapsBesideAPair()), StringComparison.Ordinal);
     }
 }

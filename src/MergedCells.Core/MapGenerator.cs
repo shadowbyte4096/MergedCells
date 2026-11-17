@@ -91,7 +91,8 @@ public sealed class MapGenerator
             var (tiles, teleporters) = request.Twists is null
                 ? (null, [])
                 : TwistPlacer.Place(request.Size, start, end, request.Twists, config.MaxWallRun, random, skeleton);
-            var map = Map.Create(regions, start, end, WithFixedTiles(tiles, skeleton), teleporters);
+            // The drawn pairs come first, so they keep the first letters
+            var map = Map.Create(regions, start, end, WithFixedTiles(tiles, skeleton), [.. skeleton.Teleporters, .. teleporters]);
             var solution = Solver.Solve(map);
             if (Keeps(solution, request))
             {

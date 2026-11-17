@@ -9,15 +9,17 @@ public sealed class MapSkeleton
 {
     private readonly int?[,] regions;
     private readonly Tile?[,] tiles;
+    private readonly HashSet<Cell> pairSquares = [];
 
     /// <summary>
     /// <paramref name="regions"/> holds a fixed region number per square, or null for a free square; the end's square
     /// is null, because the end is always its own region. <paramref name="tiles"/> holds a fixed tile per square
     /// (<see cref="Tile.None"/> keeps it plain), or null where twists may go. <paramref name="starts"/> lists the squares
-    /// the start may be on; empty means the generator's start area for the end. Throws <see cref="ArgumentException"/>
-    /// naming the square when a rule is broken.
+    /// the start may be on; empty means the generator's start area for the end. <paramref name="teleporters"/> fixes
+    /// pairs, in letter order ahead of any the generator places; their squares are fixed plain squares. Throws
+    /// <see cref="ArgumentException"/> naming the square when a rule is broken.
     /// </summary>
-    public MapSkeleton(int?[,] regions, Tile?[,] tiles, Cell end, IReadOnlyList<Cell> starts)
+    public MapSkeleton(int?[,] regions, Tile?[,] tiles, Cell end, IReadOnlyList<Cell> starts, IReadOnlyList<TeleporterPair>? teleporters = null)
     {
         ArgumentNullException.ThrowIfNull(regions);
         ArgumentNullException.ThrowIfNull(tiles);
@@ -69,11 +71,21 @@ public sealed class MapSkeleton
             }
         }
         CheckConnected(regions, size);
+        var pairs = teleporters ?? [];
+        CheckPairs(pairs, tiles, end, seen, nameof(teleporters));
 
         this.regions = (int?[,])regions.Clone();
         this.tiles = (Tile?[,])tiles.Clone();
+        foreach (var pair in pairs)
+        {
+            this.tiles[pair.First.Row, pair.First.Column] = Tile.None;
+            this.tiles[pair.Second.Row, pair.Second.Column] = Tile.None;
+            pairSquares.Add(pair.First);
+            pairSquares.Add(pair.Second);
+        }
         End = end;
         Starts = [.. starts];
+        Teleporters = [.. pairs];
     }
 
     public int Size { get; }
@@ -82,6 +94,9 @@ public sealed class MapSkeleton
 
     /// <summary>The squares the start may be on, in the order given; empty means the generator's start area.</summary>
     public IReadOnlyList<Cell> Starts { get; }
+
+    /// <summary>The fixed teleporter pairs, in the order given; empty when there are none.</summary>
+    public IReadOnlyList<TeleporterPair> Teleporters { get; }
 
     /// <summary>The square's fixed region number, or null when the square is free.</summary>
     public int? RegionAt(Cell cell) => regions[cell.Row, cell.Column];
@@ -93,9 +108,44 @@ public sealed class MapSkeleton
 
     internal bool HasFixedTile(Cell cell) => tiles[cell.Row, cell.Column] is not null;
 
+    internal bool IsFixedTeleporter(Cell cell) => pairSquares.Contains(cell);
+
     private bool Contains(Cell cell) => Map.IsInside(cell, Size, Size);
 
     private static string Name(Cell cell) => $"[{cell.Row}, {cell.Column}]";
+
+    // A teleporter square is plain, never the start or the end, and in one pair only (chunk 16's rules), and every pair
+    // needs a letter of its own
+    private void CheckPairs(IReadOnlyList<TeleporterPair> pairs, Tile?[,] tiles, Cell end, HashSet<Cell> starts, string parameter)
+    {
+        if (pairs.Count > TeleporterLetters.Count)
+        {
+            throw new ArgumentException(
+                $"A skeleton fixes at most {TeleporterLetters.Count} pairs, one per letter, and this one has {pairs.Count}.", parameter);
+        }
+        var paired = new HashSet<Cell>();
+        for (var index = 0; index < pairs.Count; index++)
+        {
+            var pair = pairs[index];
+            if (pair.First == pair.Second)
+            {
+                throw new ArgumentException($"Pair {index} is on one square, {Name(pair.First)}.", parameter);
+            }
+            foreach (var square in new[] { pair.First, pair.Second })
+            {
+                var problem = !Contains(square) ? "is off the map"
+                    : square == end ? "is the end"
+                    : starts.Contains(square) ? "is a start square"
+                    : tiles[square.Row, square.Column] is { } tile && tile != Tile.None ? "holds a fixed twist"
+                    : !paired.Add(square) ? "is in another pair"
+                    : null;
+                if (problem is not null)
+                {
+                    throw new ArgumentException($"Pair {index}'s square {Name(square)} {problem}.", parameter);
+                }
+            }
+        }
+    }
 
     // Each fixed number's squares must join edge to edge, as any region's must
     private static void CheckConnected(int?[,] regions, int size)

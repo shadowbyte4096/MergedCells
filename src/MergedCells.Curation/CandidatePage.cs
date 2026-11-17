@@ -7,9 +7,16 @@ namespace MergedCells.Curation;
 
 internal sealed record PageLevel(Level Level, int Score);
 
-// TrapsThatDontMatter holds the map's trap squares whose removal alone changes nothing (TwistReliance.TrapsThatDontMatter)
-internal sealed record PageCandidate(
-    string File, ClimbedMap Climbed, StarsConfig? Limits, string PromoteCommand, IReadOnlyList<Cell> TrapsThatDontMatter);
+internal sealed record PageCandidate(string File, ClimbedMap Climbed, StarsConfig? Limits, string PromoteCommand, TwistChecks Checks);
+
+// The per-twist checks a card shows, worked out once per hit: the trap squares and the pairs (by their place in the map's
+// order) whose removal alone changes nothing, measured against the metrics the climb already holds. A later per-twist row
+// is one more field here
+internal sealed record TwistChecks(IReadOnlyList<Cell> TrapsThatDontMatter, IReadOnlyList<int> PairsThatDontMatter)
+{
+    public static TwistChecks Of(Map map, DifficultyMetrics metrics, DifficultyRater rater) =>
+        new(TwistReliance.TrapsThatDontMatter(map, metrics, rater), TwistReliance.PairsThatDontMatter(map, metrics, rater));
+}
 
 // A concept batch's page shows the concept's name and its two layers as drawn
 internal sealed record PageConcept(string Name, int? MaxWallRun, IReadOnlyList<string> Blocks, IReadOnlyList<string> Tiles);
@@ -106,7 +113,12 @@ internal static class CandidatePage
         }
         if (Squares(map, Tile.Trap) is var traps and > 0)
         {
-            rows.Add(("Traps that matter", TrapsThatMatter(traps, candidate.TrapsThatDontMatter)));
+            rows.Add(("Traps that matter", TrapsThatMatter(traps, candidate.Checks.TrapsThatDontMatter)));
+        }
+        if (map.Teleporters.Count > 0)
+        {
+            rows.Add(("Pairs that matter", PairsThatMatter(map.Teleporters.Count, candidate.Checks.PairsThatDontMatter)));
+            rows.Add(("Average pair distance", AverageDistance(map.Teleporters)));
         }
         var card = new StringBuilder("<div class=\"candidate\">\n")
             .Append($"<h3>{Encode(candidate.File)}</h3>\n{Picture(map, 320)}\n<table class=\"numbers\">\n");
@@ -145,6 +157,18 @@ internal static class CandidatePage
             ? count
             : $"{count} (not {string.Join("; ", idle.Select(cell => $"row {Number(cell.Row + 1)}, column {Number(cell.Column + 1)}"))})";
     }
+
+    // "2 of 3 (not β)", each idle pair by its letter
+    private static string PairsThatMatter(int pairs, IReadOnlyList<int> idle)
+    {
+        var count = $"{Number(pairs - idle.Count)} of {Number(pairs)}";
+        return idle.Count == 0 ? count : $"{count} (not {string.Join(", ", idle.Select(TeleporterLetters.For))})";
+    }
+
+    // Rows plus columns between each pair's two squares, averaged
+    private static string AverageDistance(IReadOnlyList<TeleporterPair> pairs) =>
+        pairs.Average(pair => Math.Abs(pair.First.Row - pair.Second.Row) + Math.Abs(pair.First.Column - pair.Second.Column))
+            .ToString("0.0", CultureInfo.InvariantCulture);
 
     private static string Describe(BandRecipe recipe)
     {

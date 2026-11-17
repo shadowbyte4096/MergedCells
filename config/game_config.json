@@ -70,7 +70,18 @@
       "76": { "twoStarMinExtraMoves": 3, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 5, "oneStarExtraParPercent": 0 },
       "78": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
       "79": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
-      "80": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 }
+      "80": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "82": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "84": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "85": { "twoStarMinExtraMoves": 3, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 5, "oneStarExtraParPercent": 0 },
+      "86": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 4, "oneStarExtraParPercent": 0 },
+      "87": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "88": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "89": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "90": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "91": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 },
+      "92": { "twoStarMinExtraMoves": 1, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 2, "oneStarExtraParPercent": 0 },
+      "93": { "twoStarMinExtraMoves": 2, "twoStarExtraParPercent": 0, "oneStarMinExtraMoves": 3, "oneStarExtraParPercent": 0 }
     },
     "undoLimit": 5
   },

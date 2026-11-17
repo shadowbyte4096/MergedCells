@@ -4,6 +4,6 @@
     { "name": "Irregular regions", "levels": [34, 35, 42, 43, 52, 53, 46, 47, 48, 36, 9, 49, 50, 51, 10], "intro": ["Blocks can be any shape now.", "A slide still stops on the first square of a new block."] },
     { "name": "Walls", "levels": [26, 27, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 67], "intro": ["Walls stop a slide one square short.", "Use them to stop where you need to."] },
     { "name": "Traps", "levels": [30, 31, 68, 77, 74, 76, 78, 75, 70, 69, 79, 71, 72, 73, 80], "intro": ["Traps send you back to the start.", "Slide into one and the move still counts."] },
-    { "name": "Teleporters", "levels": [32, 33], "intro": ["Teleporters come in lettered pairs.", "Slide into one and you come out of the other, still sliding."] }
+    { "name": "Teleporters", "levels": [32, 33, 81, 83, 85, 86, 84, 90, 93, 91, 88, 87, 92, 89, 82], "intro": ["Teleporters come in lettered pairs.", "Slide into one and you come out of the other, still sliding."] }
   ]
 }

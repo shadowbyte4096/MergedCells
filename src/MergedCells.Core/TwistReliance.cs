@@ -58,7 +58,12 @@ public static class TwistReliance
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentNullException.ThrowIfNull(rater);
-        var metrics = rater.Measure(map) ?? throw new ArgumentException("The map can't be won.", nameof(map));
+        return TrapsThatDontMatter(map, rater.Measure(map) ?? throw new ArgumentException("The map can't be won.", nameof(map)), rater);
+    }
+
+    // For the curation page, which already holds the climb's metrics for the map
+    internal static IReadOnlyList<Cell> TrapsThatDontMatter(Map map, DifficultyMetrics metrics, DifficultyRater rater)
+    {
         var idle = new List<Cell>();
         for (var row = 0; row < map.Rows; row++)
         {
@@ -77,6 +82,33 @@ public static class TwistReliance
                 {
                     idle.Add(cell);
                 }
+            }
+        }
+        return idle;
+    }
+
+    // The pairs, by their place in the map's order, that change none of par, decoys, brute-force excess and away moves
+    // when that one pair alone is taken off. The tiles stay, so on a map with walls or traps a pair is judged beside them.
+    // A pair whose removal leaves the map unwinnable matters. The curation tool shows these on its page; nothing in the
+    // climb measures them
+    internal static IReadOnlyList<int> PairsThatDontMatter(Map map, DifficultyRater rater)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(rater);
+        return PairsThatDontMatter(map, rater.Measure(map) ?? throw new ArgumentException("The map can't be won.", nameof(map)), rater);
+    }
+
+    // For the curation page, which already holds the climb's metrics for the map
+    internal static IReadOnlyList<int> PairsThatDontMatter(Map map, DifficultyMetrics metrics, DifficultyRater rater)
+    {
+        var tiles = map.HasTiles ? map.TileGrid() : null;
+        var idle = new List<int>();
+        for (var index = 0; index < map.Teleporters.Count; index++)
+        {
+            var others = map.Teleporters.Where((_, other) => other != index).ToList();
+            if (rater.Measure(Map.Create(map.RegionGrid(), map.Start, map.End, tiles, others)) is { } without && Changes(metrics, without) == 0)
+            {
+                idle.Add(index);
             }
         }
         return idle;
