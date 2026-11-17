@@ -6,6 +6,7 @@ namespace MergedCells;
 // The level's name in a text field, with Done. A name the editor refuses keeps the sheet open with a line saying why
 public partial class RenameSheet : EditorSheet
 {
+    private Control card;
     private LineEdit field;
     private Label problem;
 
@@ -14,10 +15,21 @@ public partial class RenameSheet : EditorSheet
     public override void _Ready()
     {
         base._Ready();
+        card = GetNode<Control>("Sheet");
         field = GetNode<LineEdit>("Sheet/Column/Field");
         problem = GetNode<Label>("Sheet/Column/Problem");
         GetNode<Button>("Sheet/Column/Done").Pressed += Submit;
         field.TextSubmitted += _ => Submit();
+        // Desktop has no on-screen keyboard, and asking its height there warns
+        SetProcess(DisplayServer.HasFeature(DisplayServer.Feature.VirtualKeyboard));
+    }
+
+    // In immersive mode Godot lays Android's keyboard over the game instead of shrinking the window, so the card would
+    // sit under it. It rides up on top instead (the card grows upward from its bottom edge)
+    public override void _Process(double delta)
+    {
+        var keyboard = Visible ? DisplayServer.VirtualKeyboardGetHeight() : 0;
+        card.OffsetBottom = -keyboard / GetTree().Root.GetFinalTransform().Scale.Y;
     }
 
     public void Open(string name)
