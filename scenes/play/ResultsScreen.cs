@@ -12,6 +12,7 @@ public partial class ResultsScreen : Control
     private Label movesLabel;
     private Label parLabel;
     private Label bestLabel;
+    private Control leaderboard;
     private Button nextButton;
 
     public event Action RetryPressed;
@@ -38,6 +39,7 @@ public partial class ResultsScreen : Control
         movesLabel = GetNode<Label>("Sheet/Column/MovesLabel");
         parLabel = GetNode<Label>("Sheet/Column/ParLabel");
         bestLabel = GetNode<Label>("Sheet/Column/BestLabel");
+        leaderboard = GetNode<Control>("Sheet/Column/Leaderboard");
         GetNode<Button>("Sheet/Column/Buttons/Retry").Pressed += () => RetryPressed?.Invoke();
         GetNode<Button>("Sheet/Column/Buttons/Menu").Pressed += () => MenuPressed?.Invoke();
         nextButton = GetNode<Button>("Sheet/Column/Buttons/Next");
@@ -48,6 +50,17 @@ public partial class ResultsScreen : Control
     public bool ShowNext
     {
         set => nextButton.Visible = value;
+    }
+
+    public string NextText
+    {
+        set => nextButton.Text = value;
+    }
+
+    // Infinite maps are all different, so they have no "Everyone's best moves" to show
+    public bool ShowLeaderboard
+    {
+        set => leaderboard.Visible = value;
     }
 
     // A test board has no finish to compare with, so its stars show as earned or empty and it has no best line

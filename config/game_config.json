@@ -128,5 +128,30 @@
       { "name": "Extreme", "minScore": 60 },
       { "name": "Insane", "minScore": 80 }
     ]
+  },
+  "infinite": {
+    "minSide": 4,
+    "maxSide": 30,
+    "startDifficulty": 3,
+    "startSide": 10,
+    "minPar": 2,
+    "maxPar": 1000,
+    "climbSteps": 300,
+    "stallSteps": 100,
+    "wallPercent": 6,
+    "trapPercent": 3,
+    "teleporterPercent": 2,
+    "difficulties": [
+      { "minScore": 0, "maxScore": 9, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 10, "maxScore": 19, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 20, "maxScore": 29, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 30, "maxScore": 39, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 40, "maxScore": 49, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 50, "maxScore": 59, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 60, "maxScore": 69, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 70, "maxScore": 79, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 80, "maxScore": 89, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
+      { "minScore": 90, "maxScore": 100, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } }
+    ]
   }
 }

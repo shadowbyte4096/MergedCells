@@ -128,6 +128,25 @@ public static class LevelFile
         return string.Join(",\n", rows) + "\n";
     }
 
+    // The map keys' values as arrays, regions renumbered as the files have them, for formats that write them on one line
+    internal static MapArrays ArraysOf(Map map)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        return new MapArrays(
+            Jagged(RenumberedRegions(map)),
+            map.HasTiles ? Jagged(TileCodes(map)) : null,
+            map.Teleporters.Count > 0
+                ? map.Teleporters.Select(pair => new[] { new[] { pair.First.Row, pair.First.Column }, new[] { pair.Second.Row, pair.Second.Column } }).ToArray()
+                : null,
+            [map.Start.Row, map.Start.Column],
+            [map.End.Row, map.End.Column]);
+    }
+
+    private static int[][] Jagged(int[,] grid) =>
+        Enumerable.Range(0, grid.GetLength(0))
+            .Select(row => Enumerable.Range(0, grid.GetLength(1)).Select(column => grid[row, column]).ToArray())
+            .ToArray();
+
     private static int[,] RenumberedRegions(Map map)
     {
         var grid = map.RegionGrid();
@@ -323,3 +342,6 @@ internal sealed record TutorialJson
     UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow)]
 [JsonSerializable(typeof(LevelJson))]
 internal partial class LevelJsonContext : JsonSerializerContext;
+
+// A map's file keys as arrays: regions, tile codes or null, pairs or null, start and end
+internal sealed record MapArrays(int[][] Regions, int[][]? Tiles, int[][][]? Teleporters, int[] Start, int[] End);

@@ -2,10 +2,11 @@ namespace MergedCells.Core.Tests;
 
 public class StarLimitsTests
 {
-    private static Map Shipped(int id) => ShippedCampaignTests.Campaign().Levels.Single(level => level.Id == id).Map;
+    private static Map Shipped(int id) => FixtureLevels.ById(id).Map;
 
-    // Chapter 1's medium levels (1-star limit 2 past the 2-star one) and hard levels (1 past), with the levelStars chunk 12
-    // set from route counts. These literals are the point: the rule must give back what was shipped
+    // Chapter 1's medium levels (1-star limit 2 past the 2-star one) and hard levels (1 past), as chunk 12 built them (copies
+    // in Fixtures/levels), with the levelStars chunk 12 set from route counts. These literals are the point: the rule must
+    // give back what was shipped
     [Theory]
     [InlineData(18, 2, 2, 4)]
     [InlineData(19, 2, 2, 4)]

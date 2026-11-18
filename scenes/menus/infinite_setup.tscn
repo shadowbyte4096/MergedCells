@@ -1,0 +1,243 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/InfiniteSetup.cs" id="1_setup"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="4_back"]
+[ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="5_settings"]
+[ext_resource type="Script" path="res://scenes/menus/SliderHatch.cs" id="6_hatch"]
+[ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="7_sheet"]
+
+[node name="InfiniteSetup" type="CanvasLayer"]
+script = ExtResource("1_setup")
+Looks = ExtResource("2_looks")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="TopBar" type="MarginContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Root/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Root/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="Title" type="Label" parent="Root/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text = "Infinite"
+horizontal_alignment = 1
+
+[node name="SettingsButton" type="Button" parent="Root/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("5_settings")
+icon_alignment = 1
+
+[node name="Centre" type="CenterContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Column" type="VBoxContainer" parent="Root/Centre"]
+custom_minimum_size = Vector2(600, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="DifficultyHeader" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/Centre/Column/DifficultyHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Difficulty"
+
+[node name="Value" type="Label" parent="Root/Centre/Column/DifficultyHeader"]
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "3"
+
+[node name="DifficultyRow" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Less" type="Button" parent="Root/Centre/Column/DifficultyRow"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Slider" type="HSlider" parent="Root/Centre/Column/DifficultyRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"SetupSlider"
+min_value = 1.0
+max_value = 10.0
+value = 3.0
+rounded = true
+
+[node name="More" type="Button" parent="Root/Centre/Column/DifficultyRow"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="SizeHeader" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Label" type="Label" parent="Root/Centre/Column/SizeHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Muted"
+text = "Map size"
+
+[node name="Value" type="Label" parent="Root/Centre/Column/SizeHeader"]
+layout_mode = 2
+theme_type_variation = &"StatusLine"
+text = "10 × 10"
+
+[node name="SizeRow" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Less" type="Button" parent="Root/Centre/Column/SizeRow"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "−"
+
+[node name="Slider" type="HSlider" parent="Root/Centre/Column/SizeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"SetupSlider"
+min_value = 4.0
+max_value = 30.0
+value = 10.0
+rounded = true
+
+[node name="Hatch" type="Control" parent="Root/Centre/Column/SizeRow/Slider"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("6_hatch")
+
+[node name="More" type="Button" parent="Root/Centre/Column/SizeRow"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "+"
+
+[node name="RangeLine" type="Label" parent="Root/Centre/Column"]
+
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+
+[node name="TwistsLabel" type="Label" parent="Root/Centre/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "Twists"
+
+[node name="Twists" type="GridContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 2
+
+[node name="Walls" type="Button" parent="Root/Centre/Column/Twists"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"TwistToggle"
+toggle_mode = true
+text = "Walls"
+
+[node name="Traps" type="Button" parent="Root/Centre/Column/Twists"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"TwistToggle"
+toggle_mode = true
+text = "Traps"
+
+[node name="Teleporters" type="Button" parent="Root/Centre/Column/Twists"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"TwistToggle"
+toggle_mode = true
+text = "Teleporters"
+
+[node name="Irregular" type="Button" parent="Root/Centre/Column/Twists"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"TwistToggle"
+toggle_mode = true
+text = "Irregular"
+
+[node name="Notice" type="Label" parent="Root/Centre/Column"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Gap" type="Control" parent="Root/Centre/Column"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Play" type="Button" parent="Root/Centre/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Play"
+
+[node name="Settings" parent="Root" instance=ExtResource("7_sheet")]
+layout_mode = 1

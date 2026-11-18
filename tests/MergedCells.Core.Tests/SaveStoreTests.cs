@@ -102,13 +102,13 @@ public sealed class SaveStoreTests : IDisposable
     [Fact]
     public void Newer_file_is_left_untouched()
     {
-        var newer = SaveGameJsonTests.Valid.Replace("\"version\":1", "\"version\":3");
+        var newer = SaveGameJsonTests.Valid.Replace("\"version\":1", $"\"version\":{SaveGame.CurrentVersion + 1}");
         File.WriteAllText(SavePath, newer);
         var store = new SaveStore(SavePath);
 
         var load = store.Load();
 
-        Assert.Equal((SaveOutcome.Newer, "3", false), (load.Outcome, load.Problem, store.CanWrite));
+        Assert.Equal((SaveOutcome.Newer, (SaveGame.CurrentVersion + 1).ToString(), false), (load.Outcome, load.Problem, store.CanWrite));
         Assert.Throws<InvalidOperationException>(() => store.Write(load.Save));
         Assert.Equal(newer, File.ReadAllText(SavePath));
     }

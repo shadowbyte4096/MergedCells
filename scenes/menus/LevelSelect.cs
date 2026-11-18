@@ -26,7 +26,6 @@ public partial class LevelSelect : CanvasLayer, IScreen
     private Campaign campaign;
     private CampaignProgress progress;
     private Chapter chapter;
-    private Appearance appearance;
     private bool dark;
 
     // Set by a gesture that crossed the swipe threshold, so the tile it started on doesn't open on release. Godot sends
@@ -37,9 +36,9 @@ public partial class LevelSelect : CanvasLayer, IScreen
 
     public event Action BackPressed;
 
-    public event Action<Appearance> AppearanceChosen;
-
     [Export] public AppLooks Looks { get; set; }
+
+    public SettingsSheet Settings => settings;
 
     public bool Dark
     {
@@ -71,24 +70,18 @@ public partial class LevelSelect : CanvasLayer, IScreen
         // Every button here ignores a press at the end of a swipe, not only the tiles: the buttons are 48 units wide and a
         // swipe fires at 40, so one can start and end on a button
         GetNode<Button>("Root/Layout/TopBar/Row/Back").Pressed += () => Unswiped(() => BackPressed?.Invoke());
-        GetNode<Button>("Root/Layout/TopBar/Row/SettingsButton").Pressed += () => Unswiped(() => settings.Open(appearance));
+        GetNode<Button>("Root/Layout/TopBar/Row/SettingsButton").Pressed += () => Unswiped(settings.Open);
         previous.Pressed += () => Unswiped(() => Page(-1));
         next.Pressed += () => Unswiped(() => Page(1));
-        settings.AppearanceChosen += choice =>
-        {
-            appearance = choice;
-            AppearanceChosen?.Invoke(choice);
-        };
         GetViewport().SizeChanged += ApplySafeArea;
         ApplyLook();
         ApplySafeArea();
     }
 
-    public void Open(Campaign shown, CampaignProgress current, Chapter page, Appearance saved)
+    public void Open(Campaign shown, CampaignProgress current, Chapter page)
     {
         campaign = shown;
         progress = current;
-        appearance = saved;
         totalLabel.Text = progress.TotalStars.ToString();
         ShowChapter(page);
     }

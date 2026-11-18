@@ -106,14 +106,21 @@ jobs:
           # Started here, detached, so Godot doesn't start its own adb server holding the step's output open
           "$ANDROID_HOME/platform-tools/adb" start-server > /dev/null 2>&1 < /dev/null
 
-      - name: Set the build number and drop the emulator architecture
+      - name: Set the build number, mark the playtest build and drop the emulator architecture
         run: |
+          # The "playtest" feature turns on play-data recording (chunk 22); store builds never have it
           sed -i \
             -e 's|^architectures/x86_64=true$|architectures/x86_64=false|' \
             -e "s|^version/code=.*|version/code=${BUILD}|" \
             -e "s|^version/name=.*|version/name=\"playtest-${BUILD}\"|" \
+            -e 's|^custom_features=""$|custom_features="playtest"|' \
             export_presets.cfg
-          grep -E '^(architectures|version)/' export_presets.cfg
+          grep -E '^(architectures|version)/|^custom_features=' export_presets.cfg
+          # Both presets, or the friends' builds would quietly lose recording
+          test "$(grep -c '^custom_features="playtest"$' export_presets.cfg)" -eq 2
+          # Play records name the build they came from
+          sed -i "s|^config/name=\"Merged Cells\"\$|&\nconfig/version=\"playtest-${BUILD}\"|" project.godot
+          grep '^config/version=' project.godot
 
       - name: Import the project
         run: '"$GODOT" --headless --path . --import'

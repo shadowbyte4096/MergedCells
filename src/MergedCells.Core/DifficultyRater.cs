@@ -6,6 +6,10 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class DifficultyRater
 {
+    // Stored with every play record, so a refit can tell counts made under an older definition. Raise it whenever how any
+    // metric is counted changes
+    public const int MetricsVersion = 1;
+
     private const int MaxWeight = 10_000;
 
     private const int FullShare = 10_000;

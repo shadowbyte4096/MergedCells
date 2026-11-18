@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The first screen: the title, the star total, Campaign, Custom levels, the modes still to come greyed out, Credits and the gear
+// The first screen: the title, the star total, Campaign, Custom levels, Infinite, the modes still to come greyed out, Credits and the gear
 public partial class ModeSelect : CanvasLayer, IScreen
 {
     private Control root;
@@ -17,12 +17,13 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private bool resetArmed;
     private Label saveNotice;
     private SettingsSheet settings;
-    private Appearance appearance;
     private bool dark;
 
     public event Action CampaignPressed;
 
     public event Action CustomLevelsPressed;
+
+    public event Action InfinitePressed;
 
     public event Action CreditsPressed;
 
@@ -31,9 +32,9 @@ public partial class ModeSelect : CanvasLayer, IScreen
     // Debug builds only, after a second tap: the first only asks
     public event Action ResetSaveConfirmed;
 
-    public event Action<Appearance> AppearanceChosen;
-
     [Export] public AppLooks Looks { get; set; }
+
+    public SettingsSheet Settings => settings;
 
     public bool Dark
     {
@@ -62,26 +63,21 @@ public partial class ModeSelect : CanvasLayer, IScreen
         testBoards.Pressed += () => TestBoardsPressed?.Invoke();
         resetSave.Pressed += OnResetSavePressed;
         GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();
-        GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open(appearance);
-        settings.AppearanceChosen += choice =>
-        {
-            appearance = choice;
-            AppearanceChosen?.Invoke(choice);
-        };
+        GetNode<Button>("Root/Centre/Column/Infinite").Pressed += () => InfinitePressed?.Invoke();
+        GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open();
         GetViewport().SizeChanged += ApplySafeArea;
         ApplyLook();
         ApplySafeArea();
     }
 
     // debug shows Test boards and Reset save. saveNotice: why this run's progress isn't being kept, or null while saving works
-    public void Open(int totalStars, bool debug, Appearance saved, string saveNotice)
+    public void Open(int totalStars, bool debug, string saveNotice)
     {
         totalLabel.Text = totalStars.ToString();
         testBoards.Visible = debug;
         resetSave.Visible = debug;
         this.saveNotice.Text = saveNotice ?? "";
         this.saveNotice.Visible = saveNotice != null;
-        appearance = saved;
         GD.Print("Screen: mode select");
     }
 

@@ -90,9 +90,30 @@ public class ShippedLevelsTests
         Assert.Equal(ids.Length, ids.Distinct().Count());
     }
 
-    [Fact]
-    public void There_are_at_most_a_hundred_and_fifty_levels()
+    // A pocket that strands the player with nothing on the board to say why (chapter 3 to 5's rule for every level)
+    [Theory]
+    [MemberData(nameof(LevelFiles))]
+    public void No_level_has_a_dead_end(string file)
     {
-        Assert.InRange(Files().Length, 1, 150);
+        Assert.Equal(0, Solver.Solve(Load(file).Map).DeadEnds);
     }
+
+    // The developer's rule since chunk 21b: every kind of twist on a level changes par, the decoys, the brute-force excess or
+    // the away moves when taken off alone. A level without twists has nothing to check
+    public static TheoryData<string> TwistLevelFiles =>
+        new(Files().Where(file => Load(file).Map is var map && (map.HasTiles || map.Teleporters.Count > 0)));
+
+    [Theory(Timeout = 30_000)]
+    [MemberData(nameof(TwistLevelFiles))]
+    public async Task Every_kind_of_twist_on_a_level_matters(string file)
+    {
+        var map = Load(file).Map;
+
+        var reliance = await Task.Run(() => TwistReliance.Of(map, Rater), TestContext.Current.CancellationToken);
+
+        Assert.True(reliance >= 1, $"A kind of twist on {file} changes none of the four measures");
+    }
+
+    private static readonly DifficultyRater Rater = new(
+        GameConfig.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "game_config.json"))).Difficulty);
 }

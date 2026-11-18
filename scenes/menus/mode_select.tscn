@@ -107,7 +107,6 @@ text = "Custom levels"
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillButton"
-disabled = true
 text = "Infinite"
 
 [node name="Daily" type="Button" parent="Root/Centre/Column"]

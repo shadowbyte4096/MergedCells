@@ -3,6 +3,9 @@
 [ext_resource type="FontFile" path="res://themes/fonts/Inter-Medium.ttf" id="1_medium"]
 [ext_resource type="FontFile" path="res://themes/fonts/Inter-Bold.ttf" id="2_bold"]
 [ext_resource type="FontFile" path="res://themes/fonts/Inter-ExtraBold.ttf" id="3_extrabold"]
+[ext_resource type="Texture2D" path="res://themes/icons/switch-on-dark.svg" id="4_switch_on"]
+[ext_resource type="Texture2D" path="res://themes/icons/switch-off-dark.svg" id="5_switch_off"]
+[ext_resource type="Texture2D" path="res://themes/icons/slider-knob-dark.svg" id="6_slider_knob"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_round"]
 content_margin_left = 32
@@ -468,6 +471,43 @@ corner_radius_bottom_left = 24
 anti_aliasing = true
 bg_color = Color(0.05490196, 0.12156863, 0.10980392, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_round_armed"]
+content_margin_left = 32
+content_margin_top = 32
+content_margin_right = 32
+content_margin_bottom = 32
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+corner_radius_top_left = 56
+corner_radius_top_right = 56
+corner_radius_bottom_right = 56
+corner_radius_bottom_left = 56
+anti_aliasing = true
+bg_color = Color(0.08627451, 0.19215686, 0.17254902, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider_track"]
+content_margin_top = 6
+content_margin_bottom = 6
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+anti_aliasing = true
+bg_color = Color(0.12156863, 0.26666667, 0.24313725, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_slider_fill"]
+content_margin_top = 6
+content_margin_bottom = 6
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+anti_aliasing = true
+bg_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+
 [resource]
 default_font = ExtResource("1_medium")
 default_font_size = 40
@@ -813,3 +853,52 @@ NameRow/base_type = &"HBoxContainer"
 NameRow/constants/separation = 12
 SheetRowPanel/base_type = &"PanelContainer"
 SheetRowPanel/styles/panel = SubResource("StyleBoxFlat_sheet_row")
+RoundButtonArmed/base_type = &"Button"
+RoundButtonArmed/colors/icon_hover_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonArmed/colors/icon_normal_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonArmed/colors/icon_pressed_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonArmed/styles/hover = SubResource("StyleBoxFlat_round_armed")
+RoundButtonArmed/styles/normal = SubResource("StyleBoxFlat_round_armed")
+RoundButtonArmed/styles/pressed = SubResource("StyleBoxFlat_round_armed")
+RecordSwitch/base_type = &"CheckButton"
+RecordSwitch/colors/font_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RecordSwitch/colors/font_focus_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RecordSwitch/colors/font_hover_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RecordSwitch/colors/font_hover_pressed_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RecordSwitch/colors/font_pressed_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RecordSwitch/constants/h_separation = 16
+RecordSwitch/constants/icon_max_width = 0
+RecordSwitch/font_sizes/font_size = 32
+RecordSwitch/fonts/font = ExtResource("2_bold")
+RecordSwitch/icons/checked = ExtResource("4_switch_on")
+RecordSwitch/icons/checked_disabled = ExtResource("4_switch_on")
+RecordSwitch/icons/unchecked = ExtResource("5_switch_off")
+RecordSwitch/icons/unchecked_disabled = ExtResource("5_switch_off")
+RecordSwitch/styles/disabled = SubResource("StyleBoxEmpty_none")
+RecordSwitch/styles/focus = SubResource("StyleBoxEmpty_none")
+RecordSwitch/styles/hover = SubResource("StyleBoxEmpty_none")
+RecordSwitch/styles/hover_pressed = SubResource("StyleBoxEmpty_none")
+RecordSwitch/styles/normal = SubResource("StyleBoxEmpty_none")
+RecordSwitch/styles/pressed = SubResource("StyleBoxEmpty_none")
+SetupSlider/base_type = &"HSlider"
+SetupSlider/icons/grabber = ExtResource("6_slider_knob")
+SetupSlider/icons/grabber_disabled = ExtResource("6_slider_knob")
+SetupSlider/icons/grabber_highlight = ExtResource("6_slider_knob")
+SetupSlider/styles/grabber_area = SubResource("StyleBoxFlat_slider_fill")
+SetupSlider/styles/grabber_area_highlight = SubResource("StyleBoxFlat_slider_fill")
+SetupSlider/styles/slider = SubResource("StyleBoxFlat_slider_track")
+SliderHatch/colors/hatch = Color(0.19607843, 0.43921569, 0.39607843, 1)
+TwistToggle/base_type = &"Button"
+TwistToggle/colors/font_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+TwistToggle/colors/font_disabled_color = Color(0.19607843, 0.43921569, 0.39607843, 1)
+TwistToggle/colors/font_hover_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+TwistToggle/colors/font_hover_pressed_color = Color(0.08627451, 0.19215686, 0.17254902, 1)
+TwistToggle/colors/font_pressed_color = Color(0.08627451, 0.19215686, 0.17254902, 1)
+TwistToggle/font_sizes/font_size = 30
+TwistToggle/fonts/font = ExtResource("2_bold")
+TwistToggle/styles/disabled = SubResource("StyleBoxFlat_pill_disabled")
+TwistToggle/styles/focus = SubResource("StyleBoxEmpty_none")
+TwistToggle/styles/hover = SubResource("StyleBoxFlat_pill")
+TwistToggle/styles/hover_pressed = SubResource("StyleBoxFlat_primary")
+TwistToggle/styles/normal = SubResource("StyleBoxFlat_pill")
+TwistToggle/styles/pressed = SubResource("StyleBoxFlat_primary")

@@ -23,6 +23,10 @@ public partial class Play : Node2D, IScreen
     private Button undoCaption;
     private PanelContainer undoBadge;
     private Label undoCount;
+    private Control newMap;
+    private Button newMapButton;
+    private Button newMapCaption;
+    private bool newMapArmed;
     private Control tutorialBlock;
     private Label tutorialLine;
     private Label tutorialDetail;
@@ -32,10 +36,10 @@ public partial class Play : Node2D, IScreen
 
     private PlaySession session;
     private int par;
-    private StarsConfig stars;
-    private Func<bool> hasNext;
-    private Func<int, LevelFinish> recordFinish;
-    private Tutorial tutorial;
+    private PlaySetup setup;
+    private PlayRecorder recorder;
+    // Time with the app in front, for play records
+    private readonly ActiveClock clock = new();
 
     private PlayerSlide? sliding;
     private MoveTimeline timeline;
@@ -46,15 +50,15 @@ public partial class Play : Node2D, IScreen
 
     public event Action NextPressed;
 
+    // The confirming second tap on New map, after this map's play record has ended as given up
+    public event Action NewMapPressed;
+
     // The top bar's back chevron or the results card's Menu
     public event Action MenuPressed;
 
-    public event Action<Appearance> AppearanceChosen;
-
-    // The saved choice, set by the caller, so the settings sheet opens on it
-    public Appearance Appearance { get; set; }
-
     [Export] public AppLooks Looks { get; set; }
+
+    public SettingsSheet Settings => settings;
 
     public bool Dark
     {
@@ -87,6 +91,9 @@ public partial class Play : Node2D, IScreen
         undoCaption = GetNode<Button>("Hud/Root/BottomBar/Row/Undo/Caption");
         undoBadge = GetNode<PanelContainer>("Hud/Root/BottomBar/Row/Undo/UndoButton/Badge");
         undoCount = GetNode<Label>("Hud/Root/BottomBar/Row/Undo/UndoButton/Badge/Count");
+        newMap = GetNode<Control>("Hud/Root/BottomBar/Row/NewMap");
+        newMapButton = GetNode<Button>("Hud/Root/BottomBar/Row/NewMap/NewMapButton");
+        newMapCaption = GetNode<Button>("Hud/Root/BottomBar/Row/NewMap/Caption");
         tutorialBlock = GetNode<Control>("Hud/Root/Tutorial");
         tutorialLine = GetNode<Label>("Hud/Root/Tutorial/Lines/Line");
         tutorialDetail = GetNode<Label>("Hud/Root/Tutorial/Lines/Detail");
@@ -100,16 +107,13 @@ public partial class Play : Node2D, IScreen
         undoCaption.GuiInput += OnGreyedUndoInput;
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/RestartButton").Pressed += Restart;
         GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
+        newMapButton.Pressed += OnNewMapPressed;
+        newMapCaption.Pressed += OnNewMapPressed;
         results.RetryPressed += Retry;
         results.NextPressed += () => NextPressed?.Invoke();
         results.MenuPressed += () => MenuPressed?.Invoke();
         GetNode<Button>("Hud/Root/TopBar/Row/Back").Pressed += () => MenuPressed?.Invoke();
         GetNode<Button>("Hud/Root/TopBar/Row/SettingsButton").Pressed += OpenSettings;
-        settings.AppearanceChosen += choice =>
-        {
-            Appearance = choice;
-            AppearanceChosen?.Invoke(choice);
-        };
         // Never under the results card: a winning move remembered before the sheet opened can finish the level
         settings.Closed += () =>
         {
@@ -145,36 +149,28 @@ public partial class Play : Node2D, IScreen
         return open;
     }
 
-    // stars are the level's thresholds (in the campaign, from GameConfig.StarsFor), or null for a level without stars (a
-    // custom level), whose card shows only the moves and par. hasNext is asked when the results card appears, so a finish
-    // that opens the next chapter enables Next; null hides Next. recordFinish is called with the move count when the level
-    // is won, and returns how the finish compares with the saved best; Play never sees level IDs or the save. Null (test
-    // boards, custom levels) records nothing. Null rules mean unlimited undo; a null tutorial shows no text.
-    public void Start(
-        Map map,
-        int par,
-        string title,
-        StarsConfig stars,
-        Func<bool> hasNext,
-        Func<int, LevelFinish> recordFinish = null,
-        PlayRules rules = null,
-        Tutorial tutorial = null)
+    // Play never sees level IDs or the save: the setup's delegates record finishes and play data
+    public void Start(Map map, int par, PlaySetup setup)
     {
         ArgumentNullException.ThrowIfNull(map);
         ArgumentOutOfRangeException.ThrowIfLessThan(par, 1);
-        ArgumentException.ThrowIfNullOrEmpty(title);
+        ArgumentNullException.ThrowIfNull(setup);
+        ArgumentException.ThrowIfNullOrEmpty(setup.Title);
 
+        // The map being replaced was left unfinished
+        EndRecording(PlayOutcome.Left);
         this.par = par;
-        this.stars = stars;
-        this.hasNext = hasNext;
-        this.recordFinish = recordFinish;
-        this.tutorial = tutorial;
-        session = new PlaySession(map, rules);
+        this.setup = setup;
+        var title = setup.Title;
+        session = new PlaySession(map, setup.Rules);
+        StartRecording();
         board.Map = map;
         board.GetNode<StartMarker>("StartMarker").Cell = map.Start;
         StopSlide();
         results.Hide();
         settings.Close();
+        newMap.Visible = setup.NewMap;
+        DisarmNewMap();
         player.Cell = session.Position;
         titleLabel.Text = title;
         results.Title = title;
@@ -189,8 +185,38 @@ public partial class Play : Node2D, IScreen
         board.UpdateView();
     }
 
+    public override void _Notification(int what)
+    {
+        if (what == NotificationApplicationFocusOut || what == NotificationApplicationPaused)
+        {
+            clock.Pause();
+        }
+        else if (what == NotificationApplicationFocusIn || what == NotificationApplicationResumed)
+        {
+            clock.Resume();
+        }
+    }
+
+    // Leaving the screen (back, Menu, the app closing on desktop) leaves an unfinished map
+    public override void _ExitTree() => EndRecording(PlayOutcome.Left);
+
+    private long ActiveMs => clock.Milliseconds;
+
+    private void StartRecording()
+    {
+        clock.Reset();
+        recorder = setup.Recording?.Invoke();
+    }
+
+    private void EndRecording(PlayOutcome outcome)
+    {
+        recorder?.End(outcome, session.Moves, ActiveMs);
+        recorder = null;
+    }
+
     public override void _Process(double delta)
     {
+        clock.Tick(delta);
         UpdateSwipeHint();
         if (sliding is null)
         {
@@ -312,6 +338,39 @@ public partial class Play : Node2D, IScreen
             GetViewport().SetInputAsHandled();
             Restart();
         }
+        else if (key.IsActionPressed("new_map") && newMap.Visible)
+        {
+            GetViewport().SetInputAsHandled();
+            OnNewMapPressed();
+        }
+    }
+
+    // The first press arms it and the second gives up on the map; anything else in between disarms it, so there's no timer
+    private void OnNewMapPressed()
+    {
+        if (!Playing || session.IsWon || settings.IsOpen)
+        {
+            return;
+        }
+        if (!newMapArmed)
+        {
+            newMapArmed = true;
+            newMapButton.ThemeTypeVariation = "RoundButtonArmed";
+            newMapCaption.Text = "Tap again";
+            GD.Print("New map: armed");
+            return;
+        }
+        DisarmNewMap();
+        GD.Print("New map");
+        EndRecording(PlayOutcome.GaveUp);
+        NewMapPressed?.Invoke();
+    }
+
+    private void DisarmNewMap()
+    {
+        newMapArmed = false;
+        newMapButton.ThemeTypeVariation = "";
+        newMapCaption.Text = "New map";
     }
 
     private bool Playing => session is not null && !session.IsFinished;
@@ -331,7 +390,8 @@ public partial class Play : Node2D, IScreen
         {
             return;
         }
-        settings.Open(Appearance);
+        DisarmNewMap();
+        settings.Open();
         camera.InputEnabled = false;
     }
 
@@ -350,6 +410,8 @@ public partial class Play : Node2D, IScreen
             return;
         }
         StopSlide();
+        DisarmNewMap();
+        recorder?.Undo(ActiveMs);
         player.Cell = session.Position;
         camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
@@ -372,21 +434,25 @@ public partial class Play : Node2D, IScreen
         if (Playing && !settings.IsOpen)
         {
             RestartLevel();
+            recorder?.Restart(ActiveMs);
         }
     }
 
+    // A new visit to the same map, so a new play record
     private void Retry()
     {
         results.Hide();
         tutorialBlock.Modulate = Colors.White;
         camera.InputEnabled = true;
         RestartLevel();
+        StartRecording();
     }
 
     private void RestartLevel()
     {
         session.Restart();
         StopSlide();
+        DisarmNewMap();
         player.Cell = session.Position;
         camera.Recentre(board.CellCentre(session.Position));
         RefreshMoves();
@@ -401,6 +467,8 @@ public partial class Play : Node2D, IScreen
         sliding = slide;
         elapsed = 0;
         eventsRun = 0;
+        DisarmNewMap();
+        recorder?.Move(slide.Direction, ActiveMs);
         trail.Begin(board.CellCentre(slide.From));
         camera.Follow(board.CellCentre(slide.From), board.CellCentre(slide.Runs[0].To), timeline.RunEnd(0));
         RefreshMoves();
@@ -424,16 +492,21 @@ public partial class Play : Node2D, IScreen
 
     private void Finish()
     {
-        var finish = recordFinish?.Invoke(session.Moves);
+        // The best first: play data is for tuning, and must never cost a player their result
+        var finish = setup.RecordFinish?.Invoke(session.Moves);
+        EndRecording(PlayOutcome.Won);
         // Transparent rather than hidden, so the board's inset, and the board, stay where they are
         tutorialBlock.Modulate = Colors.Transparent;
         settings.Close();
         camera.InputEnabled = false;
-        results.ShowNext = hasNext is not null;
-        if (hasNext is not null)
+        results.ShowNext = setup.HasNext is not null;
+        results.NextText = setup.NextText;
+        results.ShowLeaderboard = setup.Leaderboard;
+        if (setup.HasNext is not null)
         {
-            results.HasNext = hasNext();
+            results.HasNext = setup.HasNext();
         }
+        var stars = setup.Stars;
         if (stars is null)
         {
             results.ShowPlain(session.Moves, par);
@@ -445,7 +518,11 @@ public partial class Play : Node2D, IScreen
         GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(earned, "star")}");
     }
 
-    private void RefreshMoves() => movesLabel.Text = $"{Plural(session.Moves, "move")} · par {par}";
+    private void RefreshMoves()
+    {
+        var moves = $"{Plural(session.Moves, "move")} · par {par}";
+        movesLabel.Text = setup.Detail is null ? moves : $"{setup.Detail} · {moves}";
+    }
 
     // No badge when undo is unlimited. With none left, Undo greys out until a restart.
     private void RefreshUndo()
@@ -474,6 +551,7 @@ public partial class Play : Node2D, IScreen
     // Phones get the swipe wording and the ghost finger; desktop gets the keyboard wording
     private void ShowTutorial()
     {
+        var tutorial = setup.Tutorial;
         tutorialBlock.Visible = tutorial is not null;
         tutorialBlock.Modulate = Colors.White;
         if (tutorial is null)

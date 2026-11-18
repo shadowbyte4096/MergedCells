@@ -180,6 +180,35 @@ public class SaveGameTests
         Assert.Equal([id], save.SharedLevels);
     }
 
+    // The play-data switch, the last infinite choice and the playtester ID are settings and preferences, not progress
+    [Theory]
+    [AutoData]
+    public void Clearing_progress_keeps_the_play_data_setting_choice_and_playtester(bool record, Guid playtester, bool walls)
+    {
+        var choice = new InfiniteChoice(4, 12, walls, false, true, false);
+        var save = new SaveGame { RecordPlayData = record, Infinite = choice, Playtester = playtester };
+
+        save.ClearProgress();
+
+        Assert.Equal((record, choice, (Guid?)playtester), (save.RecordPlayData, save.Infinite, save.Playtester));
+    }
+
+    // A choice Parse would refuse would make the next load a broken save
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(11, 10)]
+    [InlineData(3, 1)]
+    public void Infinite_cannot_be_a_choice_the_save_would_refuse(int difficulty, int side)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SaveGame { Infinite = new InfiniteChoice(difficulty, side, false, false, false, false) });
+    }
+
+    [Fact]
+    public void Playtester_cannot_be_empty()
+    {
+        Assert.Throws<ArgumentException>(() => new SaveGame { Playtester = Guid.Empty });
+    }
+
     [Fact]
     public void Cleared_save_writes_no_levels()
     {

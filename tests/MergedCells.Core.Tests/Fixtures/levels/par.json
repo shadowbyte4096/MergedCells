@@ -1,0 +1,19 @@
+{
+  "id": 13,
+  "name": "Par",
+  "chapter": 1,
+  "regions": [
+    [1, 2, 2, 2],
+    [1, 3, 3, 3],
+    [1, 4, 4, 4],
+    [5, 5, 5, 6]
+  ],
+  "tiles": null,
+  "teleporters": null,
+  "start": [0, 0],
+  "end": [3, 3],
+  "par": 2,
+  "tutorial": {
+    "lines": ["Par is the fewest moves to the end", "Match it for 3 stars. Undo takes back a move."]
+  }
+}

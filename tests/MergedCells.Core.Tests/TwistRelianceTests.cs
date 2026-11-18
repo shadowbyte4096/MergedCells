@@ -6,7 +6,7 @@ public class TwistRelianceTests
 {
     private static readonly DifficultyRater Rater = new(DifficultyConfigs.With());
 
-    private static Level Shipped(int id) => ShippedCampaignTests.Campaign().Levels.Single(level => level.Id == id);
+    private static Level Shipped(int id) => FixtureLevels.ById(id);
 
     // A ring round the end: no slide stops beside it, so only the wall at [0, 2] makes [0, 1] a stop
     private static Map Ring(Tile[,]? tiles = null) => Map.Create(Grid("AAA", "ABA", "AAA"), new(0, 0), new(1, 1), tiles);
@@ -64,18 +64,5 @@ public class TwistRelianceTests
     public void A_twist_that_only_makes_a_tempting_route_counts()
     {
         Assert.True(TwistReliance.Of(Shipped(27).Map, Rater) >= 1);
-    }
-
-    // The twist tutorials of chapters 3 to 5
-    [Theory]
-    [InlineData(26)]
-    [InlineData(27)]
-    [InlineData(30)]
-    [InlineData(31)]
-    [InlineData(32)]
-    [InlineData(33)]
-    public void Every_shipped_twist_level_relies_on_its_twist(int id)
-    {
-        Assert.True(TwistReliance.Of(Shipped(id).Map, Rater) >= 1);
     }
 }

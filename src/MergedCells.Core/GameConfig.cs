@@ -26,6 +26,8 @@ public sealed record GameConfig
 
     public required CustomLevelsConfig CustomLevels { get; init; }
 
+    public required InfiniteConfig Infinite { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -59,6 +61,8 @@ public sealed record GameConfig
         _ = new MapClimber(Generator, Difficulty, Climb);
         CustomLevels.CheckRanges();
         _ = new PlayRules(CustomLevels.UndoLimit);
+        Infinite.CheckRanges();
+        _ = new MapClimber(Generator, Difficulty, Infinite.Climb(Climb));
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -162,7 +166,33 @@ public sealed record GameConfig
             throw new JsonException("The config's \"climb\" group is null.");
         }
         CheckCustomLevels(config.CustomLevels);
+        CheckInfinite(config.Infinite);
         return config;
+    }
+
+    private static void CheckInfinite(InfiniteConfig? infinite)
+    {
+        if (infinite is null)
+        {
+            throw new JsonException("The config's \"infinite\" group is null.");
+        }
+        if (infinite.Difficulties is null)
+        {
+            throw new JsonException("The config's \"infinite.difficulties\" is null.");
+        }
+        for (var index = 0; index < infinite.Difficulties.Count; index++)
+        {
+            var difficulty = infinite.Difficulties[index]
+                ?? throw new JsonException($"The config's \"infinite.difficulties\" entry {index} is null.");
+            if (difficulty.Plain is null)
+            {
+                throw new JsonException($"The config's \"infinite.difficulties\" entry {index} has a null \"plain\".");
+            }
+            if (difficulty.Twists is null)
+            {
+                throw new JsonException($"The config's \"infinite.difficulties\" entry {index} has a null \"twists\".");
+            }
+        }
     }
 
     private static void CheckCustomLevels(CustomLevelsConfig? customLevels)

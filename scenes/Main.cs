@@ -46,6 +46,8 @@ public partial class Main : Node
 
     [Export] public PackedScene CustomLevelsScene { get; set; }
 
+    [Export] public PackedScene InfiniteSetupScene { get; set; }
+
     public override void _Notification(int what)
     {
         if (what == NotificationApplicationFocusIn)
@@ -66,6 +68,10 @@ public partial class Main : Node
     public override void _Ready()
     {
         GD.Print("Merged Cells started (C#).");
+        if (PlaytestBuild.IsOn)
+        {
+            GD.Print($"Playtest build ({PlaytestBuild.Build}): play data can be recorded");
+        }
         // The config first, so a bad file stops the game before anything appears
         _ = GameConfigFile.Current;
         _ = SaveGameFile.Current;
@@ -148,8 +154,8 @@ public partial class Main : Node
         menu.CreditsPressed += ShowCredits;
         menu.TestBoardsPressed += () => ShowTestBoard(0);
         menu.ResetSaveConfirmed += ResetSave;
-        menu.AppearanceChosen += OnAppearanceChosen;
-        menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Current.Appearance, SaveGameFile.Notice);
+        menu.InfinitePressed += () => ShowInfiniteSetup();
+        menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Notice);
         back = null;
         atRoot = true;
     });
@@ -159,8 +165,7 @@ public partial class Main : Node
         var select = Open<LevelSelect>(LevelSelectScene);
         select.LevelChosen += ShowLevel;
         select.BackPressed += ShowModeSelect;
-        select.AppearanceChosen += OnAppearanceChosen;
-        select.Open(campaign, Progress(), chapter, SaveGameFile.Current.Appearance);
+        select.Open(campaign, Progress(), chapter);
         back = ShowModeSelect;
     });
 
@@ -278,7 +283,7 @@ public partial class Main : Node
         var par = Solver.Solve(custom.Map).Par
             ?? throw new InvalidOperationException($"The custom level \"{custom.Name}\" can't be won.");
         GD.Print($"Custom level: {custom.Name} (par {par})");
-        play.Start(custom.Map, par, custom.Name, null, null, rules: new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit));
+        play.Start(custom.Map, par, new PlaySetup(custom.Name) { Rules = new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit) });
         back = backTo;
     });
 
@@ -381,19 +386,23 @@ public partial class Main : Node
         var node = scene.Instantiate<T>();
         AddChild(node);
         node.Dark = dark;
+        if (((IScreen)node).Settings is { } sheet)
+        {
+            WireSettings(sheet);
+        }
         screen = node;
         atRoot = false;
         level = null;
         testBoard = null;
+        infiniteChoice = null;
         return node;
     }
 
     private Play OpenPlay()
     {
         var play = Open<Play>(PlayScene);
-        play.Appearance = SaveGameFile.Current.Appearance;
-        play.AppearanceChosen += OnAppearanceChosen;
         play.NextPressed += OnNextPressed;
+        play.NewMapPressed += OnNewMapPressed;
         play.MenuPressed += () => back?.Invoke();
         return play;
     }
@@ -402,6 +411,7 @@ public partial class Main : Node
     {
         level = next;
         testBoard = null;
+        infiniteChoice = null;
         var chapter = campaign.ChapterOf(next);
         var number = campaign.NumberInChapter(next);
         var stars = GameConfigFile.Current.StarsFor(next);
@@ -409,9 +419,15 @@ public partial class Main : Node
             ? $"best {SaveGameFile.Current.BestMoves(next)}, {Plural(earned, "star")}"
             : "not played";
         GD.Print($"Level {chapter.Number}-{number}: {next.Name} (id {next.Id}, par {next.Par}, {played})");
-        play.Start(
-            next.Map, next.Par, $"{number} · {next.Name}", stars, () => Progress().Next(next) is not null,
-            moves => RecordFinish(next, moves, stars), campaignRules, next.Tutorial);
+        play.Start(next.Map, next.Par, new PlaySetup($"{number} · {next.Name}")
+        {
+            Stars = stars,
+            HasNext = () => Progress().Next(next) is not null,
+            RecordFinish = moves => RecordFinish(next, moves, stars),
+            Rules = campaignRules,
+            Tutorial = next.Tutorial,
+            Recording = CampaignRecording(next),
+        });
         back = () => ShowLevelSelect(chapter);
     }
 
@@ -419,6 +435,7 @@ public partial class Main : Node
     {
         level = null;
         testBoard = index;
+        infiniteChoice = null;
         ResetFrameLog();
         framesToSkip = 2;
         var (title, build) = TestBoards.All[index];
@@ -430,13 +447,17 @@ public partial class Main : Node
             GD.Print($"Screen refresh: {DisplayServer.ScreenGetRefreshRate():0} Hz");
         }
         GD.Print($"Level {title} (test board, par {par})");
-        play.Start(map, par, title, GameConfigFile.Current.Stars, () => index + 1 < TestBoards.All.Count);
+        play.Start(map, par, new PlaySetup(title) { Stars = GameConfigFile.Current.Stars, HasNext = () => index + 1 < TestBoards.All.Count });
         back = ShowModeSelect;
     }
 
     private void OnNextPressed()
     {
-        if (testBoard is { } index)
+        if (infiniteChoice is { } choice)
+        {
+            PlayInfinite(choice);
+        }
+        else if (testBoard is { } index)
         {
             if (index + 1 < TestBoards.All.Count)
             {

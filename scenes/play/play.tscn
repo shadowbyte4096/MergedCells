@@ -15,6 +15,7 @@
 [ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="17_settings"]
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="18_settings_sheet"]
 [ext_resource type="Script" path="res://scenes/play/SwipeHint.cs" id="19_swipe_hint"]
+[ext_resource type="Texture2D" path="res://themes/icons/new-map.svg" id="20_new_map"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
@@ -153,6 +154,24 @@ layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"CaptionButton"
 text = "Undo"
+
+[node name="NewMap" type="VBoxContainer" parent="Hud/Root/BottomBar/Row"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+
+[node name="NewMapButton" type="Button" parent="Hud/Root/BottomBar/Row/NewMap"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+icon = ExtResource("20_new_map")
+icon_alignment = 1
+
+[node name="Caption" type="Button" parent="Hud/Root/BottomBar/Row/NewMap"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "New map"
 
 [node name="Restart" type="VBoxContainer" parent="Hud/Root/BottomBar/Row"]
 layout_mode = 2

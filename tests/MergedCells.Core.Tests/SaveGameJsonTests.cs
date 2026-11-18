@@ -17,6 +17,54 @@ public class SaveGameJsonTests
     // Version 2 adds the levels shared from this device
     internal static string Valid2 => Valid.Replace("\"version\":1", "\"version\":2")[..^1] + $",\"sharedLevels\":[\"{SharedId}\"]}}";
 
+    private const string Choice =
+        """{"difficulty":4,"side":12,"walls":true,"traps":false,"teleporters":true,"irregular":false}""";
+
+    private const string PlaytesterId = "7d3a1c5e-2b4f-4a6e-8c9d-0e1f2a3b4c5d";
+
+    // Version 3 adds the play-data switch, the last infinite choice and the playtester ID
+    internal static string Valid3 =>
+        Valid2.Replace("\"version\":2", "\"version\":3").Replace("{\"appearance\":\"light\"}", "{\"appearance\":\"light\",\"recordPlayData\":true}")[..^1]
+        + $",\"infinite\":{Choice},\"playtester\":\"{PlaytesterId}\"}}";
+
+    [Fact]
+    public void Version_2_save_reads_as_recording_off_with_no_choice_or_playtester()
+    {
+        var save = SaveGame.Parse(Valid2);
+
+        Assert.Equal((false, (InfiniteChoice?)null, (Guid?)null), (save.RecordPlayData, save.Infinite, save.Playtester));
+    }
+
+    [Fact]
+    public void Version_3_save_reads_its_new_keys()
+    {
+        var save = SaveGame.Parse(Valid3);
+
+        Assert.Equal(
+            (true, new InfiniteChoice(4, 12, true, false, true, false), (Guid?)Guid.Parse(PlaytesterId)),
+            (save.RecordPlayData, save.Infinite, save.Playtester));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Version_3_save_round_trips_its_new_keys(bool record, int difficulty, int side, bool walls, bool traps, bool teleporters, bool irregular, Guid playtester)
+    {
+        var choice = new InfiniteChoice(Positive(difficulty) % 10 + 1, Positive(side) + 1, walls, traps, teleporters, irregular);
+        var save = new SaveGame { RecordPlayData = record, Infinite = choice, Playtester = playtester };
+
+        var read = SaveGame.Parse(save.ToJson());
+
+        Assert.Equal((record, choice, (Guid?)playtester), (read.RecordPlayData, read.Infinite, read.Playtester));
+    }
+
+    [Fact]
+    public void New_save_round_trips_with_no_choice_or_playtester()
+    {
+        var read = SaveGame.Parse(new SaveGame().ToJson());
+
+        Assert.Equal((false, (InfiniteChoice?)null, (Guid?)null), (read.RecordPlayData, read.Infinite, read.Playtester));
+    }
+
     [Fact]
     public void Version_1_save_has_no_shared_levels()
     {
@@ -135,7 +183,7 @@ public class SaveGameJsonTests
     {
         var text = new SaveGame { Appearance = Appearance.Dark }.ToJson();
 
-        Assert.Contains("\"version\": 2", text, StringComparison.Ordinal);
+        Assert.Contains("\"version\": 3", text, StringComparison.Ordinal);
         Assert.Contains("\"appearance\": \"dark\"", text, StringComparison.Ordinal);
     }
 
@@ -196,6 +244,22 @@ public class SaveGameJsonTests
         Valid2.Replace(SharedId, "00000000-0000-0000-0000-000000000000"),
         Valid2.Replace($"\"{SharedId}\"", $"\"{SharedId}\",\"{SharedId}\""),
         Valid[..^1] + ",\"sharedLevels\":[]}",
+        Valid3.Replace(",\"recordPlayData\":true", ""),
+        Valid3.Replace(",\"infinite\":" + Choice, ""),
+        Valid3.Replace($",\"playtester\":\"{PlaytesterId}\"", ""),
+        Valid2.Replace("{\"appearance\":\"light\"}", "{\"appearance\":\"light\",\"recordPlayData\":false}"),
+        Valid2[..^1] + ",\"infinite\":null}",
+        Valid2[..^1] + ",\"playtester\":null}",
+        Valid3.Replace("\"recordPlayData\":true", "\"recordPlayData\":\"true\""),
+        Valid3.Replace("\"recordPlayData\":true", "\"recordPlayData\":null"),
+        Valid3.Replace("\"difficulty\":4", "\"difficulty\":0"),
+        Valid3.Replace("\"difficulty\":4", "\"difficulty\":11"),
+        Valid3.Replace("\"side\":12", "\"side\":1"),
+        Valid3.Replace("\"irregular\":false", "\"irregular\":false,\"extra\":1"),
+        Valid3.Replace(",\"irregular\":false", ""),
+        Valid3.Replace(PlaytesterId, PlaytesterId.ToUpperInvariant()),
+        Valid3.Replace(PlaytesterId, "00000000-0000-0000-0000-000000000000"),
+        Valid3.Replace(PlaytesterId, "x"),
     };
 
     [Theory]
@@ -240,8 +304,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("3.0", 3)]
-    [InlineData("3e0", 3)]
+    [InlineData("4.0", 4)]
+    [InlineData("4e0", 4)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {
@@ -267,7 +331,7 @@ public class SaveGameJsonTests
     [AutoData]
     public void Newer_version_throws_NewerSaveException_with_its_version(int version)
     {
-        var newer = 3 + Math.Abs(version % 1000);
+        var newer = SaveGame.CurrentVersion + 1 + Math.Abs(version % 1000);
 
         var exception = Assert.Throws<NewerSaveException>(() => SaveGame.Parse(Valid.Replace("\"version\":1", $"\"version\":{newer}")));
 
@@ -277,7 +341,7 @@ public class SaveGameJsonTests
     [Fact]
     public void Newer_version_wins_over_other_problems()
     {
-        Assert.Throws<NewerSaveException>(() => SaveGame.Parse("""{"version":3,"somethingNew":true}"""));
+        Assert.Throws<NewerSaveException>(() => SaveGame.Parse($$"""{"version":{{SaveGame.CurrentVersion + 1}},"somethingNew":true}"""));
     }
 
     [Fact]
