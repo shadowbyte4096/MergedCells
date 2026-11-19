@@ -62,6 +62,9 @@ public partial class BoardTheme : Resource
     // The level editor's highlight over the squares a stroke has crossed: the ink, see-through
     [Export] public Color EditHighlight { get; set; } = new(0.1372549f, 0.36862745f, 0.3372549f, 0.3f);
 
+    // The Eraser's squares while a stroke is held: the background, see-through, so a wall visibly fades where a tint wouldn't show
+    [Export] public Color EraseDim { get; set; } = new(0.89019608f, 0.94509804f, 0.92941176f, 0.65f);
+
     // Fractions of a square's side, so everything scales with zoom
     [Export] public float GapFraction { get; set; } = 0.16f;
 

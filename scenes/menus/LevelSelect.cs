@@ -86,12 +86,7 @@ public partial class LevelSelect : CanvasLayer, IScreen
         ShowChapter(page);
     }
 
-    public bool CloseOverlay()
-    {
-        var open = settings.IsOpen;
-        settings.Close();
-        return open;
-    }
+    public bool CloseOverlay() => settings.Back();
 
     public override void _Input(InputEvent @event)
     {

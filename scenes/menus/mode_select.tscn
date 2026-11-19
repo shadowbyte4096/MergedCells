@@ -6,6 +6,7 @@
 [ext_resource type="Texture2D" path="res://themes/icons/settings.svg" id="4_settings"]
 [ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="5_stars"]
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="6_sheet"]
+[ext_resource type="PackedScene" path="res://scenes/settings/consent_sheet.tscn" id="7_ask"]
 
 [node name="ModeSelect" type="CanvasLayer"]
 script = ExtResource("1_mode")
@@ -170,4 +171,7 @@ theme_type_variation = &"CaptionButton"
 text = "Credits"
 
 [node name="Settings" parent="Root" instance=ExtResource("6_sheet")]
+layout_mode = 1
+
+[node name="Consent" parent="Root" instance=ExtResource("7_ask")]
 layout_mode = 1

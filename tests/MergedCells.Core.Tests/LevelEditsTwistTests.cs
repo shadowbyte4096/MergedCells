@@ -10,52 +10,6 @@ public class LevelEditsTwistTests
     private static Map Singles(Tile[,]? tiles = null, params TeleporterPair[] pairs) =>
         Map.Create(TestMaps.Grid("ABCD", "EFGH", "IJKL"), Start, End, tiles, pairs);
 
-    [Fact]
-    public void Erase_removes_a_wall_and_makes_the_square_single()
-    {
-        var map = Map.Create(TestMaps.Grid("AAAA", "EFGH", "IJKL"), Start, End, TestMaps.Walls(3, 4, (0, 1)));
-
-        var result = LevelEdits.Erase(map, [new(0, 1)]);
-
-        Assert.Equal(Tile.None, result.Map.TileAt(new(0, 1)));
-        Assert.Equal(["ABCC", "DEFG", "HIJK"], TestMaps.Layout(result.Map));
-    }
-
-    [Fact]
-    public void Erase_removes_a_trap()
-    {
-        var result = LevelEdits.Erase(Singles(TestMaps.Traps(3, 4, (1, 1))), [new(1, 1)]);
-
-        Assert.False(result.Map.HasTiles);
-    }
-
-    [Fact]
-    public void Erase_of_a_teleporter_takes_its_pair_and_later_letters_move_up()
-    {
-        var second = TestMaps.Pair(1, 0, 1, 1);
-        var third = TestMaps.Pair(1, 2, 2, 0);
-
-        var result = LevelEdits.Erase(Singles(null, TestMaps.Pair(0, 1, 0, 2), second, third), [new(0, 2)]);
-
-        Assert.Equal([second, third], result.Map.Teleporters);
-    }
-
-    [Fact]
-    public void Erase_leaves_the_partner_square_in_its_block()
-    {
-        var map = Map.Create(TestMaps.Grid("AAAA", "EFGH", "IJKL"), Start, End, teleporters: [TestMaps.Pair(0, 1, 1, 1)]);
-
-        var result = LevelEdits.Erase(map, [new(1, 1)]);
-
-        Assert.Equal("AAAA", TestMaps.Layout(result.Map)[0]);
-    }
-
-    [Fact]
-    public void Erase_of_a_plain_single_square_changes_nothing()
-    {
-        Assert.False(LevelEdits.Erase(Singles(), [new(1, 1)]).Changed);
-    }
-
     [Theory]
     [InlineData(Tile.Wall)]
     [InlineData(Tile.Trap)]

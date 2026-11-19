@@ -104,7 +104,7 @@ public partial class LevelEditor : Node2D, IScreen
             var chosen = each;
             ToolButton(chosen).Pressed += () => ChooseTool(chosen);
         }
-        input.StrokeMoved += cells => overlay.Cells = [.. cells];
+        input.StrokeMoved += cells => overlay.Cells = tool == EditorTool.Eraser ? LevelEdits.EraseTargets(session.Level.Map, cells) : [.. cells];
         input.StrokeCancelled += () => overlay.Cells = [];
         input.StrokeEnded += OnStrokeEnded;
         renameSheet.Submitted += OnRenameSubmitted;
@@ -129,6 +129,7 @@ public partial class LevelEditor : Node2D, IScreen
         rater = new DifficultyRater(GameConfigFile.Current.Difficulty);
         ToolButton(tool).SetPressedNoSignal(true);
         this.tool = tool;
+        overlay.Color = StrokeColor;
         ShowLevel(reopenCamera: true);
         GD.Print($"Screen: level editor ({session.Level.Name}, {session.Level.Map.Columns}×{session.Level.Map.Rows})");
     }
@@ -168,9 +169,13 @@ public partial class LevelEditor : Node2D, IScreen
 
     private Button ToolButton(EditorTool each) => GetNode<Button>($"Hud/Root/BottomBar/Column/Tools/{each}");
 
+    // The Eraser dims what it will change, since the highlight's tint can't be seen over a wall
+    private Color StrokeColor => tool == EditorTool.Eraser ? board.Theme.EraseDim : board.Theme.EditHighlight;
+
     private void ChooseTool(EditorTool chosen)
     {
         tool = chosen;
+        overlay.Color = StrokeColor;
         CancelTeleporter();
         ToolChosen?.Invoke(chosen);
     }
@@ -378,7 +383,7 @@ public partial class LevelEditor : Node2D, IScreen
         startMarker.Look = look;
         trail.Look = look;
         player.Look = look;
-        overlay.Color = board.Theme.EditHighlight;
+        overlay.Color = StrokeColor;
         hudRoot.Theme = Looks.Ui(dark);
     }
 

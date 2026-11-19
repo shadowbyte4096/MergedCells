@@ -61,7 +61,7 @@ public sealed class PlayRecordStoreTests : IDisposable
     public void Load_skips_bad_lines_and_counts_them()
     {
         var kept = NewRecord();
-        var newer = PlayRecordFile.Write(NewRecord()).Replace("\"version\":1", $"\"version\":{PlayRecordFile.CurrentVersion + 1}");
+        var newer = PlayRecordFile.Write(NewRecord()).Replace($"\"version\":{PlayRecordFile.CurrentVersion}", $"\"version\":{PlayRecordFile.CurrentVersion + 1}");
         var badMap = PlayRecordFile.Write(NewRecord()).Replace("[7,7,7,8]", "[7,7,7,7]");
         File.WriteAllText(FilePath, string.Join("\n", "rubbish", newer, PlayRecordFile.Write(kept), badMap) + "\n");
 
@@ -136,5 +136,63 @@ public sealed class PlayRecordStoreTests : IDisposable
         store.Append(NewRecord());
 
         Assert.Equal(0, store.Count);
+    }
+
+    [Fact]
+    public void Delete_removes_the_file()
+    {
+        var store = new PlayRecordStore(FilePath);
+        store.Append(NewRecord());
+
+        Assert.Null(store.Delete());
+        Assert.False(File.Exists(FilePath));
+    }
+
+    [Fact]
+    public void Count_is_zero_after_delete()
+    {
+        var store = new PlayRecordStore(FilePath);
+        store.Append(NewRecord());
+        store.Append(NewRecord());
+        _ = store.Count;
+
+        store.Delete();
+
+        Assert.Equal(0, store.Count);
+    }
+
+    [Fact]
+    public void Delete_with_no_file_is_fine()
+    {
+        Assert.Null(new PlayRecordStore(FilePath).Delete());
+    }
+
+    [Fact]
+    public void Delete_with_no_folder_is_fine()
+    {
+        Assert.Null(new PlayRecordStore(Path.Combine(folder, "gone", "records.jsonl")).Delete());
+    }
+
+    [Fact]
+    public void Delete_reports_a_file_it_cannot_delete()
+    {
+        Directory.CreateDirectory(FilePath);
+
+        Assert.NotNull(new PlayRecordStore(FilePath).Delete());
+    }
+
+    // The sheet's count after a delete then a new record must be 1, not the old count plus 1
+    [Fact]
+    public void Append_after_delete_counts_from_zero()
+    {
+        var store = new PlayRecordStore(FilePath);
+        store.Append(NewRecord());
+        store.Append(NewRecord());
+        _ = store.Count;
+        store.Delete();
+
+        store.Append(NewRecord());
+
+        Assert.Equal(1, store.Count);
     }
 }

@@ -2,7 +2,7 @@ using System.Globalization;
 
 namespace MergedCells.Core;
 
-/// <summary>New levels of the player's own made from others: "Edit a copy" of an imported level, and a 3-starred campaign level.</summary>
+/// <summary>New levels of the player's own made from others: "Edit a copy" of any custom level, and a 3-starred campaign level.</summary>
 public static class CustomLevelCopies
 {
     // The same name and map under a new ID; the copy is the player's own

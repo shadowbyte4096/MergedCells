@@ -27,42 +27,109 @@ public class SaveGameJsonTests
         Valid2.Replace("\"version\":2", "\"version\":3").Replace("{\"appearance\":\"light\"}", "{\"appearance\":\"light\",\"recordPlayData\":true}")[..^1]
         + $",\"infinite\":{Choice},\"playtester\":\"{PlaytesterId}\"}}";
 
+    private const string PlayDataYes = """{"answer":"yes","wording":1}""";
+
+    private const string Consents4 = $$"""{"playData":{{PlayDataYes}},"leaderboards":null}""";
+
+    // Version 4 replaces the play-data switch with the consents, and the playtester ID with the player ID
+    internal static string Valid4 =>
+        Valid3.Replace("\"version\":3", "\"version\":4").Replace(",\"recordPlayData\":true", "")
+            .Replace($",\"playtester\":\"{PlaytesterId}\"", "")[..^1]
+        + $",\"consents\":{Consents4},\"player\":\"{PlaytesterId}\"}}";
+
+    private static (Consent? PlayData, Consent? Leaderboards, Guid? Player) Answers(SaveGame save) =>
+        (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Player);
+
     [Fact]
-    public void Version_2_save_reads_as_recording_off_with_no_choice_or_playtester()
+    public void Version_2_save_reads_as_never_asked_with_no_choice_or_player()
     {
         var save = SaveGame.Parse(Valid2);
 
-        Assert.Equal((false, (InfiniteChoice?)null, (Guid?)null), (save.RecordPlayData, save.Infinite, save.Playtester));
+        Assert.Equal(((Consent?)null, (Consent?)null, (Guid?)null, (InfiniteChoice?)null), (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Player, save.Infinite));
     }
 
+    // Chunk 22's switch said records stay on the phone: wording 0, which no build asks with now, so the player is asked again
     [Fact]
-    public void Version_3_save_reads_its_new_keys()
+    public void Version_3_save_with_recording_on_reads_as_yes_to_wording_zero()
     {
         var save = SaveGame.Parse(Valid3);
 
-        Assert.Equal(
-            (true, new InfiniteChoice(4, 12, true, false, true, false), (Guid?)Guid.Parse(PlaytesterId)),
-            (save.RecordPlayData, save.Infinite, save.Playtester));
+        Assert.Equal((new Consent(true, 0), (Consent?)null, (Guid?)Guid.Parse(PlaytesterId)), Answers(save));
+    }
+
+    [Fact]
+    public void Version_3_save_with_recording_off_reads_as_never_asked()
+    {
+        var save = SaveGame.Parse(Valid3.Replace("\"recordPlayData\":true", "\"recordPlayData\":false"));
+
+        Assert.Equal(((Consent?)null, (Consent?)null, (Guid?)Guid.Parse(PlaytesterId)), Answers(save));
+    }
+
+    [Fact]
+    public void Version_3_save_with_recording_on_and_no_playtester_reads_as_yes_with_no_player()
+    {
+        var save = SaveGame.Parse(Valid3.Replace($"\"{PlaytesterId}\"", "null"));
+
+        Assert.Equal((new Consent(true, 0), (Consent?)null, (Guid?)null), Answers(save));
+    }
+
+    [Fact]
+    public void Version_3_save_keeps_its_infinite_choice()
+    {
+        Assert.Equal(new InfiniteChoice(4, 12, true, false, true, false), SaveGame.Parse(Valid3).Infinite);
+    }
+
+    [Fact]
+    public void Version_4_save_reads_its_new_keys()
+    {
+        var save = SaveGame.Parse(Valid4);
+
+        Assert.Equal((new Consent(true, 1), (Consent?)null, (Guid?)Guid.Parse(PlaytesterId)), Answers(save));
     }
 
     [Theory]
     [AutoData]
-    public void Version_3_save_round_trips_its_new_keys(bool record, int difficulty, int side, bool walls, bool traps, bool teleporters, bool irregular, Guid playtester)
+    public void Version_4_save_round_trips_its_new_keys(bool playData, int playDataWording, bool leaderboards, int leaderboardsWording, Guid player)
     {
-        var choice = new InfiniteChoice(Positive(difficulty) % 10 + 1, Positive(side) + 1, walls, traps, teleporters, irregular);
-        var save = new SaveGame { RecordPlayData = record, Infinite = choice, Playtester = playtester };
+        var save = new SaveGame { Player = player };
+        save.SetConsent(ConsentKind.PlayData, new Consent(playData, Math.Abs(playDataWording % 100)));
+        save.SetConsent(ConsentKind.Leaderboards, new Consent(leaderboards, Math.Abs(leaderboardsWording % 100)));
 
         var read = SaveGame.Parse(save.ToJson());
 
-        Assert.Equal((record, choice, (Guid?)playtester), (read.RecordPlayData, read.Infinite, read.Playtester));
+        Assert.Equal(Answers(save), Answers(read));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Infinite_choice_round_trips(int difficulty, int side, bool walls, bool traps, bool teleporters, bool irregular)
+    {
+        var choice = new InfiniteChoice(Positive(difficulty) % 10 + 1, Positive(side) + 1, walls, traps, teleporters, irregular);
+
+        Assert.Equal(choice, SaveGame.Parse(new SaveGame { Infinite = choice }.ToJson()).Infinite);
     }
 
     [Fact]
-    public void New_save_round_trips_with_no_choice_or_playtester()
+    public void New_save_round_trips_never_asked_with_no_choice_or_player()
     {
         var read = SaveGame.Parse(new SaveGame().ToJson());
 
-        Assert.Equal((false, (InfiniteChoice?)null, (Guid?)null), (read.RecordPlayData, read.Infinite, read.Playtester));
+        Assert.Equal(((Consent?)null, (Consent?)null, (Guid?)null, (InfiniteChoice?)null), (read.ConsentTo(ConsentKind.PlayData), read.ConsentTo(ConsentKind.Leaderboards), read.Player, read.Infinite));
+    }
+
+    [Fact]
+    public void Written_save_is_version_4_without_the_version_3_keys()
+    {
+        var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
+
+        Assert.Equal(
+            (4, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null),
+            (root.GetProperty("version").GetInt32(),
+                root.TryGetProperty("playtester", out _),
+                root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
+                root.GetProperty("consents").GetProperty("playData").ValueKind,
+                root.GetProperty("consents").GetProperty("leaderboards").ValueKind,
+                root.GetProperty("player").ValueKind));
     }
 
     [Fact]
@@ -183,7 +250,7 @@ public class SaveGameJsonTests
     {
         var text = new SaveGame { Appearance = Appearance.Dark }.ToJson();
 
-        Assert.Contains("\"version\": 3", text, StringComparison.Ordinal);
+        Assert.Contains("\"version\": 4", text, StringComparison.Ordinal);
         Assert.Contains("\"appearance\": \"dark\"", text, StringComparison.Ordinal);
     }
 
@@ -260,6 +327,32 @@ public class SaveGameJsonTests
         Valid3.Replace(PlaytesterId, PlaytesterId.ToUpperInvariant()),
         Valid3.Replace(PlaytesterId, "00000000-0000-0000-0000-000000000000"),
         Valid3.Replace(PlaytesterId, "x"),
+        Valid3[..^1] + ",\"consents\":{\"playData\":null,\"leaderboards\":null}}",
+        Valid3[..^1] + ",\"player\":null}",
+        Valid4.Replace(",\"consents\":" + Consents4, ""),
+        Valid4.Replace($",\"player\":\"{PlaytesterId}\"", ""),
+        Valid4.Replace(Consents4, "null"),
+        Valid4.Replace(Consents4, "[]"),
+        Valid4.Replace(",\"leaderboards\":null", ""),
+        Valid4.Replace($"\"playData\":{PlayDataYes},", ""),
+        Valid4.Replace("\"leaderboards\":null", "\"leaderboards\":null,\"ads\":null"),
+        Valid4.Replace("\"leaderboards\":null", "\"leaderboards\":null,\"leaderboards\":null"),
+        Valid4.Replace("\"answer\":\"yes\"", "\"answer\":\"maybe\""),
+        Valid4.Replace("\"answer\":\"yes\"", "\"answer\":\"Yes\""),
+        Valid4.Replace("\"answer\":\"yes\"", "\"answer\":true"),
+        Valid4.Replace("\"answer\":\"yes\"", "\"answer\":null"),
+        Valid4.Replace("\"answer\":\"yes\",", ""),
+        Valid4.Replace("\"wording\":1", "\"wording\":-1"),
+        Valid4.Replace("\"wording\":1", "\"wording\":\"1\""),
+        Valid4.Replace("\"wording\":1", "\"wording\":1.5"),
+        Valid4.Replace("\"wording\":1", "\"wording\":null"),
+        Valid4.Replace(",\"wording\":1", ""),
+        Valid4.Replace("\"wording\":1", "\"wording\":1,\"at\":2"),
+        Valid4.Replace(PlaytesterId, PlaytesterId.ToUpperInvariant()),
+        Valid4.Replace(PlaytesterId, "00000000-0000-0000-0000-000000000000"),
+        Valid4.Replace(PlaytesterId, "x"),
+        Valid4.Replace("{\"appearance\":\"light\"}", "{\"appearance\":\"light\",\"recordPlayData\":true}"),
+        Valid4[..^1] + ",\"playtester\":null}",
     };
 
     [Theory]
@@ -304,8 +397,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("4.0", 4)]
-    [InlineData("4e0", 4)]
+    [InlineData("5.0", 5)]
+    [InlineData("5e0", 5)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

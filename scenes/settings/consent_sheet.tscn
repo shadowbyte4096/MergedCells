@@ -1,0 +1,87 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/settings/ConsentSheet.cs" id="1_ask"]
+
+[node name="ConsentSheet" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ask")
+
+[node name="Wash" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Sheet/Column"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Title"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Lead" type="Label" parent="Sheet/Column"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+autowrap_mode = 3
+
+[node name="Body" type="Label" parent="Sheet/Column"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"SheetText"
+autowrap_mode = 3
+
+[node name="Small" type="Label" parent="Sheet/Column"]
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+autowrap_mode = 3
+
+[node name="Policy" type="Button" parent="Sheet/Column"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Privacy policy"
+
+[node name="Answers" type="HBoxContainer" parent="Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PillRow"
+
+[node name="No" type="Button" parent="Sheet/Column/Answers"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"
+
+[node name="Yes" type="Button" parent="Sheet/Column/Answers"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"

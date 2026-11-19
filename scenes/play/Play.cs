@@ -170,12 +170,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         GetNode<Control>("Hud/Root").Theme = Looks.Ui(dark);
     }
 
-    public bool CloseOverlay()
-    {
-        var open = settings.IsOpen;
-        settings.Close();
-        return open;
-    }
+    public bool CloseOverlay() => settings.Back();
 
     // Play never sees level IDs or the save: the setup's delegates record finishes and play data
     public void Start(Map map, int par, PlaySetup setup)

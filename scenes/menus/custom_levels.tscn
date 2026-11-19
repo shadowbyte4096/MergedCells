@@ -332,6 +332,12 @@ focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Edit"
 
+[node name="EditCopy" type="Button" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Edit a copy"
+
 [node name="Delete" type="Button" parent="Root/LevelSheet/Sheet/Column"]
 layout_mode = 2
 focus_mode = 0

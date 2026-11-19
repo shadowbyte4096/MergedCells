@@ -17,6 +17,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private bool resetArmed;
     private Label saveNotice;
     private SettingsSheet settings;
+    private ConsentSheet consent;
     private bool dark;
 
     public event Action CampaignPressed;
@@ -35,6 +36,9 @@ public partial class ModeSelect : CanvasLayer, IScreen
     [Export] public AppLooks Looks { get; set; }
 
     public SettingsSheet Settings => settings;
+
+    // The one-time ask about play data and, from chunk 33, leaderboards; Main decides what it asks
+    public ConsentSheet Consent => consent;
 
     public bool Dark
     {
@@ -56,6 +60,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
         resetSave = GetNode<Button>("Root/Centre/Column/ResetSave");
         saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
         settings = GetNode<SettingsSheet>("Root/Settings");
+        consent = GetNode<ConsentSheet>("Root/Consent");
 
         star.Looks = [StarLook.Earned];
         GetNode<Button>("Root/Centre/Column/Campaign").Pressed += () => CampaignPressed?.Invoke();
@@ -76,9 +81,15 @@ public partial class ModeSelect : CanvasLayer, IScreen
         totalLabel.Text = totalStars.ToString();
         testBoards.Visible = debug;
         resetSave.Visible = debug;
-        this.saveNotice.Text = saveNotice ?? "";
-        this.saveNotice.Visible = saveNotice != null;
+        ShowSaveNotice(saveNotice);
         GD.Print("Screen: mode select");
+    }
+
+    // Also after an answer to the ask that the save couldn't keep
+    public void ShowSaveNotice(string notice)
+    {
+        saveNotice.Text = notice ?? "";
+        saveNotice.Visible = notice != null;
     }
 
     private void OnResetSavePressed()
@@ -94,9 +105,12 @@ public partial class ModeSelect : CanvasLayer, IScreen
 
     public bool CloseOverlay()
     {
-        var open = settings.IsOpen;
-        settings.Close();
-        return open;
+        if (consent.IsOpen)
+        {
+            consent.Close();
+            return true;
+        }
+        return settings.Back();
     }
 
     private void ApplyLook()

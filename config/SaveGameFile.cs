@@ -21,22 +21,32 @@ public static class SaveGameFile
 
     public static SaveGame Current => current ??= Load();
 
-    // Straight away on every change, so Android killing the app loses nothing
-    public static void Save()
+    // False for a newer or unreadable save: this run keeps nothing, so it may not take an answer or make a player ID
+    public static bool CanWrite
+    {
+        get
+        {
+            _ = Current;
+            return store.CanWrite;
+        }
+    }
+
+    // Straight away on every change, so Android killing the app loses nothing. Whether it was written: "Delete my data" may
+    // only go ahead once the save without the player ID is on disk
+    public static bool Save()
     {
         if (current == null || !store.CanWrite)
         {
-            return;
+            return false;
         }
         if (store.Write(current) is { } problem)
         {
             GD.PushError($"Save: can't write {FilePath} ({problem})");
             Notice = "The save file can't be written, so progress isn't being saved.";
+            return false;
         }
-        else
-        {
-            Notice = null;
-        }
+        Notice = null;
+        return true;
     }
 
     private static SaveGame Load()

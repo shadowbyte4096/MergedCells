@@ -42,6 +42,18 @@ public class LevelCheckTests
         Assert.Equal(band, status.Band);
     }
 
+    // The band a custom level shows is the score its play records carry
+    [Fact]
+    public void Score_is_in_the_custom_mode()
+    {
+        var map = TestMaps.Example();
+        var rater = new DifficultyRater(DifficultyConfigs.With(modeWeights: new Dictionary<string, DifficultyWeights> { ["custom"] = DifficultyConfigs.Weights(0, 0, 0, 100, 0) }));
+        var metrics = rater.Measure(map)!;
+        Assert.NotEqual(rater.Score(metrics, DifficultyMode.Campaign), rater.Score(metrics, DifficultyMode.Custom));
+
+        Assert.Equal(rater.Score(metrics, DifficultyMode.Custom), LevelCheck.Of(map, rater, Shipped).Score);
+    }
+
     [Fact]
     public void Unwinnable_level_has_no_route()
     {

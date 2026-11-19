@@ -9,20 +9,19 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
     private readonly HashSet<Guid> sharedLevels = new();
 
-    private Guid? playtester;
+    private readonly Dictionary<ConsentKind, Consent> consents = new();
+
+    private Guid? player;
 
     private InfiniteChoice? infinite;
 
     public Appearance Appearance { get; set; } = Appearance.System;
-
-    // Whether play data is recorded, on playtest builds only (since version 3)
-    public bool RecordPlayData { get; set; }
 
     // The last choice played in infinite mode, or null before any (since version 3). Only what Parse accepts, so a write
     // can never make the next load a broken save
@@ -42,19 +41,34 @@ public sealed class SaveGame
     }
 
     /// <summary>
-    /// A random ID made when recording is first turned on and kept for good, so the refit can tell players apart. It
-    /// identifies nobody (since version 3).
+    /// The random ID on every play record and score, made at the player's first yes to any kind of data and dropped by
+    /// "Delete my data" (since version 4; version 3's playtester ID).
     /// </summary>
-    public Guid? Playtester
+    public Guid? Player
     {
-        get => playtester;
+        get => player;
         set
         {
             if (value == Guid.Empty)
             {
-                throw new ArgumentException("The playtester ID can't be all zeros.", nameof(value));
+                throw new ArgumentException("The player ID can't be all zeros.", nameof(value));
             }
-            playtester = value;
+            player = value;
+        }
+    }
+
+    /// <summary>The player's answer about one kind of data, or null when they've never been asked (since version 4).</summary>
+    public Consent? ConsentTo(ConsentKind kind) => consents.GetValueOrDefault(kind);
+
+    public void SetConsent(ConsentKind kind, Consent? answer)
+    {
+        if (answer is null)
+        {
+            consents.Remove(kind);
+        }
+        else
+        {
+            consents[kind] = answer;
         }
     }
 
@@ -102,8 +116,8 @@ public sealed class SaveGame
         return finish;
     }
 
-    /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings and the shared
-    /// levels stay.</summary>
+    /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings, the shared
+    /// levels, the answers and the player ID stay.</summary>
     public void ClearProgress() => levels.Clear();
 
     /// <summary>
@@ -164,16 +178,52 @@ public sealed class SaveGame
                 throw new JsonException($"The save lists shared level {shared} twice.");
             }
         }
-        keys.Require(keys.Settings, "recordPlayData", 3);
+        keys.Require(keys.Settings, "recordPlayData", 3, last: 3);
         keys.Require(keys.Root, "infinite", 3);
-        keys.Require(keys.Root, "playtester", 3);
+        keys.Require(keys.Root, "playtester", 3, last: 3);
+        keys.Require(keys.Root, "consents", 4);
+        keys.Require(keys.Root, "player", 4);
         if (keys.Number >= 3)
         {
-            save.RecordPlayData = file.Settings.RecordPlayData ?? throw new JsonException("The save's \"recordPlayData\" is null.");
             save.Infinite = ReadChoice(file.Infinite);
-            save.playtester = ReadPlaytester(file.Playtester);
+        }
+        if (keys.Number == 3)
+        {
+            // Chunk 22's switch: on was a yes to its wording, version 0, which has since changed
+            if (file.Settings.RecordPlayData ?? throw new JsonException("The save's \"recordPlayData\" is null."))
+            {
+                save.consents[ConsentKind.PlayData] = new Consent(true, 0);
+            }
+            save.player = ReadGuid(file.Playtester, "playtester");
+        }
+        if (keys.Number >= 4)
+        {
+            var answers = file.Consents ?? throw new JsonException("The save's \"consents\" is null.");
+            save.SetConsent(ConsentKind.PlayData, ReadConsent(answers.PlayData, "playData"));
+            save.SetConsent(ConsentKind.Leaderboards, ReadConsent(answers.Leaderboards, "leaderboards"));
+            save.player = ReadGuid(file.Player, "player");
         }
         return save;
+    }
+
+    private static Consent? ReadConsent(ConsentJson? answer, string key)
+    {
+        if (answer is null)
+        {
+            return null;
+        }
+        // Exact words, as the appearance is read
+        var yes = answer.Answer switch
+        {
+            "yes" => true,
+            "no" => false,
+            _ => throw new JsonException($"The save's \"{key}\" answer must be \"yes\" or \"no\"."),
+        };
+        if (answer.Wording < 0)
+        {
+            throw new JsonException($"The save's \"{key}\" wording is {answer.Wording}; it must be 0 or more.");
+        }
+        return new Consent(yes, answer.Wording);
     }
 
     private static InfiniteChoice? ReadChoice(InfiniteChoiceJson? choice)
@@ -194,7 +244,7 @@ public sealed class SaveGame
         return new InfiniteChoice(choice.Difficulty, choice.Side, choice.Walls, choice.Traps, choice.Teleporters, choice.Irregular);
     }
 
-    private static Guid? ReadPlaytester(string? text)
+    private static Guid? ReadGuid(string? text, string key)
     {
         if (text is null)
         {
@@ -202,7 +252,7 @@ public sealed class SaveGame
         }
         if (!Guid.TryParseExact(text, "D", out var id) || id == Guid.Empty || text != id.ToString("D"))
         {
-            throw new JsonException($"The save's \"playtester\" \"{text}\" isn't a lowercase GUID, or is all zeros.");
+            throw new JsonException($"The save's \"{key}\" \"{text}\" isn't a lowercase GUID, or is all zeros.");
         }
         return id;
     }
@@ -213,7 +263,7 @@ public sealed class SaveGame
         var file = new SaveJson
         {
             Version = CurrentVersion,
-            Settings = new SettingsJson { Appearance = Appearance, RecordPlayData = RecordPlayData },
+            Settings = new SettingsJson { Appearance = Appearance },
             Levels = levels.OrderBy(pair => pair.Key).ToDictionary(
                 pair => pair.Key,
                 pair => new LevelRecordJson { BestMoves = pair.Value.BestMoves, Layout = pair.Value.Layout }),
@@ -229,10 +279,18 @@ public sealed class SaveGame
                     Irregular = choice.Irregular,
                 }
                 : null,
-            Playtester = playtester?.ToString("D"),
+            Consents = new ConsentsJson
+            {
+                PlayData = WriteConsent(ConsentTo(ConsentKind.PlayData)),
+                Leaderboards = WriteConsent(ConsentTo(ConsentKind.Leaderboards)),
+            },
+            Player = player?.ToString("D"),
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
+
+    private static ConsentJson? WriteConsent(Consent? answer) =>
+        answer is null ? null : new ConsentJson { Answer = answer.Yes ? "yes" : "no", Wording = answer.Wording };
 
     private const char ByteOrderMark = (char)0xFEFF;
 
@@ -283,14 +341,16 @@ public sealed class SaveGame
 
     private sealed record LevelRecord(int BestMoves, string Layout);
 
-    // The keys at the save's root and in its settings, so each section checks its own key against the version that added it
+    // The keys at the save's root and in its settings, so each section checks its own key against the versions that have it
     private sealed record SaveKeys(int Number, IReadOnlySet<string> Root, IReadOnlySet<string> Settings)
     {
-        public void Require(IReadOnlySet<string> keys, string key, int since)
+        // last: the final version with the key, for one a later version dropped
+        public void Require(IReadOnlySet<string> keys, string key, int since, int? last = null)
         {
-            if (keys.Contains(key) != (Number >= since))
+            var expected = Number >= since && (last is null || Number <= last);
+            if (keys.Contains(key) != expected)
             {
-                throw new JsonException(Number >= since
+                throw new JsonException(expected
                     ? $"The save has no \"{key}\"."
                     : $"The save is version {Number}, which has no \"{key}\".");
             }
@@ -312,8 +372,29 @@ internal sealed record SaveJson
     // Since version 3; null before any choice
     public InfiniteChoiceJson? Infinite { get; init; }
 
-    // Since version 3; null until recording is first turned on
+    // Version 3 only; read into the player ID
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Playtester { get; init; }
+
+    // Since version 4
+    public ConsentsJson? Consents { get; init; }
+
+    // Since version 4; null until the player's first yes, and after "Delete my data"
+    public string? Player { get; init; }
+}
+
+internal sealed record ConsentsJson
+{
+    public required ConsentJson? PlayData { get; init; }
+
+    public required ConsentJson? Leaderboards { get; init; }
+}
+
+internal sealed record ConsentJson
+{
+    public required string Answer { get; init; }
+
+    public required int Wording { get; init; }
 }
 
 internal sealed record InfiniteChoiceJson
@@ -336,7 +417,8 @@ internal sealed record SettingsJson
     [JsonConverter(typeof(AppearanceJsonConverter))]
     public required Appearance Appearance { get; init; }
 
-    // Since version 3
+    // Version 3 only; read into the play-data answer
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public bool? RecordPlayData { get; init; }
 }
 

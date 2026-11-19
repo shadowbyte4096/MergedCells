@@ -45,6 +45,9 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
     // An imported level too: Main makes it a copy
     public event Action<CustomLevel> EditPressed;
 
+    // The player's own level: an imported one's copy comes through EditPressed
+    public event Action<CustomLevel> EditCopyPressed;
+
     public event Action<CustomLevel> PlayPressed;
 
     public event Action<CustomLevel> SharePressed;
@@ -91,6 +94,7 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
         levelSheet.PlayPressed += () => PlayPressed?.Invoke(selected);
         levelSheet.SharePressed += () => SharePressed?.Invoke(selected);
         levelSheet.EditPressed += () => EditPressed?.Invoke(selected);
+        levelSheet.EditCopyPressed += () => EditCopyPressed?.Invoke(selected);
         levelSheet.DeleteConfirmed += () => DeletePressed?.Invoke(selected);
         importSheet.PlayPressed += () => PlayPressed?.Invoke(imported);
         GetViewport().SizeChanged += ApplySafeArea;

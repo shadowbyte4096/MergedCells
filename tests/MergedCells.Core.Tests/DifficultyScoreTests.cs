@@ -102,6 +102,14 @@ public class DifficultyScoreTests
     }
 
     [Fact]
+    public void Custom_levels_have_a_mode_of_their_own()
+    {
+        var customAwayOnly = new Dictionary<string, DifficultyWeights> { ["custom"] = DifficultyConfigs.Weights(100, 0, 0, 0, 0) };
+
+        Assert.Equal(100, Score(Metrics(away: 10), mode: DifficultyMode.Custom, modeWeights: customAwayOnly));
+    }
+
+    [Fact]
     public void A_mode_without_an_override_uses_the_shared_weights()
     {
         Assert.Equal(20, Score(Metrics(away: 10), mode: DifficultyMode.Campaign, modeWeights: DailyAwayOnly));

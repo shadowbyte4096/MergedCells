@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - README.md
       - LICENSE
+      - PRIVACY.md
   workflow_dispatch:
 
 # A newer push replaces a build still in progress, so the release always matches the latest commit
@@ -106,18 +107,14 @@ jobs:
           # Started here, detached, so Godot doesn't start its own adb server holding the step's output open
           "$ANDROID_HOME/platform-tools/adb" start-server > /dev/null 2>&1 < /dev/null
 
-      - name: Set the build number, mark the playtest build and drop the emulator architecture
+      - name: Set the build number and drop the emulator architecture
         run: |
-          # The "playtest" feature turns on play-data recording (chunk 22); store builds never have it
           sed -i \
             -e 's|^architectures/x86_64=true$|architectures/x86_64=false|' \
             -e "s|^version/code=.*|version/code=${BUILD}|" \
             -e "s|^version/name=.*|version/name=\"playtest-${BUILD}\"|" \
-            -e 's|^custom_features=""$|custom_features="playtest"|' \
             export_presets.cfg
-          grep -E '^(architectures|version)/|^custom_features=' export_presets.cfg
-          # Both presets, or the friends' builds would quietly lose recording
-          test "$(grep -c '^custom_features="playtest"$' export_presets.cfg)" -eq 2
+          grep -E '^(architectures|version)/' export_presets.cfg
           # Play records name the build they came from
           sed -i "s|^config/name=\"Merged Cells\"\$|&\nconfig/version=\"playtest-${BUILD}\"|" project.godot
           grep '^config/version=' project.godot
@@ -159,7 +156,9 @@ jobs:
             --target "$GITHUB_SHA" \
             --prerelease \
             --title "Playtest build ${BUILD}" \
-            --notes "Built from ${GITHUB_SHA::7}: $(git log -1 --format=%s)"
+            --notes "Built from ${GITHUB_SHA::7}: $(git log -1 --format=%s)
+
+          Play data is off unless you say yes. What it holds and how to have it deleted: https://github.com/${GITHUB_REPOSITORY}/blob/main/PRIVACY.md"
 
       - name: Stop adb
         if: always()

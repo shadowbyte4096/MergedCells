@@ -7,12 +7,13 @@ public class CustomLevelCopiesTests
     private static readonly DateTimeOffset Then = new(2026, 11, 1, 9, 0, 0, TimeSpan.Zero);
 
     [Theory]
-    [AutoData]
-    public void Own_copy_has_the_new_id_and_time_and_isn_t_imported(Guid original, Guid copyId, string name)
+    [InlineAutoData(true)]
+    [InlineAutoData(false)]
+    public void Own_copy_has_the_new_id_and_time_and_isn_t_imported(bool fromImported, Guid original, Guid copyId, string name)
     {
-        var imported = new CustomLevel(original, name, TestMaps.Example(), Then, Then.AddDays(1));
+        var source = new CustomLevel(original, name, TestMaps.Example(), Then, fromImported ? Then.AddDays(1) : null);
 
-        var copy = CustomLevelCopies.OwnCopy(imported, copyId, Then.AddDays(2));
+        var copy = CustomLevelCopies.OwnCopy(source, copyId, Then.AddDays(2));
 
         Assert.Equal((copyId, Then.AddDays(2), false), (copy.Id, copy.Edited, copy.IsImported));
     }

@@ -134,12 +134,7 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
         GD.Print("Screen: infinite setup");
     }
 
-    public bool CloseOverlay()
-    {
-        var open = settings.IsOpen;
-        settings.Close();
-        return open;
-    }
+    public bool CloseOverlay() => settings.Back();
 
     // Enter plays on desktop
     public override void _UnhandledInput(InputEvent @event)

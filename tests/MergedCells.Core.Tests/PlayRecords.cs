@@ -21,10 +21,12 @@ internal static class PlayRecords
             WholeSeconds.Of(Fixture.Create<DateTimeOffset>()),
             Fixture.Create<string>(),
             Fixture.Create<string>(),
+            Count(5) + 1,
             DifficultyMode.Infinite,
             null,
             null,
             new InfiniteChoice(Count(10) + 1, map.Rows, Fixture.Create<bool>(), Fixture.Create<bool>(), Fixture.Create<bool>(), Fixture.Create<bool>()),
+            null,
             map,
             par,
             DifficultyRater.MetricsVersion,
@@ -36,6 +38,9 @@ internal static class PlayRecords
 
     public static PlayRecordStart Campaign(Map map) =>
         Infinite(map) with { Mode = DifficultyMode.Campaign, Level = Count(500) + 1, SeenBefore = Fixture.Create<bool>(), Infinite = null };
+
+    public static PlayRecordStart Custom(Map map, bool imported) =>
+        Infinite(map) with { Mode = DifficultyMode.Custom, Infinite = null, Custom = new CustomPlay(Fixture.Create<Guid>(), imported) };
 
     public static PlayRecord Record(PlayRecordStart start) =>
         new(

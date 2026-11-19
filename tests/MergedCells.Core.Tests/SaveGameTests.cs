@@ -180,17 +180,29 @@ public class SaveGameTests
         Assert.Equal([id], save.SharedLevels);
     }
 
-    // The play-data switch, the last infinite choice and the playtester ID are settings and preferences, not progress
+    // The answers, the last infinite choice and the player ID are settings and preferences, not progress
     [Theory]
     [AutoData]
-    public void Clearing_progress_keeps_the_play_data_setting_choice_and_playtester(bool record, Guid playtester, bool walls)
+    public void Clearing_progress_keeps_answers_choice_and_player(bool yes, int wording, Guid player, bool walls)
     {
         var choice = new InfiniteChoice(4, 12, walls, false, true, false);
-        var save = new SaveGame { RecordPlayData = record, Infinite = choice, Playtester = playtester };
+        var answer = new Consent(yes, Math.Abs(wording % 100));
+        var save = new SaveGame { Infinite = choice, Player = player };
+        save.SetConsent(ConsentKind.PlayData, answer);
+        save.SetConsent(ConsentKind.Leaderboards, answer);
 
         save.ClearProgress();
 
-        Assert.Equal((record, choice, (Guid?)playtester), (save.RecordPlayData, save.Infinite, save.Playtester));
+        Assert.Equal(
+            (answer, answer, choice, (Guid?)player),
+            (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Infinite, save.Player));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Consent_wording_cannot_be_negative(bool yes, int wording)
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Consent(yes, -Math.Abs(wording % 100) - 1));
     }
 
     // A choice Parse would refuse would make the next load a broken save
@@ -204,9 +216,9 @@ public class SaveGameTests
     }
 
     [Fact]
-    public void Playtester_cannot_be_empty()
+    public void Player_cannot_be_empty()
     {
-        Assert.Throws<ArgumentException>(() => new SaveGame { Playtester = Guid.Empty });
+        Assert.Throws<ArgumentException>(() => new SaveGame { Player = Guid.Empty });
     }
 
     [Fact]

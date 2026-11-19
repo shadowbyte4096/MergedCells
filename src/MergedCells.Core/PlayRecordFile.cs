@@ -6,20 +6,25 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// Reads and writes one play record as one line of JSON: the version, the record's and player's GUIDs, when and where it
-/// was played, the mode with the campaign level or the infinite choice, the map in the level file's keys, par, the metrics
-/// as counted then, and how it was played.
+/// was played, the play-data wording the player agreed to (since version 2), the mode with the campaign level, the infinite
+/// choice or (since version 2) the custom level, the map in the level file's keys, par, the metrics as counted then, and
+/// how it was played.
 /// </summary>
 public static class PlayRecordFile
 {
-    public const int CurrentVersion = 1;
+    public const int CurrentVersion = 2;
 
     private const string DateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
-    /// <summary>The record's line, with no line break.</summary>
+    /// <summary>
+    /// The record's line, with no line break. Throws <see cref="ArgumentOutOfRangeException"/> for a consent below 1: a
+    /// version 1 record read back can't be written as version 2.
+    /// </summary>
     public static string Write(PlayRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
         var start = record.Start;
+        ArgumentOutOfRangeException.ThrowIfLessThan(start.Consent, 1, "record.Start.Consent");
         var map = LevelFile.ArraysOf(start.Map);
         var metrics = start.Metrics;
         var json = new PlayRecordJson
@@ -30,6 +35,7 @@ public static class PlayRecordFile
             Started = start.Started.UtcDateTime.ToString(DateFormat, CultureInfo.InvariantCulture),
             Build = start.Build,
             Platform = start.Platform,
+            Consent = start.Consent,
             Mode = DifficultyConfig.KeyOf(start.Mode),
             Level = start.Level,
             SeenBefore = start.SeenBefore,
@@ -44,6 +50,7 @@ public static class PlayRecordFile
                     Irregular = choice.Irregular,
                 }
                 : null,
+            Custom = start.Custom is { } custom ? new CustomPlayJson { Id = custom.Id.ToString("D"), Imported = custom.Imported } : null,
             Regions = map.Regions,
             Tiles = map.Tiles,
             Teleporters = map.Teleporters,
@@ -82,13 +89,19 @@ public static class PlayRecordFile
     public static PlayRecord Parse(string line)
     {
         ArgumentNullException.ThrowIfNull(line);
-        CheckVersion(line);
+        var version = CheckVersion(line);
         var json = JsonSerializer.Deserialize(line, PlayRecordJsonContext.Default.PlayRecordJson)
             ?? throw new JsonException("The play record is null.");
         JsonKeys.RejectDuplicates(line, "play record");
 
         var mode = ReadWord(Require(json.Mode, "mode"), Enum.GetValues<DifficultyMode>(), DifficultyConfig.KeyOf, "mode");
         CheckModeKeys(json, mode);
+        // Version 1 records were made under chunk 22's wording, which never mentioned sending
+        var consent = version >= 2 ? json.Consent ?? throw new JsonException("The play record's \"consent\" is null.") : 0;
+        if (version >= 2)
+        {
+            AtLeast(consent, 1, "consent");
+        }
         var metrics = Require(json.Metrics, "metrics");
         AtLeast(json.Par, 1, "par");
         AtLeast(json.MetricsVersion, 1, "metricsVersion");
@@ -117,10 +130,12 @@ public static class PlayRecordFile
             ReadTime(Require(json.Started, "started")),
             Require(json.Build, "build"),
             Require(json.Platform, "platform"),
+            consent,
             mode,
             json.Level,
             json.SeenBefore,
             json.Infinite is { } choice ? new InfiniteChoice(choice.Difficulty, choice.Side, choice.Walls, choice.Traps, choice.Teleporters, choice.Irregular) : null,
+            json.Custom is { } custom ? new CustomPlay(ReadGuid(custom.Id, "custom's id"), custom.Imported) : null,
             map,
             json.Par,
             json.MetricsVersion,
@@ -132,7 +147,8 @@ public static class PlayRecordFile
         return new PlayRecord(start, outcome, json.Moves, json.Undos, json.Restarts, json.ActiveMs, actions);
     }
 
-    // A campaign record names its level; an infinite one its choice. Later modes add their own rules
+    // A campaign record names its level, an infinite one its choice and a custom one its level's ID. Later modes add their
+    // own rules
     private static void CheckModeKeys(PlayRecordJson json, DifficultyMode mode)
     {
         if (json.Level is { } level)
@@ -147,13 +163,17 @@ public static class PlayRecordFile
             }
             AtLeast(choice.Side, 2, "side");
         }
-        if (mode == DifficultyMode.Campaign && (json.Level is null || json.SeenBefore is null || json.Infinite is not null))
+        if (mode == DifficultyMode.Campaign && (json.Level is null || json.SeenBefore is null || json.Infinite is not null || json.Custom is not null))
         {
-            throw new JsonException("A campaign play record needs a \"level\" and \"seenBefore\", and no \"infinite\".");
+            throw new JsonException("A campaign play record needs a \"level\" and \"seenBefore\", and no \"infinite\" or \"custom\".");
         }
-        if (mode == DifficultyMode.Infinite && (json.Infinite is null || json.Level is not null || json.SeenBefore is not null))
+        if (mode == DifficultyMode.Infinite && (json.Infinite is null || json.Level is not null || json.SeenBefore is not null || json.Custom is not null))
         {
-            throw new JsonException("An infinite play record needs \"infinite\", and no \"level\" or \"seenBefore\".");
+            throw new JsonException("An infinite play record needs \"infinite\", and no \"level\", \"seenBefore\" or \"custom\".");
+        }
+        if (mode == DifficultyMode.Custom && (json.Custom is null || json.Level is not null || json.SeenBefore is not null || json.Infinite is not null))
+        {
+            throw new JsonException("A custom play record needs \"custom\", and no \"level\", \"seenBefore\" or \"infinite\".");
         }
     }
 
@@ -202,8 +222,9 @@ public static class PlayRecordFile
     private static T Require<T>(T? value, string key) where T : class =>
         value ?? throw new JsonException($"The play record's \"{key}\" is null.");
 
-    // The version decides how the rest is read, so a newer record with keys this build doesn't know is never called broken
-    private static void CheckVersion(string line)
+    // The version decides how the rest is read, so a newer record with keys this build doesn't know is never called broken.
+    // The keys a version has are checked here too, because the strict reader can't tell a missing key from a null one
+    private static int CheckVersion(string line)
     {
         using var document = JsonDocument.Parse(line);
         var root = document.RootElement;
@@ -227,10 +248,21 @@ public static class PlayRecordFile
         {
             throw new JsonException($"The play record's \"version\" is {number}; it must be at least 1.");
         }
+        foreach (var key in new[] { "consent", "custom" })
+        {
+            if (root.TryGetProperty(key, out _) != number >= 2)
+            {
+                throw new JsonException(number >= 2
+                    ? $"The play record has no \"{key}\"."
+                    : $"The play record is version {number}, which has no \"{key}\".");
+            }
+        }
+        return number;
     }
 }
 
-// Every key required, null or not, so a record always has the same keys in the same order
+// Every key required, null or not, so a record always has the same keys in the same order. The two version 2 keys can't be
+// required, or version 1 lines wouldn't read: the version pass checks them
 internal sealed record PlayRecordJson
 {
     public required int Version { get; init; }
@@ -245,6 +277,9 @@ internal sealed record PlayRecordJson
 
     public required string Platform { get; init; }
 
+    // Since version 2
+    public int? Consent { get; init; }
+
     public required string Mode { get; init; }
 
     public required int? Level { get; init; }
@@ -252,6 +287,9 @@ internal sealed record PlayRecordJson
     public required bool? SeenBefore { get; init; }
 
     public required PlayChoiceJson? Infinite { get; init; }
+
+    // Since version 2
+    public CustomPlayJson? Custom { get; init; }
 
     public required int[][] Regions { get; init; }
 
@@ -302,6 +340,14 @@ internal sealed record PlayChoiceJson
     public required bool Teleporters { get; init; }
 
     public required bool Irregular { get; init; }
+}
+
+// The level's GUID and whether it was imported; never its name, which is free text
+internal sealed record CustomPlayJson
+{
+    public required string Id { get; init; }
+
+    public required bool Imported { get; init; }
 }
 
 internal sealed record PlayMetricsJson

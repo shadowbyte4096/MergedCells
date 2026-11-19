@@ -4,7 +4,7 @@ using Godot;
 namespace MergedCells;
 
 // One custom level's actions: Play and Share code (only when it can be played), Edit (Edit a copy for an imported level),
-// and Delete, which asks "Tap again to delete" first
+// Edit a copy as well for the player's own level, and Delete, which asks "Tap again to delete" first
 public partial class LevelSheet : EditorSheet
 {
     private Label title;
@@ -13,6 +13,7 @@ public partial class LevelSheet : EditorSheet
     private Button share;
     private Label note;
     private Button edit;
+    private Button editCopy;
     private Button delete;
     private bool deleteArmed;
 
@@ -21,6 +22,8 @@ public partial class LevelSheet : EditorSheet
     public event Action SharePressed;
 
     public event Action EditPressed;
+
+    public event Action EditCopyPressed;
 
     public event Action DeleteConfirmed;
 
@@ -33,10 +36,12 @@ public partial class LevelSheet : EditorSheet
         share = GetNode<Button>("Sheet/Column/Share");
         note = GetNode<Label>("Sheet/Column/Note");
         edit = GetNode<Button>("Sheet/Column/Edit");
+        editCopy = GetNode<Button>("Sheet/Column/EditCopy");
         delete = GetNode<Button>("Sheet/Column/Delete");
         play.Pressed += () => PlayPressed?.Invoke();
         share.Pressed += () => SharePressed?.Invoke();
         edit.Pressed += () => EditPressed?.Invoke();
+        editCopy.Pressed += () => EditCopyPressed?.Invoke();
         delete.Pressed += OnDeletePressed;
     }
 
@@ -49,6 +54,7 @@ public partial class LevelSheet : EditorSheet
         share.Disabled = !shareable;
         note.Hide();
         edit.Text = imported ? "Edit a copy" : "Edit";
+        editCopy.Visible = !imported;
         deleteArmed = false;
         delete.Text = "Delete";
         Show();

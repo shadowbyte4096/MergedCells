@@ -74,10 +74,7 @@ public partial class Main : Node
     public override void _Ready()
     {
         GD.Print("Merged Cells started (C#).");
-        if (PlaytestBuild.IsOn)
-        {
-            GD.Print($"Playtest build ({PlaytestBuild.Build}): play data can be recorded");
-        }
+        GD.Print($"Build: {BuildName.Current}");
         // The config first, so a bad file stops the game before anything appears
         _ = GameConfigFile.Current;
         _ = SaveGameFile.Current;
@@ -163,6 +160,7 @@ public partial class Main : Node
         menu.ResetSaveConfirmed += ResetSave;
         menu.InfinitePressed += () => ShowInfiniteSetup();
         menu.Open(Progress().TotalStars, OS.IsDebugBuild(), SaveGameFile.Notice);
+        WireConsent(menu);
         back = null;
         atRoot = true;
     });
@@ -233,9 +231,10 @@ public partial class Main : Node
                 ShowEditor(NewSession(custom));
             }
         };
+        list.EditCopyPressed += custom => OpenCopy(CustomLevelCopies.OwnCopy(custom, Guid.NewGuid(), Now()));
         list.CopyChosen += level =>
             OpenCopy(CustomLevelCopies.FromCampaign(level, Guid.NewGuid(), Now(), GameConfigFile.Current.CustomLevels.MaxNameLength));
-        list.PlayPressed += custom => PlayCustom(custom, ShowCustomLevels);
+        list.PlayPressed += custom => PlayCustom(custom, ShowCustomLevels, record: true);
         list.SharePressed += custom =>
         {
             var code = ShareCode.Write(custom);
@@ -276,7 +275,8 @@ public partial class Main : Node
             editor.SaveProblem = CustomLevelFiles.Notice;
         };
         editor.ToolChosen += tool => editorTool = tool;
-        editor.PlayPressed += custom => PlayCustom(custom, () => ShowEditor(session));
+        // "Play it" is the author testing an unfinished level, so it isn't recorded
+        editor.PlayPressed += custom => PlayCustom(custom, () => ShowEditor(session), record: false);
         editor.BackPressed += LeaveEditor;
         editor.Open(session, editorTool);
         editor.SaveProblem = CustomLevelFiles.Notice;
@@ -284,13 +284,17 @@ public partial class Main : Node
     });
 
     // backTo: where the back chevron, Menu and Android's back go, the editor or the list
-    public void PlayCustom(CustomLevel custom, Action backTo) => Swap(() =>
+    public void PlayCustom(CustomLevel custom, Action backTo, bool record) => Swap(() =>
     {
         var play = OpenPlay();
         var par = Solver.Solve(custom.Map).Par
             ?? throw new InvalidOperationException($"The custom level \"{custom.Name}\" can't be won.");
         GD.Print($"Custom level: {custom.Name} (par {par})");
-        play.Start(custom.Map, par, new PlaySetup(custom.Name) { Rules = new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit) });
+        play.Start(custom.Map, par, new PlaySetup(custom.Name)
+        {
+            Rules = new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit),
+            Recording = record ? CustomRecording(custom, par) : null,
+        });
         back = backTo;
     });
 

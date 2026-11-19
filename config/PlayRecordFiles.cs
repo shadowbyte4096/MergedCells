@@ -5,10 +5,10 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The play records file, user://playtest-records.jsonl, apart from the save, and its export
+// The play records file, user://play-records.jsonl, apart from the save, its export and its deletion
 public static class PlayRecordFiles
 {
-    private const string FilePath = "user://playtest-records.jsonl";
+    private const string FilePath = "user://play-records.jsonl";
 
     private static PlayRecordStore store;
 
@@ -24,6 +24,21 @@ public static class PlayRecordFiles
             return;
         }
         GD.Print($"Play data: recorded {record.Outcome} ({Store.Count} records)");
+    }
+
+    // The problem when the file can't be deleted, or null
+    public static string Delete()
+    {
+        var problem = Store.Delete();
+        if (problem is null)
+        {
+            GD.Print($"Play data: deleted {FilePath}");
+        }
+        else
+        {
+            GD.PushError($"Play data: can't delete {FilePath} ({problem})");
+        }
+        return problem;
     }
 
     // Through the system's save picker where there is one, otherwise to the clipboard. done gets the sentence the

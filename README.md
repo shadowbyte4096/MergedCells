@@ -27,7 +27,7 @@ To play, open `project.godot` in the Godot editor and press Play. On desktop, mo
 
 ### Playtest builds
 
-Every push to `main` (except README or LICENSE changes), or **Run workflow** on the Actions tab, runs the tests and then builds a phones-only APK and a Windows zip. Both go on the repo's `playtest` release, replacing the previous build. The APK is signed with a playtest key stored in two repository secrets, `PLAYTEST_KEYSTORE_BASE64` and `PLAYTEST_KEYSTORE_PASSWORD`, so each new build installs over the last one. These builds are marked as playtest builds, which can record play data for tuning difficulty (an opt-in on the settings sheet).
+Every push to `main` (except one that changes only the README, LICENSE or PRIVACY.md), or **Run workflow** on the Actions tab, runs the tests and then builds a phones-only APK and a Windows zip. Both go on the repo's `playtest` release, replacing the previous build. The APK is signed with a playtest key stored in two repository secrets, `PLAYTEST_KEYSTORE_BASE64` and `PLAYTEST_KEYSTORE_PASSWORD`, so each new build installs over the last one. Every build can record play data for tuning difficulty, but only once the player says yes. [PRIVACY.md](PRIVACY.md) says what it holds and how to have it deleted; its last section is for playtesters.
 
 ## Project layout
 

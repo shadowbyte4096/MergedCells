@@ -59,25 +59,38 @@ public static class LevelEdits
     }
 
     /// <summary>
-    /// The Eraser: each square loses its wall or trap, a teleporter square takes its whole pair away (the later pairs move
-    /// up a letter), and each square becomes a block of its own. The other square of an erased pair keeps its block.
+    /// The Eraser. The stroke's first square decides what it changes. A wall removes walls, a trap removes traps, and a
+    /// teleporter square removes every pair the stroke touches (the later pairs move up a letter); none of these touch the
+    /// blocks or the other twists. A square with no twist makes each square of the stroke a block of its own and keeps
+    /// every twist. Throws <see cref="ArgumentException"/> for an empty stroke or a square off the map.
     /// </summary>
-    public static EditResult Erase(Map map, IReadOnlyCollection<Cell> cells)
+    public static EditResult Erase(Map map, IReadOnlyList<Cell> stroke)
     {
-        ArgumentNullException.ThrowIfNull(map);
-        ArgumentNullException.ThrowIfNull(cells);
+        var mode = EraseMode(map, stroke);
+        var targets = Targets(map, stroke, mode);
         var grid = map.RegionGrid();
         var tiles = map.TileGrid();
         var pairs = map.Teleporters.ToList();
         var fresh = RegionGrids.FreshId(grid);
-        foreach (var cell in cells)
+        foreach (var cell in targets)
         {
-            CheckInside(map, cell);
-            ClearTwist(tiles, pairs, cell);
-            grid[cell.Row, cell.Column] = fresh++;
+            if (mode == Erasing.Blocks)
+            {
+                grid[cell.Row, cell.Column] = fresh++;
+            }
+            else
+            {
+                ClearTwist(tiles, pairs, cell);
+            }
         }
         return Finish(map, grid, tiles, pairs, map.Start, map.End);
     }
+
+    /// <summary>
+    /// The squares <see cref="Erase"/> would change, each once in stroke order, with a teleporter square's partner right
+    /// after it: only the squares holding the first square's twist, or every square when the first square has none.
+    /// </summary>
+    public static IReadOnlyList<Cell> EraseTargets(Map map, IReadOnlyList<Cell> stroke) => Targets(map, stroke, EraseMode(map, stroke));
 
     /// <summary>
     /// Wall and Trap: marks each square, replacing the other of the two. Skips the start, the end and teleporter squares,
@@ -273,6 +286,63 @@ public static class LevelEdits
             return $"{kind} can't go on the end";
         }
         return PairIndex(map.Teleporters, cell) >= 0 ? "Erase the teleporter first" : null;
+    }
+
+    private enum Erasing
+    {
+        Blocks,
+        Walls,
+        Traps,
+        Teleporters,
+    }
+
+    private static Erasing EraseMode(Map map, IReadOnlyList<Cell> stroke)
+    {
+        ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(stroke);
+        if (stroke.Count == 0)
+        {
+            throw new ArgumentException("A stroke needs at least one square.", nameof(stroke));
+        }
+        foreach (var cell in stroke)
+        {
+            CheckInside(map, cell);
+        }
+        return Holds(map, stroke[0]);
+    }
+
+    private static Erasing Holds(Map map, Cell cell) => map.TileAt(cell) switch
+    {
+        Tile.Wall => Erasing.Walls,
+        Tile.Trap => Erasing.Traps,
+        _ => PairIndex(map.Teleporters, cell) >= 0 ? Erasing.Teleporters : Erasing.Blocks,
+    };
+
+    private static List<Cell> Targets(Map map, IReadOnlyList<Cell> stroke, Erasing mode)
+    {
+        var targets = new List<Cell>();
+        var listed = new HashSet<Cell>();
+        foreach (var cell in stroke)
+        {
+            if (mode != Erasing.Blocks && Holds(map, cell) != mode)
+            {
+                continue;
+            }
+            if (listed.Add(cell))
+            {
+                targets.Add(cell);
+            }
+            if (mode == Erasing.Teleporters)
+            {
+                var pair = map.Teleporters[PairIndex(map.Teleporters, cell)];
+                var partner = pair.First == cell ? pair.Second : pair.First;
+                if (listed.Add(partner))
+                {
+                    targets.Add(partner);
+                }
+            }
+        }
+        return targets;
     }
 
     // A square's wall or trap, or its teleporter's whole pair

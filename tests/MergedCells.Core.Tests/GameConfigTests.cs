@@ -404,6 +404,15 @@ public class GameConfigTests
         Assert.Equal(decoys, config.Difficulty.ModeWeights["daily"].Decoys);
     }
 
+    [Theory]
+    [AutoData]
+    public void Parse_reads_a_custom_mode_override(int decoys)
+    {
+        var config = GameConfig.Parse(ConfigText(modeWeights: $$"""{"custom":{{Weights(decoys: decoys)}}}"""));
+
+        Assert.Equal(decoys, config.Difficulty.ModeWeights["custom"].Decoys);
+    }
+
     [Fact]
     public void Shipped_config_parses_and_its_threshold_is_accepted()
     {

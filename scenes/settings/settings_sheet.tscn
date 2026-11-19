@@ -1,6 +1,8 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://scenes/settings/SettingsSheet.cs" id="1_sheet"]
+[ext_resource type="Texture2D" path="res://themes/icons/forward.svg" id="2_forward"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="3_back"]
 
 [sub_resource type="ButtonGroup" id="ButtonGroup_appearance"]
 
@@ -81,35 +83,67 @@ toggle_mode = true
 button_group = SubResource("ButtonGroup_appearance")
 text = "Dark"
 
-[node name="PlayData" type="VBoxContainer" parent="Sheet/Column"]
+[node name="Rule" type="HSeparator" parent="Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="PrivacyRow" type="Button" parent="Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"SheetRow"
+text = "Privacy and data"
+icon = ExtResource("2_forward")
+alignment = 0
+icon_alignment = 2
+
+[node name="Done" type="Button" parent="Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Done"
+
+[node name="Privacy" type="VBoxContainer" parent="Sheet"]
 visible = false
 layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"ResultsColumn"
 
-[node name="Rule" type="HSeparator" parent="Sheet/Column/PlayData"]
+[node name="Header" type="HBoxContainer" parent="Sheet/Privacy"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="RecordSwitch" type="CheckButton" parent="Sheet/Column/PlayData"]
+[node name="Back" type="Button" parent="Sheet/Privacy/Header"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("3_back")
+icon_alignment = 1
+
+[node name="Heading" type="Label" parent="Sheet/Privacy/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"TutorialLine"
+text = "Privacy and data"
+
+[node name="PlayDataSwitch" type="CheckButton" parent="Sheet/Privacy"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"RecordSwitch"
-text = "Record play data"
 
-[node name="Note" type="Label" parent="Sheet/Column/PlayData"]
+[node name="PlayDataNote" type="Label" parent="Sheet/Privacy"]
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 theme_type_variation = &"Muted"
 autowrap_mode = 3
 
-[node name="Export" type="Button" parent="Sheet/Column/PlayData"]
+[node name="Export" type="Button" parent="Sheet/Privacy"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Export play data"
 
-[node name="ExportResult" type="Label" parent="Sheet/Column/PlayData"]
+[node name="ExportResult" type="Label" parent="Sheet/Privacy"]
 visible = false
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
@@ -117,7 +151,53 @@ theme_type_variation = &"Muted"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Done" type="Button" parent="Sheet/Column"]
+[node name="LeaderboardsSwitch" type="CheckButton" parent="Sheet/Privacy"]
+visible = false
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"RecordSwitch"
+
+[node name="LeaderboardsNote" type="Label" parent="Sheet/Privacy"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+autowrap_mode = 3
+
+[node name="Rule" type="HSeparator" parent="Sheet/Privacy"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="CantChange" type="Label" parent="Sheet/Privacy"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+text = "Can't be changed while the save can't be written."
+autowrap_mode = 3
+
+[node name="Delete" type="Button" parent="Sheet/Privacy"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Delete my data"
+
+[node name="DeleteResult" type="Label" parent="Sheet/Privacy"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Policy" type="Button" parent="Sheet/Privacy"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Privacy policy"
+
+[node name="Done" type="Button" parent="Sheet/Privacy"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillPrimary"

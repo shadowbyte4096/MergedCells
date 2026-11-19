@@ -84,6 +84,25 @@ public sealed class PlayRecordStore
         return null;
     }
 
+    /// <summary>Deletes the file and every record in it. Returns the problem when it can't; never throws over I/O.</summary>
+    public string? Delete()
+    {
+        try
+        {
+            File.Delete(Path);
+        }
+        catch (Exception exception) when (exception is DirectoryNotFoundException)
+        {
+            // Nothing there to delete
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return exception.Message;
+        }
+        count = 0;
+        return null;
+    }
+
     private bool EndsInLineBreak()
     {
         try
