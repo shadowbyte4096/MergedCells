@@ -5,8 +5,9 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// One level on screen: the board, the HUD, the slide animation, and the glue between input and the PlaySession
-public partial class Play : Node2D, IScreen
+// One level on screen: the board, the HUD, the slide animation, and the glue between input and the PlaySession. It also
+// waits while the next infinite map is made (Next map's bar on the card, or New map's ring)
+public partial class Play : Node2D, IScreen, IMapWait
 {
     private BoardView board;
     private PlayerView player;
@@ -23,10 +24,17 @@ public partial class Play : Node2D, IScreen
     private Button undoCaption;
     private PanelContainer undoBadge;
     private Label undoCount;
+    private Button restartButton;
+    private Button restartCaption;
     private Control newMap;
     private Button newMapButton;
     private Button newMapCaption;
     private bool newMapArmed;
+    private MakingRing makingRing;
+    // From the press that asks for the next map until it arrives (or Cancel): this map takes no input
+    private bool waiting;
+    private bool waitShowing;
+    private bool waitFromResults;
     private Control tutorialBlock;
     private Label tutorialLine;
     private Label tutorialDetail;
@@ -55,6 +63,8 @@ public partial class Play : Node2D, IScreen
 
     // The top bar's back chevron or the results card's Menu
     public event Action MenuPressed;
+
+    public event Action WaitCancelled;
 
     [Export] public AppLooks Looks { get; set; }
 
@@ -105,13 +115,31 @@ public partial class Play : Node2D, IScreen
         undoCaption.Pressed += Undo;
         undoButton.GuiInput += OnGreyedUndoInput;
         undoCaption.GuiInput += OnGreyedUndoInput;
-        GetNode<Button>("Hud/Root/BottomBar/Row/Restart/RestartButton").Pressed += Restart;
-        GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption").Pressed += Restart;
+        restartButton = GetNode<Button>("Hud/Root/BottomBar/Row/Restart/RestartButton");
+        restartCaption = GetNode<Button>("Hud/Root/BottomBar/Row/Restart/Caption");
+        restartButton.Pressed += Restart;
+        restartCaption.Pressed += Restart;
         newMapButton.Pressed += OnNewMapPressed;
         newMapCaption.Pressed += OnNewMapPressed;
+        makingRing = new MakingRing { Visible = false };
+        newMapButton.AddChild(makingRing);
+        makingRing.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
         results.RetryPressed += Retry;
-        results.NextPressed += () => NextPressed?.Invoke();
-        results.MenuPressed += () => MenuPressed?.Invoke();
+        results.NextPressed += () =>
+        {
+            if (!waiting)
+            {
+                NextPressed?.Invoke();
+            }
+        };
+        results.MenuPressed += () =>
+        {
+            if (!waiting)
+            {
+                MenuPressed?.Invoke();
+            }
+        };
+        results.CancelPressed += () => WaitCancelled?.Invoke();
         GetNode<Button>("Hud/Root/TopBar/Row/Back").Pressed += () => MenuPressed?.Invoke();
         GetNode<Button>("Hud/Root/TopBar/Row/SettingsButton").Pressed += OpenSettings;
         // Never under the results card: a winning move remembered before the sheet opened can finish the level
@@ -159,6 +187,7 @@ public partial class Play : Node2D, IScreen
 
         // The map being replaced was left unfinished
         EndRecording(PlayOutcome.Left);
+        EndWait();
         this.par = par;
         this.setup = setup;
         var title = setup.Title;
@@ -247,6 +276,11 @@ public partial class Play : Node2D, IScreen
             SetPlayerScale(1);
             var leftover = elapsed - timeline.Seconds;
             sliding = null;
+            // The map was given up for a new one: a remembered move mustn't start, or finish it
+            if (waiting)
+            {
+                break;
+            }
             if (session.FinishSlide() is { } next)
             {
                 Begin(next);
@@ -348,7 +382,7 @@ public partial class Play : Node2D, IScreen
     // The first press arms it and the second gives up on the map; anything else in between disarms it, so there's no timer
     private void OnNewMapPressed()
     {
-        if (!Playing || session.IsWon || settings.IsOpen)
+        if (!Playing || session.IsWon || settings.IsOpen || waiting)
         {
             return;
         }
@@ -377,16 +411,17 @@ public partial class Play : Node2D, IScreen
 
     private void OnMoveRequested(Direction direction)
     {
-        if (Playing && !settings.IsOpen && session.Request(direction) is { } slide)
+        if (Playing && !settings.IsOpen && !waiting && session.Request(direction) is { } slide)
         {
             Begin(slide);
         }
     }
 
+    // A finished map would close an open sheet, or reach a freed one from Export's save picker, so the gear waits too
     private void OpenSettings()
     {
         // Once the winning move has started, the results are on their way
-        if (session is null || session.IsWon || settings.IsOpen)
+        if (session is null || session.IsWon || settings.IsOpen || waiting)
         {
             return;
         }
@@ -397,7 +432,7 @@ public partial class Play : Node2D, IScreen
 
     private void Undo()
     {
-        if (!Playing || settings.IsOpen)
+        if (!Playing || settings.IsOpen || waiting)
         {
             return;
         }
@@ -431,16 +466,64 @@ public partial class Play : Node2D, IScreen
 
     private void Restart()
     {
-        if (Playing && !settings.IsOpen)
+        if (Playing && !settings.IsOpen && !waiting)
         {
             RestartLevel();
             recorder?.Restart(ActiveMs);
         }
     }
 
+    public void BeginWait()
+    {
+        waiting = true;
+        waitFromResults = results.Visible;
+    }
+
+    public void ShowWait(double progress)
+    {
+        if (waitFromResults)
+        {
+            results.ShowMaking(progress);
+            return;
+        }
+        if (!waitShowing)
+        {
+            waitShowing = true;
+            newMapButton.ThemeTypeVariation = "RoundButtonMaking";
+            newMapCaption.Text = "Making…";
+            makingRing.Visible = true;
+            foreach (var button in new[] { undoButton, undoCaption, restartButton, restartCaption })
+            {
+                button.Disabled = true;
+            }
+        }
+        makingRing.Progress = progress;
+    }
+
+    // Also the start of every map, since a new map ends any wait
+    public void EndWait()
+    {
+        waiting = false;
+        waitShowing = false;
+        results.EndMaking();
+        makingRing.Visible = false;
+        makingRing.Progress = 0;
+        restartButton.Disabled = false;
+        restartCaption.Disabled = false;
+        DisarmNewMap();
+        if (session is not null)
+        {
+            RefreshUndo();
+        }
+    }
+
     // A new visit to the same map, so a new play record
     private void Retry()
     {
+        if (waiting)
+        {
+            return;
+        }
         results.Hide();
         tutorialBlock.Modulate = Colors.White;
         camera.InputEnabled = true;

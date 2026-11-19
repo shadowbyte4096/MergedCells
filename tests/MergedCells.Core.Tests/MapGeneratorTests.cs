@@ -64,7 +64,7 @@ public class MapGeneratorTests
     {
         var generator = new MapGenerator(GeneratorConfigs.With());
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(new MapRequest(size, minPar, maxPar), seed));
+        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(new MapRequest(size, minPar, maxPar), seed, TestContext.Current.CancellationToken));
     }
 
     // The filter, on hand-made maps: no generated map has turned up solvable with dead ends, so a seed can't test that
@@ -160,18 +160,43 @@ public class MapGeneratorTests
 
     [Theory]
     [AutoData]
+    public void Cancelled_token_stops_generating(ulong seed)
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With());
+
+        Assert.Throws<OperationCanceledException>(() => generator.Generate(new MapRequest(8, 1, 100), seed, new CancellationToken(canceled: true)));
+    }
+
+    // Teleporter maps can loop, so they're made on another thread under a timeout
+    [Theory(Timeout = 10_000)]
+    [AutoData]
+    public async Task Live_token_gives_the_same_map(ulong seed)
+    {
+        var generator = new MapGenerator(GeneratorConfigs.With());
+        var request = new MapRequest(8, 1, 100, Twists: GeneratedMaps.EveryTwist);
+        using var source = new CancellationTokenSource();
+        var testToken = TestContext.Current.CancellationToken;
+
+        var withToken = (await Task.Run(() => generator.Generate(request, seed, source.Token), testToken))!;
+        var without = (await Task.Run(() => generator.Generate(request, seed, testToken), testToken))!;
+
+        Assert.Equal(LevelFingerprint.Of(without.Map, without.Solution.Par!.Value), LevelFingerprint.Of(withToken.Map, withToken.Solution.Par!.Value));
+    }
+
+    [Theory]
+    [AutoData]
     public void An_impossible_par_range_gives_null(ulong seed)
     {
         var generator = new MapGenerator(GeneratorConfigs.With(maxAttempts: 20));
 
-        Assert.Null(generator.Generate(new MapRequest(5, 100, 200), seed));
+        Assert.Null(generator.Generate(new MapRequest(5, 100, 200), seed, TestContext.Current.CancellationToken));
     }
 
     [Theory]
     [AutoData]
     public void Generates_a_100x100_map(ulong seed)
     {
-        var generated = new MapGenerator(GeneratorConfigs.With()).Generate(new MapRequest(100, 1, 10_000), seed);
+        var generated = new MapGenerator(GeneratorConfigs.With()).Generate(new MapRequest(100, 1, 10_000), seed, TestContext.Current.CancellationToken);
 
         Assert.NotNull(generated);
     }
@@ -194,7 +219,7 @@ public class MapGeneratorTests
     {
         var generator = new MapGenerator(GeneratorConfigs.With());
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(new MapRequest(5, 1, 10, Twists: twists), Seed()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => generator.Generate(new MapRequest(5, 1, 10, Twists: twists), Seed(), TestContext.Current.CancellationToken));
     }
 
     // Par 2 with no dead ends, but Left and Right from the start both loop
@@ -295,7 +320,7 @@ public class MapGeneratorTests
         var generator = new MapGenerator(GeneratorConfigs.With(maxAttempts: 5));
 
         var exception = await Task.Run(
-            () => Record.Exception(() => generator.Generate(new MapRequest(2, 1, 100, Twists: new TwistDensities(100, 100, 100, 100)), Seed())),
+            () => Record.Exception(() => generator.Generate(new MapRequest(2, 1, 100, Twists: new TwistDensities(100, 100, 100, 100)), Seed(), TestContext.Current.CancellationToken)),
             TestContext.Current.CancellationToken);
 
         Assert.Null(exception);

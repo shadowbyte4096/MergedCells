@@ -91,7 +91,7 @@ public class SkeletonGeneratorTests
         var tiles = GapTiles();
         tiles[0, 0] = Tile.Wall;
 
-        Assert.Throws<ArgumentException>(() => new MapGenerator(GeneratorConfigs.With(cornerPercent: 1)).Generate(Request, 1, Gap(tiles)));
+        Assert.Throws<ArgumentException>(() => new MapGenerator(GeneratorConfigs.With(cornerPercent: 1)).Generate(Request, 1, Gap(tiles), TestContext.Current.CancellationToken));
     }
 
     // At 9x9 the start must be 8 rows plus columns from the end, and [3, 4] is only 7 from the far corner: the area is
@@ -163,6 +163,6 @@ public class SkeletonGeneratorTests
     [Fact]
     public void Size_mismatch_throws()
     {
-        Assert.Throws<ArgumentException>(() => Generator.Generate(Request with { Size = 8 }, 1, Gap()));
+        Assert.Throws<ArgumentException>(() => Generator.Generate(Request with { Size = 8 }, 1, Gap(), TestContext.Current.CancellationToken));
     }
 }

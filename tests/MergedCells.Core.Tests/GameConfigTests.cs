@@ -48,7 +48,7 @@ public class GameConfigTests
 
     // Passes the range check with the generator group above, so a case can break one value of it
     private const string InfiniteGroup =
-        """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"difficulties":"""
+        """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"loadingDelaySeconds":0,"difficulties":"""
         + InfiniteEntries + "}";
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
@@ -206,6 +206,7 @@ public class GameConfigTests
         Valid.Replace(""","infinite":""" + InfiniteGroup, ""),
         Valid.Replace("\"teleporterPercent\":0", "\"teleporterPercent\":0,\"extra\":1"),
         Valid.Replace(""","startSide":2""", ""),
+        Valid.Replace(""","loadingDelaySeconds":0""", ""),
         Valid.Replace(InfiniteEntries, "[" + InfiniteEntry.Replace("\"maxScore\":100", "\"maxScore\":100,\"extra\":1") + "]"),
     };
 
@@ -234,6 +235,16 @@ public class GameConfigTests
         var infinite = GameConfig.Parse(text).Infinite;
 
         Assert.Equal((climbSteps, wallPercent, InfiniteConfig.DifficultyCount), (infinite.ClimbSteps, infinite.WallPercent, infinite.Difficulties.Count));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_loading_delay(byte tenths)
+    {
+        var seconds = tenths / 10.0;
+        var text = ConfigText(infinite: InfiniteGroup.Replace("\"loadingDelaySeconds\":0", $"\"loadingDelaySeconds\":{seconds.ToString(CultureInfo.InvariantCulture)}"));
+
+        Assert.Equal(seconds, GameConfig.Parse(text).Infinite.LoadingDelaySeconds);
     }
 
     public static TheoryData<string> NullCustomLevelsTexts => new()
@@ -502,6 +513,7 @@ public class GameConfigTests
         ConfigText(bands: """[{"name":"A","minScore":0},{"name":"B","minScore":101}]"""),
         ConfigText(bands: """[{"name":" ","minScore":0}]"""),
         ConfigText(infinite: InfiniteGroup.Replace("\"climbSteps\":1,\"stallSteps\":1", "\"climbSteps\":0,\"stallSteps\":0")),
+        ConfigText(infinite: InfiniteGroup.Replace("\"loadingDelaySeconds\":0", "\"loadingDelaySeconds\":-1")),
     };
 
     [Theory]

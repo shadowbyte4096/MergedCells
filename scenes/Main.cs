@@ -63,7 +63,13 @@ public partial class Main : Node
         {
             Back(fromSystem: true);
         }
+        else if (what == NotificationWMCloseRequest)
+        {
+            CancelMapJob();
+        }
     }
+
+    public override void _ExitTree() => CancelMapJob();
 
     public override void _Ready()
     {
@@ -96,9 +102,10 @@ public partial class Main : Node
         ShowModeSelect();
     }
 
-    // On test boards only, for measuring drawing cost on a phone through logcat
+    // The background map first; then, on test boards only, the frame log for measuring drawing cost on a phone through logcat
     public override void _Process(double delta)
     {
+        PollMapJob();
         if (testBoard is null)
         {
             return;
@@ -360,6 +367,7 @@ public partial class Main : Node
     // pending replaces it, so a double tap opens one screen.
     private void Swap(Action open)
     {
+        CancelMapJob();
         var queued = pendingSwap is not null;
         pendingSwap = open;
         if (!queued)
@@ -368,8 +376,10 @@ public partial class Main : Node
         }
     }
 
+    // A press in the same frame as the request can start a map on the screen that's leaving; this stops it with its screen
     private void RunSwap()
     {
+        CancelMapJob();
         var open = pendingSwap;
         pendingSwap = null;
         open?.Invoke();
@@ -404,6 +414,7 @@ public partial class Main : Node
         play.NextPressed += OnNextPressed;
         play.NewMapPressed += OnNewMapPressed;
         play.MenuPressed += () => back?.Invoke();
+        play.WaitCancelled += () => CancelWait(play);
         return play;
     }
 

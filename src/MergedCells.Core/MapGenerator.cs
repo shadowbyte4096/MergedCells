@@ -46,15 +46,18 @@ public sealed class MapGenerator
     /// Tries up to the config's <c>maxAttempts</c> maps from one random stream started at <paramref name="seed"/>, each
     /// with the request's twists, and returns the first that is solvable, has no dead ends and no looping slides, and has
     /// par in the requested range, or null when none does. Throws <see cref="ArgumentOutOfRangeException"/> for a size
-    /// below 2, a minimum par below 1, a maximum below the minimum, or a twist density outside 0 to 100.
+    /// below 2, a minimum par below 1, a maximum below the minimum, or a twist density outside 0 to 100, and
+    /// <see cref="OperationCanceledException"/> before any try once <paramref name="cancel"/> is cancelled. The token draws
+    /// no random numbers, so it never changes the map.
     /// </summary>
-    public GeneratedMap? Generate(MapRequest request, ulong seed)
+    public GeneratedMap? Generate(MapRequest request, ulong seed, CancellationToken cancel = default)
     {
         Check(request);
 
         var random = new GameRandom(seed);
         for (var attempt = 0; attempt < config.MaxAttempts; attempt++)
         {
+            cancel.ThrowIfCancellationRequested();
             var (start, end) = StartAndEnd.Place(request.Size, config, random);
             var regions = RegionCutter.Cut(request.Size, end, config, request.Bends, random);
             var (tiles, teleporters) = request.Twists is null
@@ -72,7 +75,7 @@ public sealed class MapGenerator
 
     // A concept level's starting maps: what the skeleton fixes stays, and the start, the cut and the twists fill the rest
     // in the order Generate draws them
-    internal GeneratedMap? Generate(MapRequest request, ulong seed, MapSkeleton skeleton)
+    internal GeneratedMap? Generate(MapRequest request, ulong seed, MapSkeleton skeleton, CancellationToken cancel = default)
     {
         Check(request);
         ArgumentNullException.ThrowIfNull(skeleton);
@@ -86,6 +89,7 @@ public sealed class MapGenerator
         var random = new GameRandom(seed);
         for (var attempt = 0; attempt < config.MaxAttempts; attempt++)
         {
+            cancel.ThrowIfCancellationRequested();
             var start = starts[random.Next(starts.Count)];
             var regions = RegionCutter.Cut(request.Size, end, config, request.Bends, random, skeleton);
             var (tiles, teleporters) = request.Twists is null

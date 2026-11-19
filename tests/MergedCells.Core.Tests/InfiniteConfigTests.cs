@@ -41,7 +41,19 @@ public class InfiniteConfigTests
         { "infinite.trapPercent", InfiniteConfigs.With(trapPercent: 101) },
         { "infinite.teleporterPercent", InfiniteConfigs.With(teleporterPercent: -1) },
         { "infinite.teleporterPercent", InfiniteConfigs.With(teleporterPercent: 101) },
+        { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: -0.01) },
+        { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: 10.01) },
+        { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: double.NaN) },
+        { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: double.PositiveInfinity) },
     };
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(10.0)]
+    public void Accepts_the_delay_s_edges(double seconds)
+    {
+        InfiniteConfigs.With(loadingDelaySeconds: seconds).CheckRanges();
+    }
 
     [Theory]
     [MemberData(nameof(OutOfRange))]

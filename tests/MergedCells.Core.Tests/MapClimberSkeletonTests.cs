@@ -81,7 +81,7 @@ public class MapClimberSkeletonTests
     {
         var request = new ClimbRequest(Request with { Size = 8 }, new DifficultyTarget(0, 100), DifficultyMode.Campaign, Gap());
 
-        Assert.Throws<ArgumentException>(() => Climber.Climb(request, 1));
+        Assert.Throws<ArgumentException>(() => Climber.Climb(request, 1, TestContext.Current.CancellationToken));
     }
 
     // Section 7's example with every square but the end fixed, and the start fixed, leaves the climber nothing to edit

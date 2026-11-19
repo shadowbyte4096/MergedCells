@@ -508,6 +508,44 @@ corner_radius_bottom_left = 6
 anti_aliasing = true
 bg_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_making_track"]
+content_margin_left = 40
+content_margin_top = 20
+content_margin_right = 40
+content_margin_bottom = 20
+draw_center = false
+border_width_left = 5
+border_width_top = 5
+border_width_right = 5
+border_width_bottom = 5
+border_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_making_fill"]
+content_margin_left = 40
+content_margin_top = 20
+content_margin_right = 40
+content_margin_bottom = 20
+corner_radius_top_left = 32
+corner_radius_top_right = 32
+corner_radius_bottom_right = 32
+corner_radius_bottom_left = 32
+bg_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_round_making"]
+content_margin_left = 32
+content_margin_top = 32
+content_margin_right = 32
+content_margin_bottom = 32
+corner_radius_top_left = 56
+corner_radius_top_right = 56
+corner_radius_bottom_right = 56
+corner_radius_bottom_left = 56
+anti_aliasing = true
+bg_color = Color(0.08627451, 0.19215686, 0.17254902, 1)
 [resource]
 default_font = ExtResource("1_medium")
 default_font_size = 40
@@ -902,3 +940,21 @@ TwistToggle/styles/hover = SubResource("StyleBoxFlat_pill")
 TwistToggle/styles/hover_pressed = SubResource("StyleBoxFlat_primary")
 TwistToggle/styles/normal = SubResource("StyleBoxFlat_pill")
 TwistToggle/styles/pressed = SubResource("StyleBoxFlat_primary")
+MakingBar/colors/font_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+MakingBar/colors/font_fill_color = Color(0.08627451, 0.19215686, 0.17254902, 1)
+MakingBar/font_sizes/font_size = 32
+MakingBar/fonts/font = ExtResource("2_bold")
+MakingBar/styles/fill = SubResource("StyleBoxFlat_making_fill")
+MakingBar/styles/track = SubResource("StyleBoxFlat_making_track")
+MakingRing/colors/ring = Color(0.36862745, 0.82745098, 0.74901961, 1)
+MakingRing/constants/width = 5
+RoundButtonMaking/base_type = &"Button"
+RoundButtonMaking/colors/icon_disabled_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonMaking/colors/icon_hover_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonMaking/colors/icon_normal_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonMaking/colors/icon_pressed_color = Color(0.36862745, 0.82745098, 0.74901961, 1)
+RoundButtonMaking/styles/disabled = SubResource("StyleBoxFlat_round_making")
+RoundButtonMaking/styles/hover = SubResource("StyleBoxFlat_round_making")
+RoundButtonMaking/styles/normal = SubResource("StyleBoxFlat_round_making")
+RoundButtonMaking/styles/pressed = SubResource("StyleBoxFlat_round_making")
+Waiting/constants/dim_percent = 45

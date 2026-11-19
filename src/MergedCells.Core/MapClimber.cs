@@ -52,8 +52,11 @@ public sealed class MapClimber
     /// generator never gave a starting map within the steps. Throws <see cref="ArgumentOutOfRangeException"/> for a
     /// target or request out of range or an undefined mode, and <see cref="ArgumentException"/> for a skeleton of another
     /// size or with no square for the start, or when the only edits with a weight move twists and the request has none.
+    /// Once <paramref name="cancel"/> is cancelled it throws <see cref="OperationCanceledException"/> before the next step,
+    /// never returning a partial map. <paramref name="stepsTaken"/> is called on the climbing thread with the steps used so
+    /// far, at most <c>maxSteps</c>, whenever that changes. Neither draws a random number, so neither changes the map.
     /// </summary>
-    public ClimbedMap? Climb(ClimbRequest request, ulong seed)
+    public ClimbedMap? Climb(ClimbRequest request, ulong seed, CancellationToken cancel = default, Action<int>? stepsTaken = null)
     {
         ArgumentNullException.ThrowIfNull(request);
         ArgumentNullException.ThrowIfNull(request.Map);
@@ -87,23 +90,30 @@ public sealed class MapClimber
         var steps = 0;
         while (steps < climb.MaxSteps)
         {
+            cancel.ThrowIfCancellationRequested();
             var startSeed = ((ulong)random.NextUInt() << 32) | random.NextUInt();
-            var start = skeleton is null ? generator.Generate(request.Map, startSeed) : generator.Generate(request.Map, startSeed, skeleton);
+            var start = skeleton is null
+                ? generator.Generate(request.Map, startSeed, cancel)
+                : generator.Generate(request.Map, startSeed, skeleton, cancel);
             var current = start is null ? null : Evaluate(ClimbMap.From(start.Map, skeleton), request);
             if (current is null)
             {
                 steps += climb.StallSteps;
+                stepsTaken?.Invoke(Math.Min(steps, climb.MaxSteps));
                 continue;
             }
             steps++;
+            stepsTaken?.Invoke(steps);
             best = Nearer(best, current);
             var startArea = skeletonStarts ?? StartAndEnd.Starts(current.State.Size, current.State.End, generatorConfig);
             var climbBest = current.Distance;
             var stall = 0;
             while (current.Distance > 0 && steps < climb.MaxSteps && stall < climb.StallSteps)
             {
+                cancel.ThrowIfCancellationRequested();
                 steps++;
                 stall++;
+                stepsTaken?.Invoke(steps);
                 var edited = current.State.Copy();
                 if (!ClimbEdits.Apply(Pick(available, total, random), edited, random, startArea))
                 {

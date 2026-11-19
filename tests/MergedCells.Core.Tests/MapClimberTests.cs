@@ -14,8 +14,97 @@ public class MapClimberTests
     private static MapClimber Climber(ClimbConfig? climb = null) =>
         new(GeneratorConfigs.With(), DifficultyConfigs.With(), climb ?? ClimbConfigs.With());
 
-    private static Task<ClimbedMap?> ClimbAsync(MapClimber climber, ClimbRequest request, ulong seed, CancellationToken token) =>
-        Task.Run(() => climber.Climb(request, seed), token);
+    // A request no 5×5 map can meet, so a climb uses every step
+    private static readonly ClimbRequest OutOfReach = new(new MapRequest(5, 2, 3), new DifficultyTarget(100, 100));
+
+    private static Task<ClimbedMap?> ClimbAsync(
+        MapClimber climber, ClimbRequest request, ulong seed, CancellationToken token, CancellationToken cancel = default, Action<int>? stepsTaken = null) =>
+        Task.Run(() => climber.Climb(request, seed, cancel, stepsTaken), token);
+
+    [Theory]
+    [AutoData]
+    public void Cancelled_token_stops_the_climb(ulong seed)
+    {
+        Assert.Throws<OperationCanceledException>(() => Climber().Climb(HardBar, seed, new CancellationToken(canceled: true)));
+    }
+
+    // Steps are counted before they run, so the count reported as the token is cancelled is the climb's last
+    [Theory(Timeout = 30_000)]
+    [AutoData]
+    public async Task Token_cancelled_mid_climb_stops_it_after_that_step(ulong seed)
+    {
+        using var source = new CancellationTokenSource();
+        int? cancelledAt = null;
+        var last = 0;
+        void Count(int steps)
+        {
+            last = steps;
+            if (cancelledAt is null && steps >= 5)
+            {
+                cancelledAt = steps;
+                source.Cancel();
+            }
+        }
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() => ClimbAsync(
+            Climber(ClimbConfigs.With(maxSteps: 200, stallSteps: 50)), OutOfReach, seed, TestContext.Current.CancellationToken, source.Token, Count));
+
+        Assert.Equal(cancelledAt, last);
+    }
+
+    [Theory(Timeout = 30_000)]
+    [AutoData]
+    public async Task Steps_count_up_to_the_budget_when_the_target_is_out_of_reach(ulong seed)
+    {
+        var counts = new List<int>();
+
+        await ClimbAsync(
+            Climber(ClimbConfigs.With(maxSteps: 60, stallSteps: 20)), OutOfReach, seed, TestContext.Current.CancellationToken, stepsTaken: counts.Add);
+
+        Assert.True(counts.Zip(counts.Skip(1)).All(pair => pair.First < pair.Second) && counts.All(count => count <= 60) && counts[^1] == 60, string.Join(", ", counts));
+    }
+
+    [Theory(Timeout = 30_000)]
+    [AutoData]
+    public async Task Steps_stop_at_the_first_map_when_it_hits(ulong seed)
+    {
+        var counts = new List<int>();
+
+        await ClimbAsync(
+            Climber(), new ClimbRequest(new MapRequest(5, 1, 100), new DifficultyTarget(0, 100)), seed, TestContext.Current.CancellationToken,
+            stepsTaken: counts.Add);
+
+        Assert.Equal(new[] { 1 }, counts);
+    }
+
+    [Theory(Timeout = 30_000)]
+    [AutoData]
+    public async Task Failed_starts_count_their_stall_steps_up_to_the_budget(ulong seed)
+    {
+        var counts = new List<int>();
+
+        var climbed = await ClimbAsync(
+            Climber(ClimbConfigs.With(maxSteps: 50, stallSteps: 20)), new ClimbRequest(new MapRequest(5, 1000, 1000), new DifficultyTarget(0, 100)), seed,
+            TestContext.Current.CancellationToken, stepsTaken: counts.Add);
+
+        Assert.Null(climbed);
+        Assert.Equal(new[] { 20, 40, 50 }, counts);
+    }
+
+    [Theory(Timeout = 30_000)]
+    [AutoData]
+    public async Task Counter_and_live_token_leave_the_climb_unchanged(ulong seed)
+    {
+        var climber = Climber(ClimbConfigs.With(maxSteps: 300, stallSteps: 100));
+        using var source = new CancellationTokenSource();
+
+        var plain = (await ClimbAsync(climber, Middling, seed, TestContext.Current.CancellationToken))!;
+        var counted = (await ClimbAsync(climber, Middling, seed, TestContext.Current.CancellationToken, source.Token, _ => { }))!;
+
+        Assert.Equal(
+            (LevelFingerprint.Of(plain.Map, plain.Solution.Par!.Value), plain.Distance),
+            (LevelFingerprint.Of(counted.Map, counted.Solution.Par!.Value), counted.Distance));
+    }
 
     [Theory(Timeout = 30_000)]
     [AutoData]
@@ -109,21 +198,21 @@ public class MapClimberTests
     {
         var climber = Climber(ClimbConfigs.With(splitWeight: 0, mergeWeight: 0, moveSquareWeight: 0, moveStartWeight: 0, moveTwistWeight: 1));
 
-        Assert.Throws<ArgumentException>(() => climber.Climb(HardBar, seed));
+        Assert.Throws<ArgumentException>(() => climber.Climb(HardBar, seed, TestContext.Current.CancellationToken));
     }
 
     [Theory]
     [AutoData]
     public void Out_of_range_target_throws(ulong seed)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Climber().Climb(HardBar with { Target = new DifficultyTarget(101, 101) }, seed));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Climber().Climb(HardBar with { Target = new DifficultyTarget(101, 101) }, seed, TestContext.Current.CancellationToken));
     }
 
     [Theory]
     [AutoData]
     public void Undefined_mode_throws(ulong seed)
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => Climber().Climb(HardBar with { Mode = (DifficultyMode)99 }, seed));
+        Assert.Throws<ArgumentOutOfRangeException>(() => Climber().Climb(HardBar with { Mode = (DifficultyMode)99 }, seed, TestContext.Current.CancellationToken));
     }
 
     public static TheoryData<ClimbConfig> OutOfRangeConfigs => new()

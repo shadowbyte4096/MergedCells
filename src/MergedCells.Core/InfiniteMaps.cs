@@ -22,10 +22,16 @@ public sealed class InfiniteMaps
         climber = new MapClimber(generator, difficulty, infinite.Climb(climb));
     }
 
-    /// <summary>The map for the choice and seed, or null when the generator made no starting map within the budget.</summary>
-    public InfiniteMap? Next(InfiniteChoice choice, ulong seed)
+    /// <summary>The climb's step budget, which <see cref="Next"/>'s step counter counts up to.</summary>
+    public int Steps => config.ClimbSteps;
+
+    /// <summary>
+    /// The map for the choice and seed, or null when the generator made no starting map within the budget. The token and
+    /// the counter are the climb's (see <see cref="MapClimber.Climb"/>): neither changes the map.
+    /// </summary>
+    public InfiniteMap? Next(InfiniteChoice choice, ulong seed, CancellationToken cancel = default, Action<int>? stepsTaken = null)
     {
-        if (climber.Climb(Request(choice), seed) is not { } climbed)
+        if (climber.Climb(Request(choice), seed, cancel, stepsTaken) is not { } climbed)
         {
             return null;
         }

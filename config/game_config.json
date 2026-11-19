@@ -131,7 +131,7 @@
   },
   "infinite": {
     "minSide": 4,
-    "maxSide": 30,
+    "maxSide": 100,
     "startDifficulty": 3,
     "startSide": 10,
     "minPar": 2,
@@ -141,17 +141,18 @@
     "wallPercent": 6,
     "trapPercent": 3,
     "teleporterPercent": 2,
+    "loadingDelaySeconds": 0.25,
     "difficulties": [
-      { "minScore": 0, "maxScore": 9, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 10, "maxScore": 19, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 20, "maxScore": 29, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 30, "maxScore": 39, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 40, "maxScore": 49, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 50, "maxScore": 59, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 60, "maxScore": 69, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 70, "maxScore": 79, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 80, "maxScore": 89, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
-      { "minScore": 90, "maxScore": 100, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } }
+      { "minScore": 0, "maxScore": 9, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 10, "maxScore": 19, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 20, "maxScore": 29, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 30, "maxScore": 39, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 40, "maxScore": 49, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 50, "maxScore": 59, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 60, "maxScore": 69, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 70, "maxScore": 79, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 80, "maxScore": 89, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
+      { "minScore": 90, "maxScore": 100, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } }
     ]
   }
 }

@@ -15,7 +15,8 @@ internal static class InfiniteConfigs
         int wallPercent = 6,
         int trapPercent = 3,
         int teleporterPercent = 2,
-        IReadOnlyList<InfiniteDifficulty>? difficulties = null) => new()
+        IReadOnlyList<InfiniteDifficulty>? difficulties = null,
+        double loadingDelaySeconds = 0.25) => new()
     {
         MinSide = minSide,
         MaxSide = maxSide,
@@ -28,6 +29,7 @@ internal static class InfiniteConfigs
         WallPercent = wallPercent,
         TrapPercent = trapPercent,
         TeleporterPercent = teleporterPercent,
+        LoadingDelaySeconds = loadingDelaySeconds,
         Difficulties = difficulties ?? Tenths(minSide, maxSide),
     };
 

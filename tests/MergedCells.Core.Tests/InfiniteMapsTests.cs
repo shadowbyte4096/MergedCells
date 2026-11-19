@@ -40,7 +40,7 @@ public class InfiniteMapsTests
     [AutoData]
     public void In_band_says_whether_the_score_is_in_the_band(ulong seed)
     {
-        var map = Maps().Next(Plain(4, 12), seed)!;
+        var map = Maps().Next(Plain(4, 12), seed, TestContext.Current.CancellationToken)!;
 
         Assert.Equal(map.Score is >= 30 and <= 39, map.InBand);
     }
@@ -51,7 +51,7 @@ public class InfiniteMapsTests
     [InlineData(2ul)]
     public void Reachable_band_is_hit(ulong seed)
     {
-        var map = Maps().Next(Plain(3, 12), seed)!;
+        var map = Maps().Next(Plain(3, 12), seed, TestContext.Current.CancellationToken)!;
 
         Assert.True(map.InBand && map.Score is >= 20 and <= 29);
     }
@@ -61,7 +61,7 @@ public class InfiniteMapsTests
     [AutoData]
     public void Out_of_reach_band_keeps_the_nearest_map(ulong seed)
     {
-        var map = Maps().Next(Plain(10, 4), seed)!;
+        var map = Maps().Next(Plain(10, 4), seed, TestContext.Current.CancellationToken)!;
 
         Assert.False(map.InBand);
     }
@@ -70,7 +70,7 @@ public class InfiniteMapsTests
     [AutoData]
     public void Kept_map_has_the_solvers_par(ulong seed)
     {
-        var map = Maps().Next(Plain(10, 4), seed)!;
+        var map = Maps().Next(Plain(10, 4), seed, TestContext.Current.CancellationToken)!;
 
         Assert.Equal(Solver.Solve(map.Map).Par, map.Par);
     }
@@ -79,7 +79,7 @@ public class InfiniteMapsTests
     [AutoData]
     public void Kept_map_has_par_in_range(ulong seed)
     {
-        var map = Maps().Next(Plain(5, 8), seed)!;
+        var map = Maps().Next(Plain(5, 8), seed, TestContext.Current.CancellationToken)!;
 
         Assert.InRange(map.Par, Config.MinPar, Config.MaxPar);
     }
@@ -88,17 +88,57 @@ public class InfiniteMapsTests
     [AutoData]
     public void Same_seed_and_choice_give_the_same_map(ulong seed)
     {
-        var first = Maps().Next(Plain(5, 8), seed)!;
-        var second = Maps().Next(Plain(5, 8), seed)!;
+        var first = Maps().Next(Plain(5, 8), seed, TestContext.Current.CancellationToken)!;
+        var second = Maps().Next(Plain(5, 8), seed, TestContext.Current.CancellationToken)!;
 
         Assert.Equal(LevelFingerprint.Of(first.Map, first.Par), LevelFingerprint.Of(second.Map, second.Par));
     }
 
     [Theory]
     [AutoData]
+    public void Steps_is_the_climb_budget(byte budget)
+    {
+        var maps = Maps(InfiniteConfigs.With(climbSteps: budget + 1, stallSteps: 1));
+
+        Assert.Equal(budget + 1, maps.Steps);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Next_with_a_counter_and_live_token_gives_the_same_map(ulong seed)
+    {
+        using var source = new CancellationTokenSource();
+
+        var plain = Maps().Next(Plain(5, 8), seed, TestContext.Current.CancellationToken)!;
+        var counted = Maps().Next(Plain(5, 8), seed, source.Token, _ => { })!;
+
+        Assert.Equal(LevelFingerprint.Of(plain.Map, plain.Par), LevelFingerprint.Of(counted.Map, counted.Par));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Next_reports_its_steps(ulong seed)
+    {
+        var maps = Maps();
+        var last = 0;
+
+        maps.Next(Plain(5, 8), seed, TestContext.Current.CancellationToken, stepsTaken: steps => last = steps);
+
+        Assert.InRange(last, 1, maps.Steps);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Cancelled_token_stops_next(ulong seed)
+    {
+        Assert.Throws<OperationCanceledException>(() => Maps().Next(Plain(5, 8), seed, new CancellationToken(canceled: true)));
+    }
+
+    [Theory]
+    [AutoData]
     public void Plain_choice_has_no_twists(ulong seed)
     {
-        var map = Maps().Next(Plain(5, 8), seed)!.Map;
+        var map = Maps().Next(Plain(5, 8), seed, TestContext.Current.CancellationToken)!.Map;
 
         Assert.Equal((false, 0), (map.HasTiles, map.Teleporters.Count));
     }
@@ -114,7 +154,7 @@ public class InfiniteMapsTests
     [MemberData(nameof(OneTwist))]
     public void Switched_on_twist_is_placed_and_others_are_not(bool walls, bool traps, bool teleporters)
     {
-        var map = Maps().Next(new InfiniteChoice(5, 8, walls, traps, teleporters, false), new Fixture().Create<ulong>())!.Map;
+        var map = Maps().Next(new InfiniteChoice(5, 8, walls, traps, teleporters, false), new Fixture().Create<ulong>(), TestContext.Current.CancellationToken)!.Map;
         var tiles = Tiles(map).ToList();
 
         Assert.Equal(
@@ -126,6 +166,6 @@ public class InfiniteMapsTests
     [AutoData]
     public void Unreachable_par_range_gives_null(ulong seed)
     {
-        Assert.Null(Maps(InfiniteConfigs.With(minPar: 500, maxPar: 500)).Next(Plain(3, 4), seed));
+        Assert.Null(Maps(InfiniteConfigs.With(minPar: 500, maxPar: 500)).Next(Plain(3, 4), seed, TestContext.Current.CancellationToken));
     }
 }
