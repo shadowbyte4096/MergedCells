@@ -143,6 +143,15 @@ public partial class SettingsSheet : Control
         deleteResult.Show();
     }
 
+    // The server's answer after the line was shown; nothing once the line has gone (the page left or the sheet closed)
+    public void UpdateDeleteResult(string sentence)
+    {
+        if (deleteResult.Visible)
+        {
+            deleteResult.Text = sentence;
+        }
+    }
+
     // Back and Esc: the privacy page goes back to the main page, the main page closes. False when the sheet isn't open
     public bool Back()
     {

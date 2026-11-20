@@ -29,6 +29,7 @@
     <None Include="..\..\credits\licences\*.txt" LinkBase="credits\licences" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\themes\fonts\OFL.txt" Link="themes\fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\MergedCells.csproj" Link="MergedCells.csproj" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\supabase\levels.sql" Link="supabase\levels.sql" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures\levels\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

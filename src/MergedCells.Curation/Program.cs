@@ -27,6 +27,9 @@ internal static class Program
           retire <id>
               Takes a level out of the campaign, backs its file up into builds/retired/ and records its ID
               in src/MergedCells.Curation/retired-levels.json, so it's never used again.
+          server-levels
+              Rewrites supabase/levels.sql, the server's list of every level's ID, layout and par, from the
+              level files. Promote and retire rewrite it too; this is for after a hand edit.
           help
               Shows this.
 
@@ -37,7 +40,7 @@ internal static class Program
           1. Edit the chapter's recipe in src/MergedCells.Curation/recipes.json.
           2. Run generate.
           3. Open the page (builds/candidates/.../index.html) in a browser.
-          4. Run promote for each pick, then dotnet test.
+          4. Run promote for each pick, then dotnet test, then run supabase/levels.sql on the server.
           5. Play the chapter.
           6. Reorder levels by hand in campaign/chapters.json if needed.
           7. To rework a level, retire it, then promote the new version.
@@ -82,6 +85,7 @@ internal static class Program
             "promote" => WithWorkspace(root, workingFolder, workspace => PromoteCommand.Run(workspace, commandArgs)),
             "concept" => WithWorkspace(root, workingFolder, workspace => ConceptCommand.Run(workspace, commandArgs)),
             "retire" => WithWorkspace(root, workingFolder, workspace => RetireCommand.Run(workspace, commandArgs)),
+            "server-levels" => WithWorkspace(root, workingFolder, workspace => ServerLevelsCommand.Run(workspace, commandArgs)),
             _ => new CommandResult(CommandResult.UsageMistake, $"Unknown command \"{command}\".\n\n{HelpText}"),
         };
     }

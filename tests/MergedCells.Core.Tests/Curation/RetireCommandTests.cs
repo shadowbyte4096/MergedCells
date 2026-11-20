@@ -39,6 +39,17 @@ public sealed class RetireCommandTests : IDisposable
     }
 
     [Fact]
+    public void Retire_rewrites_the_server_level_list_without_the_level()
+    {
+        Retire(2);
+
+        var levels = Files().Levels.Select(onDisk => onDisk.Level).ToArray();
+        Assert.Equal(
+            (ServerLevels.Write(levels), false),
+            (File.ReadAllText(temp.Workspace.ServerLevelsFile), levels.Any(level => level.Id == 2)));
+    }
+
+    [Fact]
     public void Backs_the_file_up_and_removes_it_from_levels()
     {
         Retire(2);

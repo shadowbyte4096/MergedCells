@@ -200,6 +200,36 @@ public class SaveGameTests
 
     [Theory]
     [AutoData]
+    public void Clearing_progress_keeps_the_server_section(string token, Guid pending, uint sent)
+    {
+        var save = new SaveGame { SessionToken = token, RecordsSent = sent };
+        save.AddPendingDeletion(pending);
+
+        save.ClearProgress();
+
+        Assert.Equal((token, true, (long)sent), (save.SessionToken, save.PendingDeletions.Contains(pending), save.RecordsSent));
+    }
+
+    [Fact]
+    public void Empty_session_token_is_refused()
+    {
+        Assert.Throws<ArgumentException>(() => new SaveGame { SessionToken = "" });
+    }
+
+    [Fact]
+    public void Negative_records_sent_is_refused()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SaveGame { RecordsSent = -1 });
+    }
+
+    [Fact]
+    public void All_zeros_pending_deletion_is_refused()
+    {
+        Assert.Throws<ArgumentException>(() => new SaveGame().AddPendingDeletion(Guid.Empty));
+    }
+
+    [Theory]
+    [AutoData]
     public void Consent_wording_cannot_be_negative(bool yes, int wording)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => new Consent(yes, -Math.Abs(wording % 100) - 1));

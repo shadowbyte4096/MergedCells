@@ -53,6 +53,8 @@ public partial class Main : Node
         if (what == NotificationApplicationFocusIn)
         {
             ApplyAppearance();
+            // Back from the background, or online again: anything waiting goes
+            WakeServer();
         }
         else if (what == NotificationApplicationFocusOut || what == NotificationApplicationPaused)
         {
@@ -97,6 +99,7 @@ public partial class Main : Node
             throw;
         }
         ShowModeSelect();
+        StartServer();
     }
 
     // The background map first; then, on test boards only, the frame log for measuring drawing cost on a phone through logcat
@@ -442,6 +445,8 @@ public partial class Main : Node
             Rules = campaignRules,
             Tutorial = next.Tutorial,
             Recording = CampaignRecording(next),
+            // Asked as the card appears, so a player who turned leaderboards off mid-level never sees the area
+            Leaderboard = () => Consents.IsGiven(SaveGameFile.Current.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards),
         });
         back = () => ShowLevelSelect(chapter);
     }
@@ -504,6 +509,7 @@ public partial class Main : Node
             SaveGameFile.Save();
             var was = finish.PreviousBest is { } previous ? $"was {previous}" : "first finish";
             GD.Print($"New best: {Plural(moves, "move")} ({was})");
+            WakeServer();
             var after = Progress();
             if (after.OpenChapters.Count > openBefore)
             {

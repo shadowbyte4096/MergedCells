@@ -15,8 +15,12 @@ public partial class ConsentSheet : Control
     private Button no;
     private Button yes;
     private ConsentWording asking;
+    private ulong askedAt;
 
     public event Action<ConsentWording, bool> Answered;
+
+    // A press this soon after an ask appears is ignored, so a double tap on one ask can't answer the next unread
+    public double AnswerGuardSeconds { get; set; }
 
     public event Action Dismissed;
 
@@ -47,6 +51,7 @@ public partial class ConsentSheet : Control
         small.Text = wording.Small;
         no.Text = changed ? wording.ChangedNo : wording.No;
         yes.Text = changed ? wording.ChangedYes : wording.Yes;
+        askedAt = Time.GetTicksMsec();
         Show();
     }
 
@@ -72,6 +77,10 @@ public partial class ConsentSheet : Control
     // Hidden before the answer is reported, so the next kind's ask can open the sheet again from the handler
     private void Answer(bool answer)
     {
+        if (Time.GetTicksMsec() - askedAt < AnswerGuardSeconds * 1000)
+        {
+            return;
+        }
         Hide();
         Answered?.Invoke(asking, answer);
     }

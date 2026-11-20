@@ -16,6 +16,17 @@ public class ShippedCampaignTests
         Assert.NotEmpty(Campaign().Chapters);
     }
 
+    // The server refuses scores for a level it doesn't list, so the list must follow every level file
+    [Fact]
+    public void Server_level_list_matches_the_level_files()
+    {
+        var expected = MergedCells.Curation.ServerLevels.Write(Campaign().Levels);
+
+        Assert.True(
+            expected == File.ReadAllText(Shipped("supabase", "levels.sql")),
+            "supabase/levels.sql is out of date: run dotnet run --project src/MergedCells.Curation -c Release -- server-levels");
+    }
+
     // The credits show dotnet-<major>.txt for the runtime a build ships, which is its target framework's
     public static TheoryData<int> ShippedDotnetMajors => new(
         System.Text.RegularExpressions.Regex.Matches(

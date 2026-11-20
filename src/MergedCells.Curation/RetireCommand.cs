@@ -66,7 +66,14 @@ internal static class RetireCommand
         File.Move(retiring.Path, backup, overwrite: true);
         try
         {
-            CampaignFiles.WriteAll(workspace, [(workspace.ChaptersFile, chaptersText), (workspace.ConfigFile, configText), (workspace.RetiredFile, retiredText)]);
+            CampaignFiles.WriteAll(
+                workspace,
+                [
+                    (workspace.ChaptersFile, chaptersText),
+                    (workspace.ConfigFile, configText),
+                    (workspace.RetiredFile, retiredText),
+                    (workspace.ServerLevelsFile, ServerLevels.Write(levels)),
+                ]);
         }
         catch (IOException)
         {
@@ -77,6 +84,7 @@ internal static class RetireCommand
         var output = new StringBuilder()
             .Append($"Retired level {id}, \"{level.Name}\": its file is backed up at {workspace.Relative(backup)}, and ID {id} will never be used again.\n")
             .Append(PromoteCommand.Gates(CampaignFiles.GatesMoved(files.Campaign, files.Config, campaign, config)))
+            .Append(ServerLevelsCommand.RunOnServer)
             .Append("Next: run dotnet test. To rework the level, promote the new version to give it a new ID.\n");
         return new CommandResult(CommandResult.Done, output.ToString());
     }

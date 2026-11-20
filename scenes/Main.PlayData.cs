@@ -146,6 +146,7 @@ public partial class Main
         try
         {
             PlayRecordFiles.Append(record);
+            WakeServer();
         }
         catch (Exception exception)
         {

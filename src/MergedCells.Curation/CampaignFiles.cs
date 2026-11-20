@@ -54,6 +54,8 @@ internal sealed record CampaignFiles(
             try
             {
                 var before = File.Exists(path) ? File.ReadAllBytes(path) : null;
+                // supabase/ isn't in the tests' throwaway repositories
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
                 File.WriteAllText(path, text);
                 written.Add((path, before));
             }

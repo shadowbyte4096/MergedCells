@@ -579,7 +579,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         camera.InputEnabled = false;
         results.ShowNext = setup.HasNext is not null;
         results.NextText = setup.NextText;
-        results.ShowLeaderboard = setup.Leaderboard;
+        results.ShowLeaderboard = setup.Leaderboard?.Invoke() ?? false;
         if (setup.HasNext is not null)
         {
             results.HasNext = setup.HasNext();

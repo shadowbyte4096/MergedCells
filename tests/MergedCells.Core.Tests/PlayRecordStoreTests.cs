@@ -195,4 +195,80 @@ public sealed class PlayRecordStoreTests : IDisposable
 
         Assert.Equal(1, store.Count);
     }
+
+    private static IEnumerable<Guid?> LineIds(IReadOnlyList<RecordLine> lines) => lines.Select(line => line.Record?.Start.Id);
+
+    [Fact]
+    public void Reads_complete_lines_from_an_offset_with_their_ends()
+    {
+        var store = new PlayRecordStore(FilePath);
+        var records = new[] { NewRecord(), NewRecord(), NewRecord() };
+        foreach (var record in records)
+        {
+            store.Append(record);
+        }
+        var first = store.ReadFrom(0, 1).Single();
+
+        var rest = store.ReadFrom(first.End, 10);
+
+        Assert.Equal(
+            ($"{records[1].Start.Id},{records[2].Start.Id}", new FileInfo(FilePath).Length),
+            (string.Join(",", LineIds(rest)), rest[^1].End));
+    }
+
+    [Fact]
+    public void Line_text_is_the_line_without_its_break()
+    {
+        var store = new PlayRecordStore(FilePath);
+        var record = NewRecord();
+        store.Append(record);
+
+        Assert.Equal(PlayRecordFile.Write(record), store.ReadFrom(0, 1).Single().Text);
+    }
+
+    // Android can kill the app mid-append: the half line waits until the next append finishes it off as its own line
+    [Fact]
+    public void Torn_last_line_is_not_returned()
+    {
+        var kept = NewRecord();
+        File.WriteAllText(FilePath, PlayRecordFile.Write(kept) + "\n" + "{\"version\":2,\"id");
+
+        Assert.Equal(new Guid?[] { kept.Start.Id }, LineIds(new PlayRecordStore(FilePath).ReadFrom(0, 10)));
+    }
+
+    [Fact]
+    public void Unreadable_line_comes_back_without_a_record()
+    {
+        var kept = NewRecord();
+        File.WriteAllText(FilePath, "not json\n" + PlayRecordFile.Write(kept) + "\n");
+
+        Assert.Equal(new Guid?[] { null, kept.Start.Id }, LineIds(new PlayRecordStore(FilePath).ReadFrom(0, 10)));
+    }
+
+    // A file shorter than the saved offset was replaced, so all of it is new
+    [Fact]
+    public void Offset_past_the_end_reads_from_the_start()
+    {
+        var store = new PlayRecordStore(FilePath);
+        var record = NewRecord();
+        store.Append(record);
+
+        Assert.Equal(new Guid?[] { record.Start.Id }, LineIds(store.ReadFrom(new FileInfo(FilePath).Length + 1, 10)));
+    }
+
+    [Fact]
+    public void Max_lines_stops_early()
+    {
+        var store = new PlayRecordStore(FilePath);
+        store.Append(NewRecord());
+        store.Append(NewRecord());
+
+        Assert.Single(store.ReadFrom(0, 1));
+    }
+
+    [Fact]
+    public void Missing_file_gives_no_lines()
+    {
+        Assert.Empty(new PlayRecordStore(FilePath).ReadFrom(0, 10));
+    }
 }

@@ -84,6 +84,17 @@ public sealed class PromoteCommandTests : IDisposable
     }
 
     [Fact]
+    public void Promote_rewrites_the_server_level_list()
+    {
+        Promote(Candidate(1), "--name", "Fresh Start");
+
+        var levels = Files().Levels.Select(onDisk => onDisk.Level).ToArray();
+        Assert.Equal(
+            (ServerLevels.Write(levels), true),
+            (File.ReadAllText(temp.Workspace.ServerLevelsFile), levels.Any(level => level.Id == TempWorkspace.NextId)));
+    }
+
+    [Fact]
     public void Promote_into_chapter_1_reports_every_later_gate()
     {
         var output = Promote(Candidate(1), "--name", "Fresh Start").Output;

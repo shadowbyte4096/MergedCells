@@ -146,7 +146,14 @@ internal static class PromoteCommand
         var levels = files.Levels.Select(onDisk => onDisk.Level).Append(LevelFile.Parse(levelText)).ToArray();
         var (campaign, config) = CampaignFiles.Check(levels, chaptersText, configText);
 
-        CampaignFiles.WriteAll(workspace, [(levelPath, levelText), (workspace.ChaptersFile, chaptersText), (workspace.ConfigFile, configText)]);
+        CampaignFiles.WriteAll(
+            workspace,
+            [
+                (levelPath, levelText),
+                (workspace.ChaptersFile, chaptersText),
+                (workspace.ConfigFile, configText),
+                (workspace.ServerLevelsFile, ServerLevels.Write(levels)),
+            ]);
 
         var output = new StringBuilder()
             .Append($"Promoted as level {id}: {workspace.Relative(levelPath)}, place {place + 1} of {chapters[chapterNumber - 1].LevelIds.Count} in chapter {chapterNumber}.\n")
@@ -158,6 +165,7 @@ internal static class PromoteCommand
             output.Append($"Warning: \"{name}\" is over 12 characters, and may be cut off at phone width.\n");
         }
         output.Append(Gates(CampaignFiles.GatesMoved(files.Campaign, files.Config, campaign, config)))
+            .Append(ServerLevelsCommand.RunOnServer)
             .Append("Next: run dotnet test, then play the chapter.\n");
         return new CommandResult(CommandResult.Done, output.ToString());
     }

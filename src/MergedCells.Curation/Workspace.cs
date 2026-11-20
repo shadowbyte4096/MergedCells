@@ -21,6 +21,8 @@ internal sealed class Workspace(string root)
 
     public string RetiredBackupFolder => Path.Combine(Root, "builds", "retired");
 
+    public string ServerLevelsFile => Path.Combine(Root, "supabase", "levels.sql");
+
     // For messages: the path from the root, with forward slashes, as the developer would type it
     public string Relative(string path) => Path.GetRelativePath(Root, path).Replace('\\', '/');
 

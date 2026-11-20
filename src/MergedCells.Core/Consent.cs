@@ -54,8 +54,8 @@ public static class ConsentWordings
         Offered: true,
         AskTitle: "Help tune the puzzles?",
         Body: "Merged Cells can record how you play each map: the map, your moves, times, undos and restarts, with a random ID "
-            + "and never your name. Records stay on this phone and go to the developer when you export them, and automatically "
-            + "once an update adds uploading. They're used only to tune how hard maps are.",
+            + "and never your name. Records are sent to the developer's server automatically, and in any file you export. "
+            + "They're used only to tune how hard maps are.",
         Small: "Change this or delete your records any time in Settings. If you're under 16, check with a parent first.",
         No: "No thanks",
         Yes: "Record my play",
@@ -65,13 +65,13 @@ public static class ConsentWordings
         ChangedYes: "Keep recording",
         SwitchLabel: "Record play data",
         SwitchNote: "The map, your moves, times and undos, with a random ID and never your name, for tuning difficulty. Sent to "
-            + "the developer when you export, and automatically once an update adds uploading.");
+            + "the developer's server automatically, and in any file you export.");
 
-    // Offered once chunk 33 brings leaderboards. Its Version is raised the same way
+    // Its Version is raised the same way
     public static readonly ConsentWording Leaderboards = new(
         ConsentKind.Leaderboards,
         Version: 1,
-        Offered: false,
+        Offered: true,
         AskTitle: "Join the leaderboards?",
         Body: "Your best moves on each level go to the leaderboards with a random ID and never your name, so you can see where "
             + "you sit among other players. The spread of everyone's moves also helps tune how hard levels are. Say no and "

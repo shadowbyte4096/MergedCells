@@ -69,6 +69,60 @@ public class DataDeletionTests
         Assert.Equal(["save without the player", "records"], order);
     }
 
+    [Theory]
+    [AutoData]
+    public void Signed_in_device_queues_the_old_player_for_the_server(Guid player, string token, uint sent)
+    {
+        var save = new SaveGame { Player = player, SessionToken = token, RecordsSent = sent };
+
+        var result = DataDeletion.Run(save, () => true, () => null);
+
+        Assert.Equal(
+            (true, true, (string?)null, 0L),
+            (result.ServerPending, save.PendingDeletions.Contains(player), save.SessionToken, save.RecordsSent));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Device_that_never_signed_in_queues_nothing(Guid player)
+    {
+        var save = new SaveGame { Player = player };
+
+        var result = DataDeletion.Run(save, () => true, () => null);
+
+        Assert.Equal((false, 0), (result.ServerPending, save.PendingDeletions.Count));
+    }
+
+    // One write, so a run killed after it can't leave the ID dropped without the server's deletion queued
+    [Theory]
+    [AutoData]
+    public void Pending_deletion_and_dropped_session_are_in_the_same_save_write(Guid player, string token)
+    {
+        var save = new SaveGame { Player = player, SessionToken = token };
+        (bool Pending, string? Session)? written = null;
+
+        DataDeletion.Run(save, () =>
+        {
+            written = (save.PendingDeletions.Contains(player), save.SessionToken);
+            return true;
+        }, () => null);
+
+        Assert.Equal((true, (string?)null), written);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Save_that_cannot_be_written_puts_back_the_session_the_offset_and_the_deletions(Guid player, string token, uint sent)
+    {
+        var save = new SaveGame { Player = player, SessionToken = token, RecordsSent = sent };
+
+        var result = DataDeletion.Run(save, () => false, () => null);
+
+        Assert.Equal(
+            (false, token, (long)sent, 0),
+            (result.ServerPending, save.SessionToken, save.RecordsSent, save.PendingDeletions.Count));
+    }
+
     [Fact]
     public void Answers_stay()
     {

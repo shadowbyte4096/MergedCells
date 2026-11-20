@@ -154,5 +154,18 @@
       { "minScore": 80, "maxScore": 89, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } },
       { "minScore": 90, "maxScore": 100, "plain": { "minSide": 4, "maxSide": 100 }, "twists": { "minSide": 4, "maxSide": 100 } }
     ]
+  },
+  "server": {
+    "url": "https://jdbfwviusxlfhcqhpowr.supabase.co",
+    "publishableKey": "sb_publishable_FJBOpAzQtC5bpaMjryEHFw_iOUMdnhA",
+    "timeoutSeconds": 15,
+    "retrySeconds": 60,
+    "refreshMarginSeconds": 60,
+    "scoresPerRequest": 200,
+    "recordsPerRequest": 50,
+    "recordBytesPerRequest": 262144
+  },
+  "privacy": {
+    "askGuardSeconds": 0.5
   }
 }

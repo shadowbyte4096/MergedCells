@@ -37,6 +37,11 @@ public class SaveGameJsonTests
             .Replace($",\"playtester\":\"{PlaytesterId}\"", "")[..^1]
         + $",\"consents\":{Consents4},\"player\":\"{PlaytesterId}\"}}";
 
+    private const string ServerSection = $$"""{"session":"tok-abc","pendingDeletions":["{{SharedId}}"],"recordsSent":120}""";
+
+    // Version 5 adds the server section: the session, the IDs still to delete on the server, and how far the records are sent
+    internal static string Valid5 => Valid4.Replace("\"version\":4", "\"version\":5")[..^1] + ",\"server\":" + ServerSection + "}";
+
     private static (Consent? PlayData, Consent? Leaderboards, Guid? Player) Answers(SaveGame save) =>
         (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Player);
 
@@ -117,13 +122,55 @@ public class SaveGameJsonTests
         Assert.Equal(((Consent?)null, (Consent?)null, (Guid?)null, (InfiniteChoice?)null), (read.ConsentTo(ConsentKind.PlayData), read.ConsentTo(ConsentKind.Leaderboards), read.Player, read.Infinite));
     }
 
+    private static (string? Session, string Deletions, long Sent) Server(SaveGame save) =>
+        (save.SessionToken, string.Join(",", save.PendingDeletions.Order()), save.RecordsSent);
+
     [Fact]
-    public void Written_save_is_version_4_without_the_version_3_keys()
+    public void Version_5_save_reads_its_server_section()
+    {
+        var save = SaveGame.Parse(Valid5);
+
+        Assert.Equal(("tok-abc", SharedId, 120L), Server(save));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Server_section_round_trips(string token, Guid a, Guid b, uint sent)
+    {
+        var save = new SaveGame { SessionToken = token, RecordsSent = sent };
+        save.AddPendingDeletion(a);
+        save.AddPendingDeletion(b);
+
+        Assert.Equal(Server(save), Server(SaveGame.Parse(save.ToJson())));
+    }
+
+    [Fact]
+    public void Version_4_save_reads_as_no_session_no_deletions_and_nothing_sent()
+    {
+        Assert.Equal(((string?)null, "", 0L), Server(SaveGame.Parse(Valid4)));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Pending_deletions_are_written_in_ascending_order(Guid a, Guid b, Guid c)
+    {
+        var save = new SaveGame();
+        save.AddPendingDeletion(a);
+        save.AddPendingDeletion(b);
+        save.AddPendingDeletion(c);
+
+        var written = JsonDocument.Parse(save.ToJson()).RootElement.GetProperty("server").GetProperty("pendingDeletions")
+            .EnumerateArray().Select(id => id.GetString()!).ToArray();
+        Assert.Equal(written.Order(StringComparer.Ordinal), written);
+    }
+
+    [Fact]
+    public void Written_save_is_version_5_without_the_version_3_keys()
     {
         var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
 
         Assert.Equal(
-            (4, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null),
+            (5, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null),
             (root.GetProperty("version").GetInt32(),
                 root.TryGetProperty("playtester", out _),
                 root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
@@ -250,7 +297,7 @@ public class SaveGameJsonTests
     {
         var text = new SaveGame { Appearance = Appearance.Dark }.ToJson();
 
-        Assert.Contains("\"version\": 4", text, StringComparison.Ordinal);
+        Assert.Contains($"\"version\": {SaveGame.CurrentVersion}", text, StringComparison.Ordinal);
         Assert.Contains("\"appearance\": \"dark\"", text, StringComparison.Ordinal);
     }
 
@@ -353,6 +400,24 @@ public class SaveGameJsonTests
         Valid4.Replace(PlaytesterId, "x"),
         Valid4.Replace("{\"appearance\":\"light\"}", "{\"appearance\":\"light\",\"recordPlayData\":true}"),
         Valid4[..^1] + ",\"playtester\":null}",
+        Valid4[..^1] + ",\"server\":" + ServerSection + "}",
+        Valid5.Replace(",\"server\":" + ServerSection, ""),
+        Valid5.Replace(ServerSection, "null"),
+        Valid5.Replace("\"session\":\"tok-abc\",", ""),
+        Valid5.Replace("\"tok-abc\"", "\"\""),
+        Valid5.Replace("\"tok-abc\"", "1"),
+        Valid5.Replace($"[\"{SharedId}\"]", "null"),
+        Valid5.Replace($"[\"{SharedId}\"]", "[null]"),
+        Valid5.Replace($"[\"{SharedId}\"]", "[\"not-a-guid\"]"),
+        Valid5.Replace($"[\"{SharedId}\"]", $"[\"{SharedId.ToUpperInvariant()}\"]"),
+        Valid5.Replace($"[\"{SharedId}\"]", "[\"00000000-0000-0000-0000-000000000000\"]"),
+        Valid5.Replace($"[\"{SharedId}\"]", $"[\"{SharedId}\",\"{SharedId}\"]"),
+        Valid5.Replace(",\"pendingDeletions\":[\"" + SharedId + "\"]", ""),
+        Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":-1"),
+        Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":\"120\""),
+        Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":1.5"),
+        Valid5.Replace(",\"recordsSent\":120", ""),
+        Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":120,\"extra\":1"),
     };
 
     [Theory]
@@ -397,8 +462,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("5.0", 5)]
-    [InlineData("5e0", 5)]
+    [InlineData("6.0", 6)]
+    [InlineData("6e0", 6)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

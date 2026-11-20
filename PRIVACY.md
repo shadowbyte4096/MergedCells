@@ -33,13 +33,13 @@ It never includes your name, any level's name, your device's hardware or adverti
 
 **Why:** to tune how hard the game's maps are, by seeing how players actually do on them.
 
-**How it reaches the developer:** records stay on your device until you export them (Settings → Privacy and data → Export play data) and send the file yourself. Once an update adds uploading, the game also sends them over the internet to the game's server (see "Who else sees it"). Like any server, it sees your device's IP address when it receives them. Records are only ever sent while your answer is yes.
+**How it reaches the developer:** the game sends records over the internet to the game's server (see "Who else sees it"), whenever it's online, and only while your answer is yes. If you turn it off and later back on, the records made in between were never recorded, and the ones waiting are sent then. Like any server, it sees your device's IP address when it receives them. You can also export them yourself (Settings → Privacy and data → Export play data) and send the file.
 
 **Legal basis:** your consent. Say no, or turn the switch off later, and nothing more is recorded or sent. Turning it off doesn't delete what's already on your device; "Delete my data" does.
 
-## Leaderboards (optional, once an update adds them)
+## Leaderboards (optional)
 
-If you say yes to "Join the leaderboards?", your best number of moves on each level is sent to the game's server with your random player ID, so the game can show you where you sit among other players. The spread of everyone's moves also helps tune how hard levels are.
+If you say yes to "Join the leaderboards?", your best number of moves on each campaign level is sent to the game's server with your random player ID, so the game can show you where you sit among other players. Each score holds the level's number, a code for its layout (so a level that changes gets a fresh leaderboard), your best number of moves, your random player ID, and when it was sent. The spread of everyone's moves also helps tune how hard levels are.
 
 **Legal basis:** your consent. Say no and leaderboards stay hidden: nothing is sent, and the game doesn't fetch them.
 
@@ -49,7 +49,8 @@ The game makes it the first time you say yes to either question. It's random: it
 
 ## Who else sees it
 
-- Once uploading exists, the game's database is hosted by Supabase, which stores it for the developer and may not use it for anything else.
+- The game's database is hosted by Supabase, in London (UK), which stores it for the developer and may not use it for anything else.
+- To keep strangers from writing to the database, the game signs in to it anonymously: no name, email or account, just a sign-in the server makes for your game. That sign-in keeps the IP address your game last connected from. It's deleted with your data, and one that holds nothing is deleted within 30 days.
 - Nobody else. Your data is never sold, and never used for advertising.
 - An exported file goes wherever you send it.
 
@@ -63,7 +64,7 @@ Anything is deleted sooner if you ask.
 
 ## Deleting your data
 
-Settings → Privacy and data → Delete my data deletes the records on your device and your random player ID. Once uploading exists, it also asks the server to delete everything sent under that ID. Your answers stay as they are, so if recording is still on, new records start under a new ID.
+Settings → Privacy and data → Delete my data deletes the records on your device and your random player ID, and asks the server to delete everything sent under that ID, with the anonymous sign-in that sent it. If your device is offline, it asks again each time the game starts until the server has done it. Your answers stay as they are: if recording is still on, new records start under a new ID, and if "Share my scores" is still on, your best moves are shared again under the new ID. Turn them off first to stop that.
 
 The button can't reach files you've already exported and sent. Email definitely.not.zac@proton.me from the address you sent them from, or say which file, and they'll be deleted within one month.
 

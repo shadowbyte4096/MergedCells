@@ -10,6 +10,12 @@ namespace MergedCells.Core;
 public sealed record PlayRecordLoad(IReadOnlyList<PlayRecord> Records, int Skipped, string Text, string? Problem);
 
 /// <summary>
+/// One complete line of the records file: the byte offset just past its line break, its text, and its record, or null
+/// when the line doesn't read.
+/// </summary>
+public sealed record RecordLine(long End, string Text, PlayRecord? Record);
+
+/// <summary>
 /// The play records file: one record per line, only ever added to. A line that doesn't read (half-written when the app was
 /// killed, from a newer build, broken) is skipped, never fatal. Plain .NET file code; main thread only.
 /// </summary>
@@ -49,18 +55,72 @@ public sealed class PlayRecordStore
         var skipped = 0;
         foreach (var line in lines.Where(line => line.Length > 0))
         {
-            try
+            if (Read(line) is { } record)
             {
-                records.Add(PlayRecordFile.Parse(line));
+                records.Add(record);
                 text.Append(line).Append('\n');
             }
-            catch (Exception exception) when (exception is JsonException or NewerPlayRecordException or InvalidMapException)
+            else
             {
                 skipped++;
             }
         }
         count = records.Count;
         return new PlayRecordLoad(records, skipped, text.ToString(), null);
+    }
+
+    /// <summary>
+    /// Up to <paramref name="maxLines"/> complete lines from the byte <paramref name="offset"/> on. A torn last line isn't
+    /// returned until a later append finishes it off. An offset past the end reads from the start, since the file was
+    /// replaced. A missing or unreadable file gives no lines; never throws over I/O.
+    /// </summary>
+    public IReadOnlyList<RecordLine> ReadFrom(long offset, int maxLines)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxLines, 1);
+        var lines = new List<RecordLine>();
+        try
+        {
+            using var stream = new FileStream(Path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            var position = offset > stream.Length ? 0 : offset;
+            stream.Seek(position, SeekOrigin.Begin);
+            var line = new MemoryStream();
+            var buffer = new byte[64 * 1024];
+            int read;
+            while (lines.Count < maxLines && (read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            {
+                for (var index = 0; index < read && lines.Count < maxLines; index++)
+                {
+                    position++;
+                    if (buffer[index] != (byte)'\n')
+                    {
+                        line.WriteByte(buffer[index]);
+                        continue;
+                    }
+                    var text = Encoding.UTF8.GetString(line.GetBuffer(), 0, (int)line.Length).TrimEnd('\r');
+                    line.SetLength(0);
+                    lines.Add(new RecordLine(position, text, text.Length > 0 ? Read(text) : null));
+                }
+            }
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return [];
+        }
+        return lines;
+    }
+
+    // A torn, newer or broken line is skipped, never fatal
+    private static PlayRecord? Read(string line)
+    {
+        try
+        {
+            return PlayRecordFile.Parse(line);
+        }
+        catch (Exception exception) when (exception is JsonException or NewerPlayRecordException or InvalidMapException)
+        {
+            return null;
+        }
     }
 
     /// <summary>Adds the record as a line of its own. Returns the problem when it can't be written; never throws over I/O.</summary>

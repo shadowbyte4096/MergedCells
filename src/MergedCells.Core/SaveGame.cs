@@ -9,7 +9,7 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
@@ -20,6 +20,12 @@ public sealed class SaveGame
     private Guid? player;
 
     private InfiniteChoice? infinite;
+
+    private readonly HashSet<Guid> pendingDeletions = new();
+
+    private string? sessionToken;
+
+    private long recordsSent;
 
     public Appearance Appearance { get; set; } = Appearance.System;
 
@@ -54,6 +60,51 @@ public sealed class SaveGame
                 throw new ArgumentException("The player ID can't be all zeros.", nameof(value));
             }
             player = value;
+        }
+    }
+
+    /// <summary>
+    /// The server session's refresh token, or null (since version 5). Set when the game signs in or renews, and dropped by
+    /// "Delete my data"; while it's held, data may have been sent under the current player ID.
+    /// </summary>
+    public string? SessionToken
+    {
+        get => sessionToken;
+        set
+        {
+            if (value is { Length: 0 })
+            {
+                throw new ArgumentException("The session token can't be empty.", nameof(value));
+            }
+            sessionToken = value;
+        }
+    }
+
+    /// <summary>Player IDs the server is still to delete everything under (since version 5).</summary>
+    public IReadOnlySet<Guid> PendingDeletions => pendingDeletions;
+
+    public bool AddPendingDeletion(Guid id)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A player ID can't be all zeros.", nameof(id));
+        }
+        return pendingDeletions.Add(id);
+    }
+
+    public bool RemovePendingDeletion(Guid id) => pendingDeletions.Remove(id);
+
+    /// <summary>
+    /// How far into the play records file, in bytes, every line has been uploaded or will never be eligible (since
+    /// version 5). "Delete my data" puts it back to 0 with the file.
+    /// </summary>
+    public long RecordsSent
+    {
+        get => recordsSent;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(value);
+            recordsSent = value;
         }
     }
 
@@ -117,7 +168,7 @@ public sealed class SaveGame
     }
 
     /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings, the shared
-    /// levels, the answers and the player ID stay.</summary>
+    /// levels, the answers, the player ID and the server section stay.</summary>
     public void ClearProgress() => levels.Clear();
 
     /// <summary>
@@ -183,6 +234,7 @@ public sealed class SaveGame
         keys.Require(keys.Root, "playtester", 3, last: 3);
         keys.Require(keys.Root, "consents", 4);
         keys.Require(keys.Root, "player", 4);
+        keys.Require(keys.Root, "server", 5);
         if (keys.Number >= 3)
         {
             save.Infinite = ReadChoice(file.Infinite);
@@ -203,7 +255,36 @@ public sealed class SaveGame
             save.SetConsent(ConsentKind.Leaderboards, ReadConsent(answers.Leaderboards, "leaderboards"));
             save.player = ReadGuid(file.Player, "player");
         }
+        if (keys.Number >= 5)
+        {
+            ReadServer(save, file.Server ?? throw new JsonException("The save's \"server\" is null."));
+        }
         return save;
+    }
+
+    private static void ReadServer(SaveGame save, ServerJson server)
+    {
+        if (server.Session is { Length: 0 })
+        {
+            throw new JsonException("The save's \"session\" is empty.");
+        }
+        save.sessionToken = server.Session;
+        foreach (var pending in server.PendingDeletions ?? throw new JsonException("The save's \"pendingDeletions\" is null."))
+        {
+            if (pending is null || !Guid.TryParseExact(pending, "D", out var id) || id == Guid.Empty || pending != id.ToString("D"))
+            {
+                throw new JsonException($"The save's pending deletion \"{pending}\" isn't a lowercase GUID, or is all zeros.");
+            }
+            if (!save.pendingDeletions.Add(id))
+            {
+                throw new JsonException($"The save lists pending deletion {pending} twice.");
+            }
+        }
+        if (server.RecordsSent < 0)
+        {
+            throw new JsonException($"The save's \"recordsSent\" is {server.RecordsSent}; it must be 0 or more.");
+        }
+        save.recordsSent = server.RecordsSent;
     }
 
     private static Consent? ReadConsent(ConsentJson? answer, string key)
@@ -285,6 +366,12 @@ public sealed class SaveGame
                 Leaderboards = WriteConsent(ConsentTo(ConsentKind.Leaderboards)),
             },
             Player = player?.ToString("D"),
+            Server = new ServerJson
+            {
+                Session = sessionToken,
+                PendingDeletions = pendingDeletions.Select(id => id.ToString("D")).Order(StringComparer.Ordinal).ToArray(),
+                RecordsSent = recordsSent,
+            },
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
@@ -381,6 +468,18 @@ internal sealed record SaveJson
 
     // Since version 4; null until the player's first yes, and after "Delete my data"
     public string? Player { get; init; }
+
+    // Since version 5
+    public ServerJson? Server { get; init; }
+}
+
+internal sealed record ServerJson
+{
+    public required string? Session { get; init; }
+
+    public required string[]? PendingDeletions { get; init; }
+
+    public required long RecordsSent { get; init; }
 }
 
 internal sealed record ConsentsJson

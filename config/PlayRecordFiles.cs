@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using Godot;
 using MergedCells.Core;
@@ -15,6 +16,8 @@ public static class PlayRecordFiles
     private static PlayRecordStore Store => store ??= new PlayRecordStore(ProjectSettings.GlobalizePath(FilePath));
 
     public static int Count => Store.Count;
+
+    public static IReadOnlyList<RecordLine> ReadFrom(long offset, int maxLines) => Store.ReadFrom(offset, maxLines);
 
     public static void Append(PlayRecord record)
     {

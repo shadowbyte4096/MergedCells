@@ -28,6 +28,10 @@ public sealed record GameConfig
 
     public required InfiniteConfig Infinite { get; init; }
 
+    public required ServerConfig Server { get; init; }
+
+    public required PrivacyConfig Privacy { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -63,6 +67,8 @@ public sealed record GameConfig
         _ = new PlayRules(CustomLevels.UndoLimit);
         Infinite.CheckRanges();
         _ = new MapClimber(Generator, Difficulty, Infinite.Climb(Climb));
+        Server.CheckRanges();
+        Privacy.CheckRanges();
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -167,7 +173,28 @@ public sealed record GameConfig
         }
         CheckCustomLevels(config.CustomLevels);
         CheckInfinite(config.Infinite);
+        CheckServer(config.Server, config.Privacy);
         return config;
+    }
+
+    private static void CheckServer(ServerConfig? server, PrivacyConfig? privacy)
+    {
+        if (server is null)
+        {
+            throw new JsonException("The config's \"server\" group is null.");
+        }
+        if (server.Url is null)
+        {
+            throw new JsonException("The config's \"server.url\" is null.");
+        }
+        if (server.PublishableKey is null)
+        {
+            throw new JsonException("The config's \"server.publishableKey\" is null.");
+        }
+        if (privacy is null)
+        {
+            throw new JsonException("The config's \"privacy\" group is null.");
+        }
     }
 
     private static void CheckInfinite(InfiniteConfig? infinite)

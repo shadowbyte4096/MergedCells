@@ -50,9 +50,14 @@ public class GameConfigTests
     private const string InfiniteGroup =
         """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"loadingDelaySeconds":0,"difficulties":"""
         + InfiniteEntries + "}";
+    private const string ServerGroup =
+        """{"url":"https://example.test","publishableKey":"k","timeoutSeconds":1,"retrySeconds":1,"refreshMarginSeconds":1,"scoresPerRequest":1,"recordsPerRequest":1,"recordBytesPerRequest":1024}""";
+
+    private const string PrivacyGroup = """{"askGuardSeconds":0}""";
+
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
-        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + ""","customLevels":""" + CustomLevelsGroup + ""","infinite":""" + InfiniteGroup + "}";
+        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + ""","customLevels":""" + CustomLevelsGroup + ""","infinite":""" + InfiniteGroup + ""","server":""" + ServerGroup + ""","privacy":""" + PrivacyGroup + "}";
 
     private const string ChapterThreeStars =
         """{"3":{"twoStarMinExtraMoves":9,"twoStarExtraParPercent":9,"oneStarMinExtraMoves":9,"oneStarExtraParPercent":9}}""";
@@ -100,10 +105,23 @@ public class GameConfigTests
         int maxNameLength = 1,
         int customUndoLimit = 0,
         string bands = BandsGroup,
-        string infinite = InfiniteGroup) =>
+        string infinite = InfiniteGroup,
+        string server = ServerGroup,
+        string privacy = PrivacyGroup) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}},"customLevels":{"newSide":{{{newSide}}},"minSide":{{{minSide}}},"maxSide":{{{maxSide}}},"maxNameLength":{{{maxNameLength}}},"undoLimit":{{{customUndoLimit}}},"bands":{{{bands}}}},"infinite":{{{infinite}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}},"customLevels":{"newSide":{{{newSide}}},"minSide":{{{minSide}}},"maxSide":{{{maxSide}}},"maxNameLength":{{{maxNameLength}}},"undoLimit":{{{customUndoLimit}}},"bands":{{{bands}}}},"infinite":{{{infinite}}},"server":{{{server}}},"privacy":{{{privacy}}}}""");
+
+    // The server group with every value valid unless given
+    private static string Server(
+        string url = "https://example.test", string key = "k", double timeout = 1, double retry = 1, double margin = 1, int scores = 1,
+        int records = 1, int bytes = 1024) =>
+        string.Create(
+            CultureInfo.InvariantCulture,
+            $$"""{"url":"{{url}}","publishableKey":"{{key}}","timeoutSeconds":{{timeout}},"retrySeconds":{{retry}},"refreshMarginSeconds":{{margin}},"scoresPerRequest":{{scores}},"recordsPerRequest":{{records}},"recordBytesPerRequest":{{bytes}}}""");
+
+    private static string Privacy(double guard) =>
+        string.Create(CultureInfo.InvariantCulture, $$"""{"askGuardSeconds":{{guard}}}""");
 
     // A full set of five weights, each 1 unless given
     private static string Weights(int awayMoves = 1, int greedyGap = 1, int decoys = 1, int nearOptimalRoutes = 1, int bruteForceExtraMoves = 1) =>
@@ -208,7 +226,46 @@ public class GameConfigTests
         Valid.Replace(""","startSide":2""", ""),
         Valid.Replace(""","loadingDelaySeconds":0""", ""),
         Valid.Replace(InfiniteEntries, "[" + InfiniteEntry.Replace("\"maxScore\":100", "\"maxScore\":100,\"extra\":1") + "]"),
+        Valid.Replace(""","server":""" + ServerGroup, ""),
+        Valid.Replace(""","privacy":""" + PrivacyGroup, ""),
+        Valid.Replace(",\"recordBytesPerRequest\":1024", ""),
+        Valid.Replace("\"recordBytesPerRequest\":1024", "\"recordBytesPerRequest\":1024,\"extra\":1"),
+        Valid.Replace(PrivacyGroup, "{}"),
     };
+
+    public static TheoryData<string> NullServerTexts => new()
+    {
+        Valid.Replace(ServerGroup, "null"),
+        Valid.Replace(PrivacyGroup, "null"),
+        Valid.Replace("\"url\":\"https://example.test\"", "\"url\":null"),
+        Valid.Replace("\"publishableKey\":\"k\"", "\"publishableKey\":null"),
+    };
+
+    [Theory]
+    [MemberData(nameof(NullServerTexts))]
+    public void Null_server_and_privacy_parts_are_rejected(string text)
+    {
+        Assert.Throws<JsonException>(() => GameConfig.Parse(text));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_server_and_privacy_groups(byte scores, byte records, ushort bytes, byte guardTenths)
+    {
+        var config = GameConfig.Parse(ConfigText(server: Server(scores: scores, records: records, bytes: bytes), privacy: Privacy(guardTenths / 10.0)));
+
+        Assert.Equal(
+            ((int)scores, (int)records, (int)bytes, guardTenths / 10.0),
+            (config.Server.ScoresPerRequest, config.Server.RecordsPerRequest, config.Server.RecordBytesPerRequest, config.Privacy.AskGuardSeconds));
+    }
+
+    [Theory]
+    [InlineData("", "", false)]
+    [InlineData("https://example.test", "k", true)]
+    public void Server_is_on_only_with_a_url(string url, string key, bool on)
+    {
+        Assert.Equal(on, GameConfig.Parse(ConfigText(server: Server(url: url, key: key))).Server.IsOn);
+    }
 
     public static TheoryData<string> NullInfiniteTexts => new()
     {
@@ -523,6 +580,20 @@ public class GameConfigTests
         ConfigText(bands: """[{"name":" ","minScore":0}]"""),
         ConfigText(infinite: InfiniteGroup.Replace("\"climbSteps\":1,\"stallSteps\":1", "\"climbSteps\":0,\"stallSteps\":0")),
         ConfigText(infinite: InfiniteGroup.Replace("\"loadingDelaySeconds\":0", "\"loadingDelaySeconds\":-1")),
+        ConfigText(server: Server(url: "http://example.test")),
+        ConfigText(server: Server(url: "https://example.test/")),
+        ConfigText(server: Server(url: "https://")),
+        ConfigText(server: Server(url: "", key: "k")),
+        ConfigText(server: Server(key: "")),
+        ConfigText(server: Server(timeout: 0)),
+        ConfigText(server: Server(retry: 0)),
+        ConfigText(server: Server(margin: 0)),
+        ConfigText(server: Server(scores: 0)),
+        ConfigText(server: Server(scores: ServerConfig.MaxScoresPerRequest + 1)),
+        ConfigText(server: Server(records: 0)),
+        ConfigText(server: Server(records: ServerConfig.MaxRecordsPerRequest + 1)),
+        ConfigText(server: Server(bytes: 1023)),
+        ConfigText(privacy: Privacy(-1)),
     };
 
     [Theory]

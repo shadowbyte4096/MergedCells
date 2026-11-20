@@ -132,7 +132,6 @@ public partial class Main
             NextText = "Next map",
             Rules = PlayRules.Unlimited,
             NewMap = true,
-            Leaderboard = false,
             Recording = InfiniteRecording(choice, map),
         });
         back = () => ShowInfiniteSetup();
