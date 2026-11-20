@@ -323,13 +323,6 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Placeholder"
 
-[node name="Title" type="Label" parent="Hud/Root/Results/Sheet/Column/Leaderboard"]
-layout_mode = 2
-size_flags_vertical = 0
-theme_type_variation = &"PlaceholderTitle"
-text = "Everyone's best moves"
-horizontal_alignment = 1
-
 [node name="Buttons" type="HBoxContainer" parent="Hud/Root/Results/Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2

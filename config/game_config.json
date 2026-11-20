@@ -167,5 +167,8 @@
   },
   "privacy": {
     "askGuardSeconds": 0.5
+  },
+  "leaderboard": {
+    "columns": 6
   }
 }

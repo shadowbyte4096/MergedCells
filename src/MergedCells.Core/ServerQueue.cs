@@ -4,9 +4,10 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// Everything the game sends to the server, one request at a time: each round sends the pending deletions, then the
-/// campaign bests, then the play records, each only while its kind is given at the moment of sending. The caller sends
-/// what <see cref="Next"/> returns and passes the answer to <see cref="Reply"/>. A failed round stops, and other chances
-/// to send are ignored for <see cref="ServerConfig.RetrySeconds"/> unless forced. Main thread only.
+/// campaign bests, then a results card's spread fetch, then the play records, each only while its kind is given at the
+/// moment of sending. The caller sends what <see cref="Next"/> returns and passes the answer to <see cref="Reply"/>. A
+/// failed round stops, and other chances to send are ignored for <see cref="ServerConfig.RetrySeconds"/> unless forced.
+/// Main thread only.
 /// </summary>
 public sealed class ServerQueue
 {
@@ -16,6 +17,7 @@ public sealed class ServerQueue
         SignIn,
         Refresh,
         Scores,
+        Spread,
         Records,
     }
 
@@ -52,6 +54,10 @@ public sealed class ServerQueue
     private IReadOnlyList<LevelScore> outstandingScores = [];
     private long outstandingEnd;
 
+    // A results card's request, sent after the scores so the counts include a just-made best
+    private SpreadFetch? waitingFetch;
+    private SpreadFetch? outstandingFetch;
+
     public ServerQueue(
         ServerConfig config,
         SaveGame save,
@@ -71,6 +77,9 @@ public sealed class ServerQueue
         this.now = now ?? throw new ArgumentNullException(nameof(now));
         this.log = log ?? throw new ArgumentNullException(nameof(log));
     }
+
+    /// <summary>The save couldn't keep a session or player ID, so nothing more is sent this run.</summary>
+    public bool IsStopped => stopped;
 
     /// <summary>The server confirmed a pending deletion, and the save no longer lists it.</summary>
     public event Action<Guid>? DeletionConfirmed;
@@ -94,6 +103,32 @@ public sealed class ServerQueue
             return;
         }
         requested = true;
+    }
+
+    /// <summary>
+    /// Asks for one level's spread, sent in the next round after the scores. A newer fetch replaces a waiting one, which
+    /// becomes unavailable. It's unavailable at once while the server is off, the queue has stopped, or the retry gap after
+    /// a failed round is running, so an offline finish doesn't try the network.
+    /// </summary>
+    public SpreadFetch Fetch(int level, string layout)
+    {
+        ArgumentNullException.ThrowIfNull(layout);
+        waitingFetch?.Fail();
+        waitingFetch = null;
+        var fetch = new SpreadFetch(level, layout);
+        if (!config.IsOn || stopped)
+        {
+            fetch.Fail(off: true);
+            return fetch;
+        }
+        if (!active && failedAt is { } at && now() < at.AddSeconds(config.RetrySeconds))
+        {
+            fetch.Fail();
+            return fetch;
+        }
+        waitingFetch = fetch;
+        Wake();
+        return fetch;
     }
 
     /// <summary>The next request of the round, or null when there's nothing to send. Throws while one is unanswered.</summary>
@@ -138,6 +173,31 @@ public sealed class ServerQueue
             outstandingScores = scores;
             return Send(Kind.Scores, ServerCalls.SubmitScores(outstandingPlayer, scores, bearer));
         }
+        // Cancelled: its card went before it was sent
+        if (waitingFetch is { State: not SpreadFetchState.Waiting })
+        {
+            waitingFetch = null;
+        }
+        if (waitingFetch is { } fetch)
+        {
+            if (!Consents.IsGiven(save.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards) || save.Player is null)
+            {
+                log("spread: not fetched, as leaderboards aren't shared or there's no player ID");
+                fetch.Fail();
+                waitingFetch = null;
+            }
+            else
+            {
+                if (Access() is not { } bearer)
+                {
+                    return SessionRequest();
+                }
+                waitingFetch = null;
+                outstandingFetch = fetch;
+                outstandingPlayer = save.Player.Value;
+                return Send(Kind.Spread, ServerCalls.BestMovesSpread(fetch.Level, fetch.Layout, bearer));
+            }
+        }
         if (NextRecords() is { } records)
         {
             if (Access() is not { } bearer)
@@ -172,6 +232,9 @@ public sealed class ServerQueue
                 break;
             case Kind.Scores:
                 ScoresReply(reply);
+                break;
+            case Kind.Spread:
+                SpreadReply(reply);
                 break;
             case Kind.Records:
                 RecordsReply(reply);
@@ -356,6 +419,48 @@ public sealed class ServerQueue
             + (read.PlayerDeleted ? ", the player ID was deleted" : ""));
     }
 
+    // The counts aren't tied to a player, so a reply after "Delete my data" still answers; but like the other replies,
+    // a failure after it never ends the round, whose ending the deletion line reads
+    private void SpreadReply(ServerReply reply)
+    {
+        var fetch = outstandingFetch!;
+        outstandingFetch = null;
+        if (ServerCalls.ReadSpread(reply) is { } counts)
+        {
+            fetch.Answer(counts);
+            log($"spread for level {fetch.Level}: {counts.Counts.Sum(count => count.Players) + counts.More} players");
+            return;
+        }
+        if (save.Player != outstandingPlayer)
+        {
+            fetch.Fail();
+            log("spread: no answer, and the player ID was deleted while it was asked");
+            return;
+        }
+        if (Unauthorised(reply))
+        {
+            // Sent again after the renewal, unless the round failed or a newer card has asked since
+            if (active && waitingFetch is null)
+            {
+                waitingFetch = fetch;
+            }
+            else
+            {
+                fetch.Fail();
+            }
+            return;
+        }
+        fetch.Fail();
+        // Down or busy: the records would fail too. Any other refusal costs only the chart, never the uploads
+        if (reply.Status is 0 or 429 or >= 500)
+        {
+            Fail("spread", reply);
+            return;
+        }
+        var status = reply.Status.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        log(reply.IsOk ? $"spread: the reply didn't read ({status}); the round goes on" : $"spread refused ({status}); the round goes on");
+    }
+
     private void RecordsReply(ServerReply reply)
     {
         if (save.Player != outstandingPlayer)
@@ -407,12 +512,19 @@ public sealed class ServerQueue
     {
         log($"stopped for this run: {why}");
         stopped = true;
+        waitingFetch?.Fail(off: true);
+        waitingFetch = null;
         failedAt = now();
         EndRound(finished: false);
     }
 
     private void EndRound(bool finished)
     {
+        if (!finished)
+        {
+            waitingFetch?.Fail();
+            waitingFetch = null;
+        }
         active = false;
         requested = forcedDuringRound && !finished;
         forcedDuringRound = false;

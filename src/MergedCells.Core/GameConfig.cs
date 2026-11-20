@@ -32,6 +32,8 @@ public sealed record GameConfig
 
     public required PrivacyConfig Privacy { get; init; }
 
+    public required LeaderboardConfig Leaderboard { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -69,6 +71,7 @@ public sealed record GameConfig
         _ = new MapClimber(Generator, Difficulty, Infinite.Climb(Climb));
         Server.CheckRanges();
         Privacy.CheckRanges();
+        Leaderboard.CheckRanges();
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -174,6 +177,10 @@ public sealed record GameConfig
         CheckCustomLevels(config.CustomLevels);
         CheckInfinite(config.Infinite);
         CheckServer(config.Server, config.Privacy);
+        if (config.Leaderboard is null)
+        {
+            throw new JsonException("The config's \"leaderboard\" group is null.");
+        }
         return config;
     }
 

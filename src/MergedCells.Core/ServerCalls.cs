@@ -67,6 +67,40 @@ public static class ServerCalls
     public static ServerRequest DeletePlayer(Guid player) =>
         new("rest/v1/rpc/delete_player", Json(writer => writer.WriteString("player", player.ToString("D"))), null);
 
+    public static ServerRequest BestMovesSpread(int level, string layout, string bearer) =>
+        new("rest/v1/rpc/best_moves_spread", Json(writer =>
+        {
+            writer.WriteNumber("level", level);
+            writer.WriteString("layout", layout);
+        }), bearer);
+
+    // Counts strictly ascending by moves, each at least one player, as the server sends them, and a total that fits an int, so
+    // nothing that sums them can overflow
+    public static SpreadCounts? ReadSpread(ServerReply reply) =>
+        Read(reply, root =>
+        {
+            if (!root.TryGetProperty("counts", out var counts) || counts.ValueKind != JsonValueKind.Array
+                || Int(root, "more") is not { } more)
+            {
+                return null;
+            }
+            var read = new List<MoveCount>();
+            long total = more;
+            foreach (var pair in counts.EnumerateArray())
+            {
+                if (pair.ValueKind != JsonValueKind.Array || pair.GetArrayLength() != 2
+                    || pair[0].ValueKind != JsonValueKind.Number || !pair[0].TryGetInt32(out var moves) || moves < 1
+                    || pair[1].ValueKind != JsonValueKind.Number || !pair[1].TryGetInt32(out var players) || players < 1
+                    || (read.Count > 0 && moves <= read[^1].Moves))
+                {
+                    return null;
+                }
+                read.Add(new MoveCount(moves, players));
+                total += players;
+            }
+            return total <= int.MaxValue ? new SpreadCounts(read, more) : null;
+        });
+
     public static ServerSession? ReadSession(ServerReply reply, DateTimeOffset now) =>
         Read(reply, root =>
             String(root, "access_token") is { } access && String(root, "refresh_token") is { } refresh

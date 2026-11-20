@@ -28,8 +28,8 @@ public sealed record PlaySetup(string Title)
     // Shows the New map button
     public bool NewMap { get; init; }
 
-    // Whether the results card shows "Everyone's best moves", asked as the card appears; null hides it
-    public Func<bool> Leaderboard { get; init; }
+    // The results card's "Everyone's best moves", asked as the card appears; null, or a null answer, hides it
+    public Func<LeaderboardSource> Leaderboard { get; init; }
 
     // Starts each visit's play record (at the map's start and at each Retry); null records nothing
     public Func<PlayRecorder> Recording { get; init; }

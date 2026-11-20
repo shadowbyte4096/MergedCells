@@ -12,6 +12,7 @@ public class ServerCallsTests
     public static TheoryData<string, string, string?, string> Requests()
     {
         var player = Guid.NewGuid();
+        var layout = Guid.NewGuid().ToString("N");
         return new TheoryData<string, string, string?, string>
         {
             { "sign in", ServerCalls.SignIn().Path, ServerCalls.SignIn().Bearer, "auth/v1/signup" },
@@ -19,15 +20,16 @@ public class ServerCallsTests
             { "scores", ServerCalls.SubmitScores(player, [], "t").Path, ServerCalls.SubmitScores(player, [], "t").Bearer, "rest/v1/rpc/submit_scores" },
             { "records", ServerCalls.UploadRecords(player, [], "t").Path, ServerCalls.UploadRecords(player, [], "t").Bearer, "rest/v1/rpc/upload_records" },
             { "delete", ServerCalls.DeletePlayer(player).Path, ServerCalls.DeletePlayer(player).Bearer, "rest/v1/rpc/delete_player" },
+            { "spread", ServerCalls.BestMovesSpread(1, layout, "t").Path, ServerCalls.BestMovesSpread(1, layout, "t").Bearer, "rest/v1/rpc/best_moves_spread" },
         };
     }
 
-    // Only the two function calls that store data carry a session; the delete goes after the session is dropped
+    // Every function call but the delete carries a session; the delete goes after the session is dropped
     [Theory]
     [MemberData(nameof(Requests))]
     public void Each_request_has_its_path_and_bearer(string name, string path, string? bearer, string expectedPath)
     {
-        var needsSession = name is "scores" or "records";
+        var needsSession = name is "scores" or "records" or "spread";
 
         Assert.Equal((expectedPath, needsSession ? "t" : null), (path, bearer));
     }
@@ -182,5 +184,55 @@ public class ServerCallsTests
     public void Only_2xx_is_ok(int status, bool ok)
     {
         Assert.Equal(ok, new ServerReply(status, "").IsOk);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Spread_body_names_the_level_and_layout(int level, string layout)
+    {
+        var body = Body(ServerCalls.BestMovesSpread(level, layout, "t"));
+
+        Assert.Equal((level, layout), (body.GetProperty("level").GetInt32(), body.GetProperty("layout").GetString()));
+    }
+
+    [Fact]
+    public void Spread_reply_reads_its_counts_and_more()
+    {
+        var read = ServerCalls.ReadSpread(new ServerReply(200, """{"counts":[[6,88],[7,47]],"more":3}"""));
+
+        Assert.Equivalent(new SpreadCounts([new MoveCount(6, 88), new MoveCount(7, 47)], 3), read, strict: true);
+    }
+
+    [Fact]
+    public void Empty_spread_reply_reads_as_no_counts()
+    {
+        var read = ServerCalls.ReadSpread(new ServerReply(200, """{"counts":[],"more":0}"""));
+
+        Assert.Equal((0, 0), (read!.Counts.Count, read.More));
+    }
+
+    public static TheoryData<int, string> UnreadableSpreads => new()
+    {
+        { 404, """{"counts":[[6,1]],"more":0}""" },
+        { 200, "<html>" },
+        { 200, """{"counts":{},"more":0}""" },
+        { 200, """{"counts":[[6,1,2]],"more":0}""" },
+        { 200, """{"counts":[[0,1]],"more":0}""" },
+        { 200, """{"counts":[[6,0]],"more":0}""" },
+        { 200, """{"counts":[[7,1],[6,1]],"more":0}""" },
+        { 200, """{"counts":[[6,1],[6,2]],"more":0}""" },
+        { 200, """{"counts":[[6,1]],"more":-1}""" },
+        { 200, """{"counts":[[6,1]]}""" },
+        { 200, """{"counts":[["6",1]],"more":0}""" },
+        { 200, """{"more":0}""" },
+        { 200, """{"counts":[[6,2147483647],[7,1]],"more":0}""" },
+        { 200, """{"counts":[[6,2147483647]],"more":1}""" },
+    };
+
+    [Theory]
+    [MemberData(nameof(UnreadableSpreads))]
+    public void Unreadable_spread_replies_give_null(int status, string body)
+    {
+        Assert.Null(ServerCalls.ReadSpread(new ServerReply(status, body)));
     }
 }

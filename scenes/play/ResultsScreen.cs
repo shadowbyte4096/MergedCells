@@ -13,6 +13,7 @@ public partial class ResultsScreen : Control
     private Label parLabel;
     private Label bestLabel;
     private Control leaderboard;
+    private BestMovesChart chart;
     private Button retryButton;
     private Button menuButton;
     private Button nextButton;
@@ -48,6 +49,8 @@ public partial class ResultsScreen : Control
         parLabel = GetNode<Label>("Sheet/Column/ParLabel");
         bestLabel = GetNode<Label>("Sheet/Column/BestLabel");
         leaderboard = GetNode<Control>("Sheet/Column/Leaderboard");
+        chart = new BestMovesChart();
+        leaderboard.AddChild(chart);
         retryButton = GetNode<Button>("Sheet/Column/Buttons/Retry");
         retryButton.Pressed += () => RetryPressed?.Invoke();
         menuButton = GetNode<Button>("Sheet/Column/Buttons/Menu");
@@ -110,10 +113,20 @@ public partial class ResultsScreen : Control
         set => nextButton.Text = value;
     }
 
-    // Infinite maps are all different, so they have no "Everyone's best moves" to show
-    public bool ShowLeaderboard
+    // Retry and a new map hide the card: its chart lets go of the fetch, so one still waiting is never sent
+    public override void _Notification(int what)
     {
-        set => leaderboard.Visible = value;
+        if (what == NotificationVisibilityChanged && !Visible && chart is not null)
+        {
+            chart.Watch(null);
+        }
+    }
+
+    // Campaign levels only, while leaderboards are shared and the server is on for the run; null hides the area
+    public void ShowLeaderboard(LeaderboardSource source)
+    {
+        leaderboard.Visible = source is not null;
+        chart.Watch(source);
     }
 
     // A test board has no finish to compare with, so its stars show as earned or empty and it has no best line

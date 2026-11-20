@@ -1,6 +1,6 @@
 # Merged Cells privacy policy
 
-Last changed: 19 November 2026
+Last changed: 20 November 2026
 
 This policy covers every build of Merged Cells: the playtest builds on this repository's releases and the builds on Google Play.
 
@@ -39,7 +39,7 @@ It never includes your name, any level's name, your device's hardware or adverti
 
 ## Leaderboards (optional)
 
-If you say yes to "Join the leaderboards?", your best number of moves on each campaign level is sent to the game's server with your random player ID, so the game can show you where you sit among other players. Each score holds the level's number, a code for its layout (so a level that changes gets a fresh leaderboard), your best number of moves, your random player ID, and when it was sent. The spread of everyone's moves also helps tune how hard levels are.
+If you say yes to "Join the leaderboards?", your best number of moves on each campaign level is sent to the game's server with your random player ID, so the game can show you where you sit among other players. Other players see only how many players took each number of moves on a level, never your player ID. Each score holds the level's number, a code for its layout (so a level that changes gets a fresh leaderboard), your best number of moves, your random player ID, and when it was sent. The spread of everyone's moves also helps tune how hard levels are.
 
 **Legal basis:** your consent. Say no and leaderboards stay hidden: nothing is sent, and the game doesn't fetch them.
 
@@ -51,6 +51,7 @@ The game makes it the first time you say yes to either question. It's random: it
 
 - The game's database is hosted by Supabase, in London (UK), which stores it for the developer and may not use it for anything else.
 - To keep strangers from writing to the database, the game signs in to it anonymously: no name, email or account, just a sign-in the server makes for your game. That sign-in keeps the IP address your game last connected from. It's deleted with your data, and one that holds nothing is deleted within 30 days.
+- Other players, if you share your scores: only how many players took each number of moves on a level, never your player ID.
 - Nobody else. Your data is never sold, and never used for advertising.
 - An exported file goes wherever you send it.
 

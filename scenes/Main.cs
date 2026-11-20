@@ -446,7 +446,7 @@ public partial class Main : Node
             Tutorial = next.Tutorial,
             Recording = CampaignRecording(next),
             // Asked as the card appears, so a player who turned leaderboards off mid-level never sees the area
-            Leaderboard = () => Consents.IsGiven(SaveGameFile.Current.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards),
+            Leaderboard = () => LeaderboardFor(next),
         });
         back = () => ShowLevelSelect(chapter);
     }

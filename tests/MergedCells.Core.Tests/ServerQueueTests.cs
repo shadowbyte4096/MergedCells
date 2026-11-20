@@ -31,6 +31,8 @@ public class ServerQueueTests
     // The example map at par 3, under three IDs
     private static readonly Level[] Levels = [new(1, "One", 1, TestMaps.Example(), 3), new(2, "Two", 1, TestMaps.Example(), 3), new(3, "Three", 1, TestMaps.Example(), 3)];
 
+    private static readonly string Layout = LevelFingerprint.Of(Levels[0]);
+
     // A queue over a real save, a records "file" held as lines with byte offsets, and a clock the test moves
     private sealed class Rig
     {
@@ -122,6 +124,9 @@ public class ServerQueueTests
     private static string Accepted(int count) => $$"""{"accepted":{{count}},"unknown":[],"belowPar":[]}""";
 
     private static string Stored(int count) => $$"""{"stored":{{count}},"duplicates":0,"skipped":0}""";
+
+    private static string SpreadReply(params (int Moves, int Players)[] counts) =>
+        "{\"counts\":[" + string.Join(",", counts.Select(count => $"[{count.Moves},{count.Players}]")) + "],\"more\":0}";
 
     private static JsonElement Body(ServerRequest request) => JsonDocument.Parse(request.Body).RootElement;
 
@@ -782,5 +787,379 @@ public class ServerQueueTests
         var next = rig.Answer(200, """{"deleted":true}""");
 
         Assert.Equal("auth/v1/signup", next?.Path);
+    }
+
+    [Fact]
+    public void Fetch_goes_after_the_scores_and_before_the_records()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.PlayData();
+        rig.Best(1, 4);
+        rig.AddRecord();
+        rig.Queue.Fetch(1, Layout);
+
+        var paths = new[] { rig.Start(), rig.SignedIn(), rig.Answer(200, Accepted(1)), rig.Answer(200, SpreadReply((4, 1))) }.Select(request => request?.Path);
+
+        Assert.Equal(["auth/v1/signup", "rest/v1/rpc/submit_scores", "rest/v1/rpc/best_moves_spread", "rest/v1/rpc/upload_records"], paths);
+    }
+
+    [Fact]
+    public void Fetch_answers_with_the_counts()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+        rig.Answer(200, Accepted(1));
+
+        rig.Answer(200, SpreadReply((4, 2)));
+
+        Assert.Equal((SpreadFetchState.Answered, new MoveCount(4, 2)), (fetch.State, fetch.Counts!.Counts.Single()));
+    }
+
+    [Fact]
+    public void Fetch_sends_the_level_and_layout()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Queue.Fetch(1, Layout);
+        rig.Start();
+
+        var request = rig.SignedIn()!;
+
+        Assert.Equal((1, Layout), (Body(request).GetProperty("level").GetInt32(), Body(request).GetProperty("layout").GetString()));
+    }
+
+    [Fact]
+    public void Fetch_needs_a_session_first()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Queue.Fetch(1, Layout);
+
+        var paths = new[] { rig.Start(), rig.SignedIn() }.Select(request => request?.Path);
+
+        Assert.Equal(["auth/v1/signup", "rest/v1/rpc/best_moves_spread"], paths);
+    }
+
+    [Fact]
+    public void Fetch_without_leaderboards_is_unavailable_and_the_round_goes_on()
+    {
+        var rig = new Rig();
+        rig.PlayData();
+        rig.AddRecord();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+
+        var next = rig.SignedIn();
+
+        Assert.Equal((SpreadFetchState.Unavailable, "rest/v1/rpc/upload_records"), (fetch.State, next?.Path));
+    }
+
+    [Fact]
+    public void Fetch_without_a_player_is_unavailable()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Save.Player = null;
+        var fetch = rig.Queue.Fetch(1, Layout);
+
+        var next = rig.Queue.Next();
+
+        Assert.Equal((SpreadFetchState.Unavailable, (ServerRequest?)null), (fetch.State, next));
+    }
+
+    [Fact]
+    public void Fetch_in_the_retry_gap_is_unavailable_at_once()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Start();
+        rig.Answer(503, "");
+        rig.Now = rig.Now.AddSeconds(30);
+
+        Assert.Equal(SpreadFetchState.Unavailable, rig.Queue.Fetch(1, Layout).State);
+    }
+
+    [Fact]
+    public void Fetch_after_the_retry_gap_is_sent()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Start();
+        rig.Answer(503, "");
+        rig.Now = rig.Now.AddSeconds(61);
+        rig.Queue.Fetch(1, Layout);
+        rig.Queue.Next();
+        rig.SignedIn();
+
+        var next = rig.Answer(200, Accepted(1));
+
+        Assert.Equal("rest/v1/rpc/best_moves_spread", next?.Path);
+    }
+
+    [Fact]
+    public void Queue_that_could_not_keep_a_session_is_stopped()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Writable = false;
+        rig.Start();
+
+        rig.SignedIn();
+
+        Assert.True(rig.Queue.IsStopped);
+    }
+
+    [Fact]
+    public void Fetch_after_the_queue_stopped_is_off()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Writable = false;
+        rig.Start();
+        rig.SignedIn();
+
+        Assert.Equal(SpreadFetchState.Off, rig.Queue.Fetch(1, Layout).State);
+    }
+
+    [Fact]
+    public void Server_off_fetch_is_off()
+    {
+        var rig = new Rig(Config with { Url = "", PublishableKey = "" });
+        rig.Leaderboards();
+
+        Assert.Equal(SpreadFetchState.Off, rig.Queue.Fetch(1, Layout).State);
+    }
+
+    [Fact]
+    public void Newer_fetch_replaces_a_waiting_one()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var first = rig.Queue.Fetch(1, Layout);
+        var second = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        rig.Answer(200, SpreadReply((4, 1)));
+
+        Assert.Equal((SpreadFetchState.Unavailable, SpreadFetchState.Answered), (first.State, second.State));
+    }
+
+    [Fact]
+    public void Refused_token_on_a_fetch_renews_and_retries_once()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        var paths = new[] { rig.Answer(401, ""), rig.SignedIn("a2", "r2"), rig.Answer(200, SpreadReply((4, 1))) }.Select(request => request?.Path);
+
+        Assert.Equal(["auth/v1/token?grant_type=refresh_token", "rest/v1/rpc/best_moves_spread", null], paths);
+        Assert.Equal(SpreadFetchState.Answered, fetch.State);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(503)]
+    [InlineData(429)]
+    public void Fetch_with_no_reply_fails_the_round_and_sends_no_records(int status)
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.PlayData();
+        rig.AddRecord();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        var next = rig.Answer(status, "");
+
+        Assert.Equal((SpreadFetchState.Unavailable, false, (ServerRequest?)null), (fetch.State, rig.Rounds.Last(), next));
+    }
+
+    [Theory]
+    [InlineData(404, """{"message":"x"}""")]
+    [InlineData(200, "<html>")]
+    public void Fetch_refused_or_unreadable_goes_on_to_the_records(int status, string body)
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.PlayData();
+        rig.AddRecord();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        var next = rig.Answer(status, body);
+
+        Assert.Equal((SpreadFetchState.Unavailable, "rest/v1/rpc/upload_records"), (fetch.State, next?.Path));
+    }
+
+    [Fact]
+    public void Fetch_reply_after_a_deletion_still_answers()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+        rig.Save.Player = Fixture.Create<Guid>();
+
+        rig.Answer(200, SpreadReply((4, 1)));
+
+        Assert.Equal(SpreadFetchState.Answered, fetch.State);
+    }
+
+    [Fact]
+    public void Failed_round_makes_a_waiting_fetch_unavailable()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        rig.Answer(503, "");
+
+        Assert.Equal(SpreadFetchState.Unavailable, fetch.State);
+    }
+
+    // Chunk 33's rule: a reply landing after "Delete my data" never decides how the round ends, which the deletion line reads
+    [Fact]
+    public void Spread_failure_after_a_deletion_leaves_the_round_going()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+        DataDeletion.Run(rig.Save, () => true, () => null);
+
+        var next = rig.Answer(503, "");
+
+        Assert.Equal((SpreadFetchState.Unavailable, "rest/v1/rpc/delete_player", 0), (fetch.State, next?.Path, rig.Rounds.Count));
+    }
+
+    [Fact]
+    public void Cancelled_fetch_is_not_sent()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var fetch = rig.Queue.Fetch(1, Layout);
+
+        fetch.Cancel();
+
+        Assert.Equal((SpreadFetchState.Unavailable, (ServerRequest?)null), (fetch.State, rig.Queue.Next()));
+    }
+
+    [Fact]
+    public void Fetch_waiting_when_the_queue_stops_is_off()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Writable = false;
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+
+        rig.SignedIn();
+
+        Assert.Equal(SpreadFetchState.Off, fetch.State);
+    }
+
+    [Fact]
+    public void Unreadable_spread_reply_is_logged_as_unreadable()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+
+        rig.Answer(200, "<html>");
+
+        Assert.Contains("spread: the reply didn't read (200); the round goes on", rig.Log);
+    }
+
+    // A forced wake can start a round inside the retry gap; a card finishing during it still gets its spread
+    [Fact]
+    public void Fetch_in_the_retry_gap_during_a_round_is_kept()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.Best(1, 4);
+        rig.Start();
+        rig.Answer(503, "");
+        rig.Now = rig.Now.AddSeconds(30);
+        rig.Queue.Wake(force: true);
+        rig.Queue.Next();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.SignedIn();
+
+        var next = rig.Answer(200, Accepted(1));
+
+        Assert.Equal((SpreadFetchState.Waiting, "rest/v1/rpc/best_moves_spread"), (fetch.State, next?.Path));
+    }
+
+    [Fact]
+    public void Fetch_made_mid_round_goes_after_the_scores()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        rig.PlayData();
+        rig.Best(1, 4);
+        rig.AddRecord();
+        rig.Start();
+        rig.SignedIn();
+        rig.Queue.Fetch(1, Layout);
+
+        var paths = new[] { rig.Answer(200, Accepted(1)), rig.Answer(200, SpreadReply((4, 1))) }.Select(request => request?.Path);
+
+        Assert.Equal(["rest/v1/rpc/best_moves_spread", "rest/v1/rpc/upload_records"], paths);
+    }
+
+    [Fact]
+    public void Refused_token_with_a_newer_fetch_waiting_drops_the_older()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var first = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+        var second = rig.Queue.Fetch(1, Layout);
+        rig.Answer(401, "");
+        rig.SignedIn("a2", "r2");
+
+        rig.Answer(200, SpreadReply((4, 1)));
+
+        Assert.Equal((SpreadFetchState.Unavailable, SpreadFetchState.Answered), (first.State, second.State));
+    }
+
+    [Fact]
+    public void Second_refused_token_on_a_fetch_fails_the_round()
+    {
+        var rig = new Rig();
+        rig.Leaderboards();
+        var fetch = rig.Queue.Fetch(1, Layout);
+        rig.Start();
+        rig.SignedIn();
+        rig.Answer(401, "");
+        rig.SignedIn("a2", "r2");
+
+        rig.Answer(401, "");
+
+        Assert.Equal((SpreadFetchState.Unavailable, false), (fetch.State, rig.Rounds.Last()));
     }
 }

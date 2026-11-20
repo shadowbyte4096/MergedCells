@@ -86,3 +86,18 @@ public sealed record PrivacyConfig
         }
     }
 }
+
+/// <summary>The config's <c>leaderboard</c> group: the results card's chart of everyone's best moves.</summary>
+public sealed record LeaderboardConfig
+{
+    // One column per move count from par, the last one "that many or more"
+    public required int Columns { get; init; }
+
+    public void CheckRanges()
+    {
+        if (Columns is < 2 or > 10)
+        {
+            throw new ArgumentOutOfRangeException("leaderboard.columns", Columns, "Must be from 2 to 10.");
+        }
+    }
+}

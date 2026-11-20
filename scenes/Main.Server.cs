@@ -48,6 +48,20 @@ public partial class Main
         WakeServer();
     }
 
+    // The results card's chart: only while leaderboards are shared and the server is on and not stopped for the run, since
+    // otherwise nothing could ever load. The save's best is already this finish's, as RecordFinish runs first
+    private static LeaderboardSource LeaderboardFor(Level level)
+    {
+        if (server is null || server.IsStopped
+            || !Consents.IsGiven(SaveGameFile.Current.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards)
+            || SaveGameFile.Current.BestMoves(level) is not { } best)
+        {
+            return null;
+        }
+        var axis = SpreadAxis.Of(level.Par, best, GameConfigFile.Current.Leaderboard.Columns);
+        return new LeaderboardSource(server.Fetch(level.Id, LevelFingerprint.Of(level)), axis);
+    }
+
     // force: the player asked for it (a yes, "Delete my data"), so it doesn't wait out a failed round's gap
     private static void WakeServer(bool force = false) => server?.Wake(force);
 

@@ -1,4 +1,5 @@
-# Checks the server's three functions against the Supabase project (see docs/systems/server.md), then deletes what it sent.
+# Checks the server's functions (the sending ones and, since chunk 34, the spread) against the Supabase project (see
+# docs/systems/server.md), then deletes what it sent.
 # Run it after any change to supabase/migrations. Every check prints pass or FAIL; the exit code is 1 if any failed.
 #   powershell -ExecutionPolicy Bypass -File tools\check-server.ps1 -Url https://<ref>.supabase.co -Key sb_publishable_...
 # -Keep stops before the deletion and prints the player ID, so the rows can be read in the SQL editor; then
@@ -86,6 +87,22 @@ Check 'submit_scores takes a valid score and lists the unknown and below-par one
 
 $reply = Send 'rest/v1/rpc/submit_scores' ('{"player":"' + $player + '","scores":[{"level":' + $level + ',"layout":"' + $layout + '","moves":' + ($par + 5) + '}]}') $token
 Check 'a worse score is accepted (the lowest is kept)' ($reply.Status -eq 200 -and $reply.Json.accepted -eq 1) "status $($reply.Status)"
+
+$spread = '{"level":' + $level + ',"layout":"' + $layout + '"}'
+$reply = Send 'rest/v1/rpc/best_moves_spread' $spread $token
+$keys = ''
+$kept = 0
+if ($reply.Json) {
+    $keys = ($reply.Json.PSObject.Properties.Name | Sort-Object) -join ','
+    $kept = @($reply.Json.counts | Where-Object { $_ -and $_[0] -eq ($par + 2) -and $_[1] -ge 1 }).Count
+}
+Check 'best_moves_spread counts the kept score and holds nothing but counts' ($reply.Status -eq 200 -and $keys -eq 'counts,more' -and $kept -eq 1) "status $($reply.Status), keys $keys"
+
+$reply = Send 'rest/v1/rpc/best_moves_spread' ('{"level":' + $level + ',"layout":"0000000000000000"}') $token
+Check 'an unknown layout has an empty spread' ($reply.Status -eq 200 -and @($reply.Json.counts).Count -eq 0 -and $reply.Json.more -eq 0) "status $($reply.Status)"
+
+$reply = Send 'rest/v1/rpc/best_moves_spread' $spread
+Check 'best_moves_spread without a session is refused' ($reply.Status -ge 400 -and $reply.Status -lt 500) "status $($reply.Status)"
 
 $first = Record $player
 $records = '{"player":"' + $player + '","records":[' + $first + ',' + (Record $player) + ',' + (Record ([guid]::NewGuid().ToString())) + ']}'
