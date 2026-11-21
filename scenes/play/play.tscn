@@ -323,6 +323,12 @@ layout_mode = 2
 mouse_filter = 2
 theme_type_variation = &"Placeholder"
 
+[node name="Library" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Placeholder"
+
 [node name="Buttons" type="HBoxContainer" parent="Hud/Root/Results/Sheet/Column"]
 layout_mode = 2
 mouse_filter = 2

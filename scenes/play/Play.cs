@@ -580,6 +580,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         results.ShowNext = setup.HasNext is not null;
         results.NextText = setup.NextText;
         results.ShowLeaderboard(setup.Leaderboard?.Invoke());
+        results.ShowLibrary(setup.Library?.Invoke());
         if (setup.HasNext is not null)
         {
             results.HasNext = setup.HasNext();

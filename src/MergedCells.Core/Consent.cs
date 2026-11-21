@@ -5,6 +5,7 @@ public enum ConsentKind
 {
     PlayData,
     Leaderboards,
+    Library,
 }
 
 /// <summary>A player's answer to one kind's question, and the version of the wording they answered.</summary>
@@ -24,7 +25,9 @@ public sealed record Consent
 
 /// <summary>
 /// What the player is told and asked about one kind of data, and the version of that wording. Changed is the ask shown
-/// to a player whose yes was to another version; the switch's label and note are on the "Privacy and data" page.
+/// to a player whose yes was to another version; the switch's label and note are on the "Privacy and data" page. A yes to
+/// a wording with <paramref name="Terms"/> also accepts the terms at <see cref="ConsentWordings.TermsUrl"/>, which the ask
+/// links to.
 /// </summary>
 public sealed record ConsentWording(
     ConsentKind Kind,
@@ -40,11 +43,15 @@ public sealed record ConsentWording(
     string ChangedNo,
     string ChangedYes,
     string SwitchLabel,
-    string SwitchNote);
+    string SwitchNote,
+    bool Terms = false);
 
 public static class ConsentWordings
 {
     public const string PolicyUrl = "https://github.com/shadowbyte4096/MergedCells/blob/main/PRIVACY.md";
+
+    // Google Play asks for terms separate from the privacy policy, accepted before anything is published
+    public const string TermsUrl = "https://github.com/shadowbyte4096/MergedCells/blob/main/TERMS.md";
 
     // Raise Version with any change to what the player agrees to: a yes to another version is asked again. Version 0 was
     // chunk 22's switch, which said records stay on the phone
@@ -87,13 +94,37 @@ public static class ConsentWordings
         SwitchNote: "Your best moves on each level, with a random ID and never your name, for the leaderboards and for tuning "
             + "difficulty. Off hides leaderboards.");
 
-    // In the order they're asked
-    public static IReadOnlyList<ConsentWording> All { get; } = [PlayData, Leaderboards];
+    // Its Version is raised the same way, and also whenever TERMS.md changes what players agree to
+    public static readonly ConsentWording Library = new(
+        ConsentKind.Library,
+        Version: 1,
+        Offered: true,
+        AskTitle: "Join the level library?",
+        Body: "Play levels other players made, and publish your own. Levels you publish are shown to everyone with their "
+            + "names. The library counts the levels you beat and like, and keeps your reports and blocks, with a random ID "
+            + "and never your name.",
+        Small: "Joining means accepting the library's terms. Change this or delete your data any time in Settings. If you're "
+            + "under 16, check with a parent first.",
+        No: "No thanks",
+        Yes: "Join",
+        ChangedTitle: "The library has changed",
+        ChangedLead: "Its terms or what it keeps have changed, so the library is paused until you answer.",
+        ChangedNo: "Leave",
+        ChangedYes: "Stay in",
+        SwitchLabel: "Use the level library",
+        SwitchNote: "Publish levels, and play, like and report other players' levels, with a random ID and never your name. "
+            + "Turning it on accepts the library's terms. Off hides the library. Levels you published stay until you remove "
+            + "them or delete your data.",
+        Terms: true);
+
+    // The kinds the mode select asks about, in order. The library is asked when the player taps Library or Publish
+    public static IReadOnlyList<ConsentWording> AtStart { get; } = [PlayData, Leaderboards];
 
     public static ConsentWording For(ConsentKind kind) => kind switch
     {
         ConsentKind.PlayData => PlayData,
         ConsentKind.Leaderboards => Leaderboards,
+        ConsentKind.Library => Library,
         _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Not a kind of consent."),
     };
 }

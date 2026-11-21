@@ -65,6 +65,10 @@ public partial class Main
     // force: the player asked for it (a yes, "Delete my data"), so it doesn't wait out a failed round's gap
     private static void WakeServer(bool force = false) => server?.Wake(force);
 
+    // Off at once when there's no queue for the run (no url, or the save can't be written)
+    private static CallHandle<T> SendCall<T>(ServerCall<T> call)
+        where T : class => server is null ? CallHandle<T>.Off() : server.Send(call);
+
     private static void AwaitServerDeletion(SettingsSheet sheet, Guid player, string confirmed, string offline)
     {
         deletionSheet = sheet;

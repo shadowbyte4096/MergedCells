@@ -1,3 +1,4 @@
+using AutoFixture;
 using AutoFixture.Xunit3;
 
 namespace MergedCells.Core.Tests;
@@ -165,6 +166,52 @@ public class SaveGameTests
         save.ClearProgress();
 
         Assert.Equal(appearance, save.Appearance);
+    }
+
+    // What this device published isn't progress: it says which levels are in the library
+    [Theory]
+    [AutoData]
+    public void Clearing_progress_keeps_published(Guid id)
+    {
+        var save = new SaveGame();
+        save.RecordPublished(id, DateTimeOffset.UnixEpoch);
+
+        save.ClearProgress();
+
+        Assert.Equal([id], save.Published.Keys);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Recording_a_published_level_again_replaces_its_time(Guid id, uint first, uint second)
+    {
+        var save = new SaveGame();
+        save.RecordPublished(id, DateTimeOffset.UnixEpoch.AddSeconds(first));
+
+        save.RecordPublished(id, DateTimeOffset.UnixEpoch.AddSeconds(second));
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddSeconds(second), save.Published[id]);
+    }
+
+    [Fact]
+    public void Published_time_is_kept_in_whole_seconds()
+    {
+        var save = new SaveGame();
+        var id = new Fixture().Create<Guid>();
+
+        save.RecordPublished(id, DateTimeOffset.UnixEpoch.AddMilliseconds(1500));
+
+        Assert.Equal(DateTimeOffset.UnixEpoch.AddSeconds(1), save.Published[id]);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Removing_a_published_level_drops_it(Guid id)
+    {
+        var save = new SaveGame();
+        save.RecordPublished(id, DateTimeOffset.UnixEpoch);
+
+        Assert.Equal((true, 0), (save.RemovePublished(id), save.Published.Count));
     }
 
     // The levels shared from this device aren't progress: they keep a shared level from coming back as imported

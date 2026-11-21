@@ -13,6 +13,10 @@ public partial class SettingsSheet : Control
 
     private Control mainPage;
     private Control privacyPage;
+    private Control card;
+    private ScrollContainer privacyScroll;
+    private Control privacyBody;
+    private float topInset;
     private Button system;
     private Button light;
     private Button dark;
@@ -21,6 +25,7 @@ public partial class SettingsSheet : Control
     private Button export;
     private Label exportResult;
     private CheckButton leaderboardsSwitch;
+    private CheckButton librarySwitch;
     private Label cantChange;
     private string cantChangeText;
     private Button delete;
@@ -49,20 +54,26 @@ public partial class SettingsSheet : Control
     {
         mainPage = GetNode<Control>("Sheet/Column");
         privacyPage = GetNode<Control>("Sheet/Privacy");
+        card = GetNode<Control>("Sheet");
+        privacyScroll = GetNode<ScrollContainer>("Sheet/Privacy/Scroll");
+        privacyBody = GetNode<Control>("Sheet/Privacy/Scroll/Body");
         system = GetNode<Button>("Sheet/Column/Switch/System");
         light = GetNode<Button>("Sheet/Column/Switch/Light");
         dark = GetNode<Button>("Sheet/Column/Switch/Dark");
-        playDataSwitch = GetNode<CheckButton>("Sheet/Privacy/PlayDataSwitch");
-        playDataNote = GetNode<Label>("Sheet/Privacy/PlayDataNote");
-        export = GetNode<Button>("Sheet/Privacy/Export");
-        exportResult = GetNode<Label>("Sheet/Privacy/ExportResult");
-        leaderboardsSwitch = GetNode<CheckButton>("Sheet/Privacy/LeaderboardsSwitch");
-        var leaderboardsNote = GetNode<Label>("Sheet/Privacy/LeaderboardsNote");
-        cantChange = GetNode<Label>("Sheet/Privacy/CantChange");
+        playDataSwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/PlayDataSwitch");
+        playDataNote = GetNode<Label>("Sheet/Privacy/Scroll/Body/PlayDataNote");
+        export = GetNode<Button>("Sheet/Privacy/Scroll/Body/Export");
+        exportResult = GetNode<Label>("Sheet/Privacy/Scroll/Body/ExportResult");
+        leaderboardsSwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/LeaderboardsSwitch");
+        var leaderboardsNote = GetNode<Label>("Sheet/Privacy/Scroll/Body/LeaderboardsNote");
+        librarySwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/LibrarySwitch");
+        var libraryNote = GetNode<Label>("Sheet/Privacy/Scroll/Body/LibraryNote");
+        var terms = GetNode<Button>("Sheet/Privacy/Scroll/Body/Links/Terms");
+        cantChange = GetNode<Label>("Sheet/Privacy/Scroll/Body/CantChange");
         cantChangeText = cantChange.Text;
-        delete = GetNode<Button>("Sheet/Privacy/Delete");
+        delete = GetNode<Button>("Sheet/Privacy/Scroll/Body/Delete");
         deleteText = delete.Text;
-        deleteResult = GetNode<Label>("Sheet/Privacy/DeleteResult");
+        deleteResult = GetNode<Label>("Sheet/Privacy/Scroll/Body/DeleteResult");
 
         // The texts that go with each kind's answer live with its wording version in Core
         playDataSwitch.Text = ConsentWordings.PlayData.SwitchLabel;
@@ -70,6 +81,12 @@ public partial class SettingsSheet : Control
         leaderboardsNote.Text = ConsentWordings.Leaderboards.SwitchNote;
         leaderboardsSwitch.Visible = ConsentWordings.Leaderboards.Offered;
         leaderboardsNote.Visible = ConsentWordings.Leaderboards.Offered;
+        librarySwitch.Text = ConsentWordings.Library.SwitchLabel;
+        libraryNote.Text = ConsentWordings.Library.SwitchNote;
+        librarySwitch.Visible = ConsentWordings.Library.Offered;
+        libraryNote.Visible = ConsentWordings.Library.Offered;
+        // Turning the library on accepts its terms, so they sit on the page too
+        terms.Visible = ConsentWordings.Library.Offered;
 
         system.Pressed += () => Choose(Appearance.System);
         light.Pressed += () => Choose(Appearance.Light);
@@ -78,13 +95,19 @@ public partial class SettingsSheet : Control
         GetNode<Button>("Sheet/Privacy/Header/Back").Pressed += () => ShowPage(privacy: false);
         playDataSwitch.Toggled += on => Choose(ConsentWordings.PlayData, on);
         leaderboardsSwitch.Toggled += on => Choose(ConsentWordings.Leaderboards, on);
+        librarySwitch.Toggled += on => Choose(ConsentWordings.Library, on);
         export.Pressed += () =>
         {
             Disarm();
             ExportPressed?.Invoke();
         };
         delete.Pressed += OnDeletePressed;
-        GetNode<Button>("Sheet/Privacy/Policy").Pressed += () =>
+        terms.Pressed += () =>
+        {
+            Disarm();
+            OS.ShellOpen(ConsentWordings.TermsUrl);
+        };
+        GetNode<Button>("Sheet/Privacy/Scroll/Body/Links/Policy").Pressed += () =>
         {
             Disarm();
             OS.ShellOpen(ConsentWordings.PolicyUrl);
@@ -113,8 +136,10 @@ public partial class SettingsSheet : Control
         dark.SetPressedNoSignal(values.Appearance == Appearance.Dark);
         playDataSwitch.SetPressedNoSignal(values.PlayData);
         leaderboardsSwitch.SetPressedNoSignal(values.Leaderboards);
+        librarySwitch.SetPressedNoSignal(values.Library);
         playDataSwitch.Disabled = !values.CanChange;
         leaderboardsSwitch.Disabled = !values.CanChange;
+        librarySwitch.Disabled = !values.CanChange;
         var recorded = values.Recorded switch
         {
             0 => "Nothing recorded yet.",
@@ -198,6 +223,30 @@ public partial class SettingsSheet : Control
         deleteResult.Hide();
         mainPage.Visible = !privacy;
         privacyPage.Visible = privacy;
+        if (privacy)
+        {
+            topInset = SafeArea.Insets(this).Top;
+            privacyScroll.ScrollVertical = 0;
+        }
+    }
+
+    // With three kinds of data the page can be taller than the screen, so its middle scrolls and the card stops a gap below
+    // the top of the safe area. Worked out every frame the page shows, because the notes rewrap and the result lines come
+    // and go
+    public override void _Process(double delta)
+    {
+        if (!Visible || !privacyPage.Visible)
+        {
+            return;
+        }
+        const float TopGap = 24;
+        var others = card.GetCombinedMinimumSize().Y - privacyScroll.CustomMinimumSize.Y;
+        var available = GetViewportRect().Size.Y - topInset - TopGap - others;
+        var height = Mathf.Max(0, Mathf.Min(privacyBody.GetCombinedMinimumSize().Y, available));
+        if (!Mathf.IsEqualApprox(privacyScroll.CustomMinimumSize.Y, height))
+        {
+            privacyScroll.CustomMinimumSize = new Vector2(0, height);
+        }
     }
 
     private void OnDeletePressed()

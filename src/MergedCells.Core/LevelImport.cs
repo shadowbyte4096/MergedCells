@@ -93,6 +93,19 @@ public static class LevelImport
                 _ => ImportOutcome.NoCode,
             });
         }
+        return Of(level, load, shared, config, now);
+    }
+
+    /// <summary>
+    /// What importing a level that came from a code does: the library's levels come this way. The same rules and order as
+    /// for clipboard text, once the code has been read.
+    /// </summary>
+    public static ImportResult Of(CustomLevel level, CustomLevelLoad load, IReadOnlySet<Guid> shared, CustomLevelsConfig config, DateTimeOffset now)
+    {
+        ArgumentNullException.ThrowIfNull(level);
+        ArgumentNullException.ThrowIfNull(load);
+        ArgumentNullException.ThrowIfNull(shared);
+        ArgumentNullException.ThrowIfNull(config);
         if (level.Map.Rows > config.MaxSide || level.Map.Columns > config.MaxSide)
         {
             return Refused(ImportOutcome.TooBig);

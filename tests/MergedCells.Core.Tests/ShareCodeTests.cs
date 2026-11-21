@@ -29,19 +29,21 @@ public class ShareCodeTests
         new Tile[,] { { 0, 0, 0, 0 }, { Tile.Wall, 0, 0, 0 }, { 0, Tile.Trap, 0, 0 } },
         [TestMaps.Pair(0, 2, 1, 3)]);
 
-    // The editor's largest board at its most expensive: every square single, a tile grid, and all 45 pairs
-    internal static Map Worst30()
+    // The editor's largest board at its most expensive: every square single, a tile grid, and all 45 pairs. The pinned
+    // length uses 30, the shipped maximum side
+    internal static Map Worst(int side)
     {
-        var regions = new int[30, 30];
-        var tiles = new Tile[30, 30];
-        var pairCells = Enumerable.Range(0, 90).Select(k => new Cell(1 + k / 30 * 2, k % 30)).ToHashSet();
-        for (var row = 0; row < 30; row++)
+        var regions = new int[side, side];
+        var tiles = new Tile[side, side];
+        var pairCells = Enumerable.Range(0, 90).Select(k => new Cell(1 + k / side * 2, k % side)).ToHashSet();
+        var end = new Cell(side - 1, side - 1);
+        for (var row = 0; row < side; row++)
         {
-            for (var column = 0; column < 30; column++)
+            for (var column = 0; column < side; column++)
             {
-                regions[row, column] = row * 30 + column + 1;
+                regions[row, column] = row * side + column + 1;
                 var cell = new Cell(row, column);
-                if (cell != new Cell(0, 0) && cell != new Cell(29, 29) && !pairCells.Contains(cell))
+                if (cell != new Cell(0, 0) && cell != end && !pairCells.Contains(cell))
                 {
                     tiles[row, column] = (row + column) % 2 == 0 ? Tile.Wall : Tile.Trap;
                 }
@@ -49,7 +51,7 @@ public class ShareCodeTests
         }
         var cells = pairCells.OrderBy(cell => cell.Row).ThenBy(cell => cell.Column).ToArray();
         var pairs = Enumerable.Range(0, 45).Select(i => new TeleporterPair(cells[2 * i], cells[2 * i + 1])).ToArray();
-        return Map.Create(regions, new(0, 0), new(29, 29), tiles, pairs);
+        return Map.Create(regions, new(0, 0), end, tiles, pairs);
     }
 
     // A 30×30 of single squares with this many teleporter pairs; maps allow any number, the editor at most 45
@@ -102,7 +104,7 @@ public class ShareCodeTests
     {
         "every twist" => ("Long Way Round", EveryTwist()),
         "one by five" => ("Slide", Map.Create(TestMaps.Grid("ABCDE"), new(0, 0), new(0, 4))),
-        "worst 30" => ("Untitled", Worst30()),
+        "worst 30" => ("Untitled", Worst(30)),
         _ => ("Café ☕ 👨‍👩‍👧‍👦", EveryTwist()),
     };
 
@@ -170,7 +172,7 @@ public class ShareCodeTests
     [Fact]
     public void Worst_case_length_is_pinned()
     {
-        var level = new CustomLevel(Guid.Parse("0f8e2c1a-4b6d-4c1e-9a3f-2d7b5e8c9a10"), "Untitled", Worst30(), PinnedLevel().Edited);
+        var level = new CustomLevel(Guid.Parse("0f8e2c1a-4b6d-4c1e-9a3f-2d7b5e8c9a10"), "Untitled", Worst(30), PinnedLevel().Edited);
 
         Assert.Equal(799, ShareCode.Write(level).Length);
     }

@@ -31,6 +31,10 @@ public sealed record PlaySetup(string Title)
     // The results card's "Everyone's best moves", asked as the card appears; null, or a null answer, hides it
     public Func<LeaderboardSource> Leaderboard { get; init; }
 
+    // A library level's box on the results card, asked as the card appears (which sends the finish); null, or a null
+    // answer, hides it
+    public Func<LibraryCardSource> Library { get; init; }
+
     // Starts each visit's play record (at the map's start and at each Retry); null records nothing
     public Func<PlayRecorder> Recording { get; init; }
 }

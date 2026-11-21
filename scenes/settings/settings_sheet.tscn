@@ -126,24 +126,34 @@ size_flags_horizontal = 3
 theme_type_variation = &"TutorialLine"
 text = "Privacy and data"
 
-[node name="PlayDataSwitch" type="CheckButton" parent="Sheet/Privacy"]
+[node name="Scroll" type="ScrollContainer" parent="Sheet/Privacy"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="Sheet/Privacy/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="PlayDataSwitch" type="CheckButton" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"RecordSwitch"
 
-[node name="PlayDataNote" type="Label" parent="Sheet/Privacy"]
+[node name="PlayDataNote" type="Label" parent="Sheet/Privacy/Scroll/Body"]
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 theme_type_variation = &"Muted"
 autowrap_mode = 3
 
-[node name="Export" type="Button" parent="Sheet/Privacy"]
+[node name="Export" type="Button" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Export play data"
 
-[node name="ExportResult" type="Label" parent="Sheet/Privacy"]
+[node name="ExportResult" type="Label" parent="Sheet/Privacy/Scroll/Body"]
 visible = false
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
@@ -151,24 +161,37 @@ theme_type_variation = &"Muted"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="LeaderboardsSwitch" type="CheckButton" parent="Sheet/Privacy"]
+[node name="LeaderboardsSwitch" type="CheckButton" parent="Sheet/Privacy/Scroll/Body"]
 visible = false
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"RecordSwitch"
 
-[node name="LeaderboardsNote" type="Label" parent="Sheet/Privacy"]
+[node name="LeaderboardsNote" type="Label" parent="Sheet/Privacy/Scroll/Body"]
 visible = false
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 theme_type_variation = &"Muted"
 autowrap_mode = 3
 
-[node name="Rule" type="HSeparator" parent="Sheet/Privacy"]
+[node name="LibrarySwitch" type="CheckButton" parent="Sheet/Privacy/Scroll/Body"]
+visible = false
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"RecordSwitch"
+
+[node name="LibraryNote" type="Label" parent="Sheet/Privacy/Scroll/Body"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+autowrap_mode = 3
+
+[node name="Rule" type="HSeparator" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2
 mouse_filter = 2
 
-[node name="CantChange" type="Label" parent="Sheet/Privacy"]
+[node name="CantChange" type="Label" parent="Sheet/Privacy/Scroll/Body"]
 visible = false
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
@@ -176,13 +199,13 @@ theme_type_variation = &"Muted"
 text = "Can't be changed while the save can't be written."
 autowrap_mode = 3
 
-[node name="Delete" type="Button" parent="Sheet/Privacy"]
+[node name="Delete" type="Button" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Delete my data"
 
-[node name="DeleteResult" type="Label" parent="Sheet/Privacy"]
+[node name="DeleteResult" type="Label" parent="Sheet/Privacy/Scroll/Body"]
 visible = false
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
@@ -190,9 +213,21 @@ theme_type_variation = &"Muted"
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Policy" type="Button" parent="Sheet/Privacy"]
+[node name="Links" type="HBoxContainer" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2
-size_flags_horizontal = 4
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 40
+
+[node name="Terms" type="Button" parent="Sheet/Privacy/Scroll/Body/Links"]
+visible = false
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Library terms"
+
+[node name="Policy" type="Button" parent="Sheet/Privacy/Scroll/Body/Links"]
+layout_mode = 2
 focus_mode = 0
 theme_type_variation = &"CaptionButton"
 text = "Privacy policy"

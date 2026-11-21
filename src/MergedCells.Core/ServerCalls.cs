@@ -128,7 +128,7 @@ public static class ServerCalls
             ? (bool?)deleted.GetBoolean()
             : null);
 
-    private static string Json(Action<Utf8JsonWriter> write)
+    internal static string Json(Action<Utf8JsonWriter> write)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(stream))
@@ -140,7 +140,7 @@ public static class ServerCalls
         return Encoding.UTF8.GetString(stream.ToArray());
     }
 
-    private static T? Read<T>(ServerReply reply, Func<JsonElement, T?> read)
+    internal static T? Read<T>(ServerReply reply, Func<JsonElement, T?> read)
     {
         if (!reply.IsOk)
         {

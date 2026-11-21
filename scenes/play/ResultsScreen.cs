@@ -14,6 +14,8 @@ public partial class ResultsScreen : Control
     private Label bestLabel;
     private Control leaderboard;
     private BestMovesChart chart;
+    private Control libraryPanel;
+    private LibraryBox libraryBox;
     private Button retryButton;
     private Button menuButton;
     private Button nextButton;
@@ -51,6 +53,9 @@ public partial class ResultsScreen : Control
         leaderboard = GetNode<Control>("Sheet/Column/Leaderboard");
         chart = new BestMovesChart();
         leaderboard.AddChild(chart);
+        libraryPanel = GetNode<Control>("Sheet/Column/Library");
+        libraryBox = new LibraryBox();
+        libraryPanel.AddChild(libraryBox);
         retryButton = GetNode<Button>("Sheet/Column/Buttons/Retry");
         retryButton.Pressed += () => RetryPressed?.Invoke();
         menuButton = GetNode<Button>("Sheet/Column/Buttons/Menu");
@@ -119,6 +124,7 @@ public partial class ResultsScreen : Control
         if (what == NotificationVisibilityChanged && !Visible && chart is not null)
         {
             chart.Watch(null);
+            libraryBox.Watch(null);
         }
     }
 
@@ -127,6 +133,13 @@ public partial class ResultsScreen : Control
     {
         leaderboard.Visible = source is not null;
         chart.Watch(source);
+    }
+
+    // A library level, while the library is given and the server is on for the run; null hides the box
+    public void ShowLibrary(LibraryCardSource source)
+    {
+        libraryPanel.Visible = source is not null;
+        libraryBox.Watch(source);
     }
 
     // A test board has no finish to compare with, so its stars show as earned or empty and it has no best line

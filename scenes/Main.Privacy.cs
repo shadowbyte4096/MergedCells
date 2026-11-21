@@ -36,7 +36,7 @@ public partial class Main
             return;
         }
         var save = SaveGameFile.Current;
-        if (Consents.NextToAsk(save, ConsentWordings.All) is not { } wording)
+        if (Consents.NextToAsk(save, ConsentWordings.AtStart) is not { } wording)
         {
             return;
         }
@@ -77,6 +77,8 @@ public partial class Main
         }
         var recorded = PlayRecordFiles.Count;
         var player = SaveGameFile.Current.Player;
+        // The server deletes the levels this phone published with the player, so the line says so
+        var published = SaveGameFile.Current.Published.Count > 0;
         var result = DataDeletion.Run(SaveGameFile.Current, SaveGameFile.Save, PlayRecordFiles.Delete);
         GD.Print($"Play data: delete {result.Outcome} ({recorded} records{(result.ServerPending ? ", the server's copy pending" : "")})");
         sheet.Refresh();
@@ -108,7 +110,8 @@ public partial class Main
         AwaitServerDeletion(
             sheet,
             player!.Value,
-            Done(", here and on the server") + again + Sent,
-            Done(" on this phone") + " The server's copy will be deleted the next time you're online." + again + Sent);
+            Done(", here and on the server") + (published ? " Levels you published are removed from the library." : "") + again + Sent,
+            Done(" on this phone") + " The server's copy will be deleted the next time you're online."
+                + (published ? " So will the levels you published to the library." : "") + again + Sent);
     }
 }

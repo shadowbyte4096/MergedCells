@@ -192,6 +192,24 @@ public class ConsentsTests
         Assert.Equal(kind, ConsentWordings.For(kind).Kind);
     }
 
+    // The library is asked from the custom levels list when the player taps Library or Publish, never at start-up
+    [Fact]
+    public void Library_is_never_asked_at_start()
+    {
+        var save = new SaveGame();
+        save.SetConsent(ConsentKind.PlayData, new Consent(false, ConsentWordings.PlayData.Version));
+        save.SetConsent(ConsentKind.Leaderboards, new Consent(false, ConsentWordings.Leaderboards.Version));
+
+        Assert.Null(Consents.NextToAsk(save, ConsentWordings.AtStart));
+    }
+
+    [Theory]
+    [MemberData(nameof(Kinds))]
+    public void Only_the_library_wording_has_terms(ConsentKind kind)
+    {
+        Assert.Equal(kind == ConsentKind.Library, ConsentWordings.For(kind).Terms);
+    }
+
     private static SaveGame Recording(Guid player)
     {
         var save = new SaveGame { Player = player };

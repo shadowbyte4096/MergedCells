@@ -560,6 +560,30 @@ corner_radius_top_right = 12
 corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_filter"]
+content_margin_left = 24
+content_margin_top = 10
+content_margin_right = 24
+content_margin_bottom = 10
+corner_radius_top_left = 999
+corner_radius_top_right = 999
+corner_radius_bottom_right = 999
+corner_radius_bottom_left = 999
+anti_aliasing = true
+bg_color = Color(1, 1, 1, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tag_yours"]
+content_margin_left = 12
+content_margin_top = 2
+content_margin_right = 12
+content_margin_bottom = 2
+corner_radius_top_left = 999
+corner_radius_top_right = 999
+corner_radius_bottom_right = 999
+corner_radius_bottom_left = 999
+anti_aliasing = true
+bg_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+
 [resource]
 default_font = ExtResource("1_medium")
 default_font_size = 40
@@ -1010,3 +1034,22 @@ SheetRow/styles/pressed = SubResource("StyleBoxEmpty_none")
 SheetText/base_type = &"Label"
 SheetText/colors/font_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
 SheetText/font_sizes/font_size = 30
+RowStats/base_type = &"Label"
+RowStats/colors/font_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+RowStats/font_sizes/font_size = 26
+RowStats/fonts/font = ExtResource("2_bold")
+YoursTag/base_type = &"Label"
+YoursTag/colors/font_color = Color(1, 1, 1, 1)
+YoursTag/font_sizes/font_size = 20
+YoursTag/fonts/font = ExtResource("2_bold")
+YoursTag/styles/normal = SubResource("StyleBoxFlat_tag_yours")
+FilterPill/base_type = &"Button"
+FilterPill/colors/font_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+FilterPill/colors/font_hover_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+FilterPill/colors/font_pressed_color = Color(0.1372549, 0.36862745, 0.3372549, 1)
+FilterPill/font_sizes/font_size = 26
+FilterPill/fonts/font = ExtResource("2_bold")
+FilterPill/styles/focus = SubResource("StyleBoxEmpty_none")
+FilterPill/styles/hover = SubResource("StyleBoxFlat_filter")
+FilterPill/styles/normal = SubResource("StyleBoxFlat_filter")
+FilterPill/styles/pressed = SubResource("StyleBoxFlat_filter")

@@ -4,10 +4,10 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// Everything the game sends to the server, one request at a time: each round sends the pending deletions, then the
-/// campaign bests, then a results card's spread fetch, then the play records, each only while its kind is given at the
-/// moment of sending. The caller sends what <see cref="Next"/> returns and passes the answer to <see cref="Reply"/>. A
-/// failed round stops, and other chances to send are ignored for <see cref="ServerConfig.RetrySeconds"/> unless forced.
-/// Main thread only.
+/// calls a screen is waiting on (<see cref="Send{T}"/>), then the campaign bests, then a results card's spread fetch, then
+/// the play records, each only while its kind is given at the moment of sending. The caller sends what <see cref="Next"/>
+/// returns and passes the answer to <see cref="Reply"/>. A failed round stops, and other chances to send are ignored for
+/// <see cref="ServerConfig.RetrySeconds"/> unless forced. Main thread only.
 /// </summary>
 public sealed class ServerQueue
 {
@@ -19,6 +19,65 @@ public sealed class ServerQueue
         Scores,
         Spread,
         Records,
+        Call,
+    }
+
+    // A ServerCall waiting in line, without its reply's type, so the queue can hold calls of every type in one line
+    private interface IPendingCall
+    {
+        bool IsWaiting { get; }
+
+        ConsentKind? Needs { get; }
+
+        bool Session { get; }
+
+        string Function { get; }
+
+        // The save's player when the call was asked for, or null when there was none yet
+        Guid? QueuedFor { get; }
+
+        ServerRequest Build(Guid player, string? bearer);
+
+        // Reads the reply and keeps it; false when it isn't a 2xx in the expected shape
+        bool TryRead(ServerReply reply);
+
+        // Answers the handle with what TryRead kept and applies the save change; returns whether the save changed
+        bool Complete(SaveGame save, Guid player);
+
+        void Fail(bool off = false);
+    }
+
+    private sealed class PendingCall<T>(ServerCall<T> call, CallHandle<T> handle, Guid? queuedFor) : IPendingCall
+        where T : class
+    {
+        private T? read;
+
+        public bool IsWaiting => handle.State == CallState.Waiting;
+
+        public ConsentKind? Needs => call.Needs;
+
+        public bool Session => call.Session;
+
+        public string Function => call.Function;
+
+        public Guid? QueuedFor => queuedFor;
+
+        public ServerRequest Build(Guid player, string? bearer) =>
+            new("rest/v1/rpc/" + call.Function, ServerCalls.Json(writer => call.Arguments(writer, player)), bearer);
+
+        public bool TryRead(ServerReply reply)
+        {
+            read = ServerCalls.Read(reply, root => call.Read(root));
+            return read is not null;
+        }
+
+        public bool Complete(SaveGame save, Guid player)
+        {
+            handle.Resolve(read!);
+            return call.Apply?.Invoke(save, player, read!) ?? false;
+        }
+
+        public void Fail(bool off = false) => handle.Fail(off);
     }
 
     private readonly ServerConfig config;
@@ -57,6 +116,10 @@ public sealed class ServerQueue
     // A results card's request, sent after the scores so the counts include a just-made best
     private SpreadFetch? waitingFetch;
     private SpreadFetch? outstandingFetch;
+
+    // Calls a screen is waiting on, in the order they were sent, ahead of the scores
+    private readonly LinkedList<IPendingCall> waitingCalls = new();
+    private IPendingCall? outstandingCall;
 
     public ServerQueue(
         ServerConfig config,
@@ -131,6 +194,31 @@ public sealed class ServerQueue
         return fetch;
     }
 
+    /// <summary>
+    /// Asks for one call, sent in the next round after the pending deletions and before the scores. It's off at once while
+    /// the server is off or the queue has stopped. A call that isn't <see cref="ServerCall{T}.Forced"/> is unavailable at
+    /// once while the retry gap after a failed round is running, as a spread fetch is; a forced one wakes the queue forced.
+    /// </summary>
+    public CallHandle<T> Send<T>(ServerCall<T> call)
+        where T : class
+    {
+        ArgumentNullException.ThrowIfNull(call);
+        var handle = new CallHandle<T>();
+        if (!config.IsOn || stopped)
+        {
+            handle.Fail(off: true);
+            return handle;
+        }
+        if (!call.Forced && !active && failedAt is { } at && now() < at.AddSeconds(config.RetrySeconds))
+        {
+            handle.Fail();
+            return handle;
+        }
+        waitingCalls.AddLast(new PendingCall<T>(call, handle, save.Player));
+        Wake(call.Forced);
+        return handle;
+    }
+
     /// <summary>The next request of the round, or null when there's nothing to send. Throws while one is unanswered.</summary>
     public ServerRequest? Next()
     {
@@ -157,6 +245,15 @@ public sealed class ServerQueue
             var id = save.PendingDeletions.Order().First();
             outstandingPlayer = id;
             return Send(Kind.Delete, ServerCalls.DeletePlayer(id));
+        }
+        var call = NextCall();
+        if (stopped)
+        {
+            return null;
+        }
+        if (call is not null)
+        {
+            return call;
         }
         var scores = NextScores();
         if (stopped)
@@ -239,7 +336,118 @@ public sealed class ServerQueue
             case Kind.Records:
                 RecordsReply(reply);
                 break;
+            case Kind.Call:
+                CallReply(reply);
+                break;
         }
+    }
+
+    // The first waiting call that can go now, or the session it needs first, or null. A call whose kind isn't given, or
+    // that needs a player when there's none and no kind to make one for, is unavailable and passed over
+    private ServerRequest? NextCall()
+    {
+        while (waitingCalls.First is { } first)
+        {
+            var call = first.Value;
+            if (!call.IsWaiting)
+            {
+                waitingCalls.RemoveFirst();
+                continue;
+            }
+            if (call.Needs is { } kind && !Consents.IsGiven(save.ConsentTo(kind), ConsentWordings.For(kind)))
+            {
+                log($"{call.Function}: not sent, as {kind} isn't given");
+                waitingCalls.RemoveFirst();
+                call.Fail();
+                continue;
+            }
+            // "Delete my data" ran since it was asked for: under the next ID a queued publish would put a level back
+            if (call.QueuedFor is { } queuedFor && save.Player != queuedFor)
+            {
+                log($"{call.Function}: not sent, as the player ID was deleted since it was asked for");
+                waitingCalls.RemoveFirst();
+                call.Fail();
+                continue;
+            }
+            if (save.Player is null)
+            {
+                if (call.Needs is null)
+                {
+                    log($"{call.Function}: not sent, as there's no player ID");
+                    waitingCalls.RemoveFirst();
+                    call.Fail();
+                    continue;
+                }
+                if (!MakePlayer($"the {call.Needs}"))
+                {
+                    return null;
+                }
+            }
+            string? bearer = null;
+            if (call.Session)
+            {
+                if (Access() is not { } access)
+                {
+                    return SessionRequest();
+                }
+                bearer = access;
+            }
+            waitingCalls.RemoveFirst();
+            outstandingCall = call;
+            outstandingPlayer = save.Player!.Value;
+            return Send(Kind.Call, call.Build(outstandingPlayer, bearer));
+        }
+        return null;
+    }
+
+    // Like a spread fetch, a call moves nothing the queue tracks, so only a server that's down or busy fails the round;
+    // any other refusal costs only that call. A reply after "Delete my data" changed the player changes nothing
+    private void CallReply(ServerReply reply)
+    {
+        var call = outstandingCall!;
+        outstandingCall = null;
+        var samePlayer = save.Player == outstandingPlayer;
+        if (call.TryRead(reply))
+        {
+            if (!samePlayer)
+            {
+                call.Fail();
+                log($"{call.Function}: answered after the player ID was deleted; nothing kept");
+                return;
+            }
+            if (call.Complete(save, outstandingPlayer))
+            {
+                writeSave();
+            }
+            log($"{call.Function}: answered");
+            return;
+        }
+        if (!samePlayer)
+        {
+            call.Fail();
+            log($"{call.Function}: no answer, and the player ID was deleted while it was asked");
+            return;
+        }
+        if (Unauthorised(reply))
+        {
+            if (active)
+            {
+                waitingCalls.AddFirst(call);
+            }
+            else
+            {
+                call.Fail();
+            }
+            return;
+        }
+        call.Fail();
+        if (reply.Status is 0 or 429 or >= 500)
+        {
+            Fail(call.Function, reply);
+            return;
+        }
+        var status = reply.Status.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        log(reply.IsOk ? $"{call.Function}: the reply didn't read ({status}); the round goes on" : $"{call.Function} refused ({status}); the round goes on");
     }
 
     private ServerRequest Send(Kind kind, ServerRequest request)
@@ -263,15 +471,9 @@ public sealed class ServerQueue
         {
             return null;
         }
-        if (save.Player is null)
+        if (save.Player is null && !MakePlayer("the leaderboards"))
         {
-            save.Player = newPlayer();
-            if (!writeSave())
-            {
-                Stop("the new player ID couldn't be saved");
-                return null;
-            }
-            log("made a new player ID for the leaderboards");
+            return null;
         }
         if (confirmedFor != save.Player)
         {
@@ -284,6 +486,19 @@ public sealed class ServerQueue
             .Take(config.ScoresPerRequest)
             .ToArray();
         return due.Length == 0 ? null : due;
+    }
+
+    // For a yes standing after "Delete my data" left no player ID. False when the save can't keep it, which stops the queue
+    private bool MakePlayer(string what)
+    {
+        save.Player = newPlayer();
+        if (!writeSave())
+        {
+            Stop("the new player ID couldn't be saved");
+            return false;
+        }
+        log($"made a new player ID for {what}");
+        return true;
     }
 
     // The next batch of records to send, or null. A stretch with nothing eligible is passed over without a request
@@ -514,6 +729,11 @@ public sealed class ServerQueue
         stopped = true;
         waitingFetch?.Fail(off: true);
         waitingFetch = null;
+        foreach (var call in waitingCalls)
+        {
+            call.Fail(off: true);
+        }
+        waitingCalls.Clear();
         failedAt = now();
         EndRound(finished: false);
     }
@@ -524,6 +744,11 @@ public sealed class ServerQueue
         {
             waitingFetch?.Fail();
             waitingFetch = null;
+            foreach (var call in waitingCalls)
+            {
+                call.Fail();
+            }
+            waitingCalls.Clear();
         }
         active = false;
         requested = forcedDuringRound && !finished;

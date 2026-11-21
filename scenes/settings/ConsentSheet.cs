@@ -4,8 +4,9 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The one-time ask over the mode select: one kind of data at a time, its wording, the policy link and two answers of equal
-// weight. A tap on the wash, Esc or Back closes it unanswered.
+// The one-time ask over the mode select (and, for the level library, over the custom levels list): one kind of data at a
+// time, its wording, the policy link (and the terms' for a wording with terms) and two answers of equal weight. A tap on
+// the wash, Esc or Back closes it unanswered.
 public partial class ConsentSheet : Control
 {
     private Label title;
@@ -14,6 +15,7 @@ public partial class ConsentSheet : Control
     private Label small;
     private Button no;
     private Button yes;
+    private Button terms;
     private ConsentWording asking;
     private ulong askedAt;
 
@@ -36,7 +38,9 @@ public partial class ConsentSheet : Control
         yes = GetNode<Button>("Sheet/Column/Answers/Yes");
         no.Pressed += () => Answer(false);
         yes.Pressed += () => Answer(true);
-        GetNode<Button>("Sheet/Column/Policy").Pressed += () => OS.ShellOpen(ConsentWordings.PolicyUrl);
+        GetNode<Button>("Sheet/Column/Links/Policy").Pressed += () => OS.ShellOpen(ConsentWordings.PolicyUrl);
+        terms = GetNode<Button>("Sheet/Column/Links/Terms");
+        terms.Pressed += () => OS.ShellOpen(ConsentWordings.TermsUrl);
         GetNode<Control>("Wash").GuiInput += OnWashInput;
     }
 
@@ -51,6 +55,7 @@ public partial class ConsentSheet : Control
         small.Text = wording.Small;
         no.Text = changed ? wording.ChangedNo : wording.No;
         yes.Text = changed ? wording.ChangedYes : wording.Yes;
+        terms.Visible = wording.Terms;
         askedAt = Time.GetTicksMsec();
         Show();
     }

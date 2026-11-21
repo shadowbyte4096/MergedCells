@@ -170,5 +170,9 @@
   },
   "leaderboard": {
     "columns": 6
+  },
+  "library": {
+    "pageSize": 20,
+    "sizeSteps": [10, 20]
   }
 }

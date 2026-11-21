@@ -16,7 +16,7 @@ public class ServerQueueTests
         OneStarExtraParPercent = 100,
     };
 
-    private static readonly ServerConfig Config = new()
+    internal static readonly ServerConfig Config = new()
     {
         Url = "https://example.test",
         PublishableKey = "k",
@@ -29,12 +29,12 @@ public class ServerQueueTests
     };
 
     // The example map at par 3, under three IDs
-    private static readonly Level[] Levels = [new(1, "One", 1, TestMaps.Example(), 3), new(2, "Two", 1, TestMaps.Example(), 3), new(3, "Three", 1, TestMaps.Example(), 3)];
+    internal static readonly Level[] Levels = [new(1, "One", 1, TestMaps.Example(), 3), new(2, "Two", 1, TestMaps.Example(), 3), new(3, "Three", 1, TestMaps.Example(), 3)];
 
-    private static readonly string Layout = LevelFingerprint.Of(Levels[0]);
+    internal static readonly string Layout = LevelFingerprint.Of(Levels[0]);
 
     // A queue over a real save, a records "file" held as lines with byte offsets, and a clock the test moves
-    private sealed class Rig
+    internal sealed class Rig
     {
         public Rig(ServerConfig? config = null)
         {
@@ -85,6 +85,8 @@ public class ServerQueueTests
 
         public void PlayData() => Consents.Answer(Save, ConsentWordings.PlayData, true, () => Fixture.Create<Guid>());
 
+        public void Library() => Consents.Answer(Save, ConsentWordings.Library, true, () => Fixture.Create<Guid>());
+
         public void Best(int level, int moves) => Save.RecordFinish(Levels[level - 1], moves, Stars);
 
         public RecordLine AddLine(string text, PlayRecord? record)
@@ -118,17 +120,17 @@ public class ServerQueueTests
         public ServerRequest? SignedIn(string access = "a1", string refresh = "r1") => Answer(200, Session(access, refresh));
     }
 
-    private static string Session(string access, string refresh, int seconds = 3600) =>
+    internal static string Session(string access, string refresh, int seconds = 3600) =>
         $$$"""{"access_token":"{{{access}}}","token_type":"bearer","expires_in":{{{seconds}}},"refresh_token":"{{{refresh}}}","user":{"id":"u","is_anonymous":true}}""";
 
-    private static string Accepted(int count) => $$"""{"accepted":{{count}},"unknown":[],"belowPar":[]}""";
+    internal static string Accepted(int count) => $$"""{"accepted":{{count}},"unknown":[],"belowPar":[]}""";
 
     private static string Stored(int count) => $$"""{"stored":{{count}},"duplicates":0,"skipped":0}""";
 
-    private static string SpreadReply(params (int Moves, int Players)[] counts) =>
+    internal static string SpreadReply(params (int Moves, int Players)[] counts) =>
         "{\"counts\":[" + string.Join(",", counts.Select(count => $"[{count.Moves},{count.Players}]")) + "],\"more\":0}";
 
-    private static JsonElement Body(ServerRequest request) => JsonDocument.Parse(request.Body).RootElement;
+    internal static JsonElement Body(ServerRequest request) => JsonDocument.Parse(request.Body).RootElement;
 
     private static int[] ScoreLevels(ServerRequest request) =>
         Body(request).GetProperty("scores").EnumerateArray().Select(score => score.GetProperty("level").GetInt32()).ToArray();

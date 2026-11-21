@@ -25,6 +25,7 @@ public partial class Main
             save.Appearance,
             Consents.IsGiven(save.ConsentTo(ConsentKind.PlayData), ConsentWordings.PlayData),
             Consents.IsGiven(save.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards),
+            Consents.IsGiven(save.ConsentTo(ConsentKind.Library), ConsentWordings.Library),
             recorded,
             recorded > 0 || save.Player is not null,
             SaveGameFile.CanWrite,

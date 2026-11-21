@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scenes/menus/LevelSheet.cs" id="6_level_sheet"]
 [ext_resource type="Script" path="res://scenes/menus/ImportSheet.cs" id="7_import_sheet"]
 [ext_resource type="Script" path="res://scenes/menus/CopySheet.cs" id="8_copy_sheet"]
+[ext_resource type="PackedScene" path="res://scenes/settings/consent_sheet.tscn" id="9_ask"]
 
 [node name="CustomLevels" type="CanvasLayer"]
 script = ExtResource("1_screen")
@@ -89,6 +90,18 @@ size_flags_horizontal = 3
 focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Import"
+
+[node name="LibraryRow" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="Library" type="Button" parent="Root/Layout/LibraryRow"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Library ›"
 
 [node name="Scroll" type="ScrollContainer" parent="Root/Layout"]
 layout_mode = 2
@@ -319,6 +332,25 @@ focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Share code"
 
+[node name="PublishRow" type="HBoxContainer" parent="Root/LevelSheet/Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Publish" type="Button" parent="Root/LevelSheet/Sheet/Column/PublishRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Publish to library"
+
+[node name="Remove" type="Button" parent="Root/LevelSheet/Sheet/Column/PublishRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Remove from library"
+
 [node name="Note" type="Label" parent="Root/LevelSheet/Sheet/Column"]
 visible = false
 layout_mode = 2
@@ -464,3 +496,6 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 theme_override_constants/separation = 16
+
+[node name="Consent" parent="Root" instance=ExtResource("9_ask")]
+layout_mode = 1

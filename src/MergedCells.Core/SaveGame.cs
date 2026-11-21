@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -9,7 +10,7 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 5;
+    public const int CurrentVersion = 6;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
@@ -26,6 +27,8 @@ public sealed class SaveGame
     private string? sessionToken;
 
     private long recordsSent;
+
+    private readonly Dictionary<Guid, DateTimeOffset> published = new();
 
     public Appearance Appearance { get; set; } = Appearance.System;
 
@@ -132,6 +135,24 @@ public sealed class SaveGame
     /// <summary>Records a level shared from this device. Returns whether it's new, so the caller writes the save only then.</summary>
     public bool RecordShared(Guid id) => sharedLevels.Add(id);
 
+    /// <summary>
+    /// The levels this device published to the library, each with the <see cref="CustomLevel.Edited"/> time of the version
+    /// published (since version 6). It shows "In the library" and "Publish update" with no request; "Delete my data"
+    /// clears it, as the server deletes the levels with the player.
+    /// </summary>
+    public IReadOnlyDictionary<Guid, DateTimeOffset> Published => published;
+
+    public void RecordPublished(Guid id, DateTimeOffset edited)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A level ID can't be all zeros.", nameof(id));
+        }
+        published[id] = WholeSeconds.Of(edited);
+    }
+
+    public bool RemovePublished(Guid id) => published.Remove(id);
+
     // Every saved record, including ones from levels that have since changed or that this build doesn't have
     public int LevelCount => levels.Count;
 
@@ -235,6 +256,11 @@ public sealed class SaveGame
         keys.Require(keys.Root, "consents", 4);
         keys.Require(keys.Root, "player", 4);
         keys.Require(keys.Root, "server", 5);
+        keys.Require(keys.Root, "library", 6);
+        if (keys.Number >= 4)
+        {
+            keys.Require(keys.Consents, "library", 6);
+        }
         if (keys.Number >= 3)
         {
             save.Infinite = ReadChoice(file.Infinite);
@@ -253,13 +279,37 @@ public sealed class SaveGame
             var answers = file.Consents ?? throw new JsonException("The save's \"consents\" is null.");
             save.SetConsent(ConsentKind.PlayData, ReadConsent(answers.PlayData, "playData"));
             save.SetConsent(ConsentKind.Leaderboards, ReadConsent(answers.Leaderboards, "leaderboards"));
+            save.SetConsent(ConsentKind.Library, ReadConsent(answers.Library, "library"));
             save.player = ReadGuid(file.Player, "player");
         }
         if (keys.Number >= 5)
         {
             ReadServer(save, file.Server ?? throw new JsonException("The save's \"server\" is null."));
         }
+        if (keys.Number >= 6)
+        {
+            ReadLibrary(save, file.Library ?? throw new JsonException("The save's \"library\" is null."));
+        }
         return save;
+    }
+
+    private static void ReadLibrary(SaveGame save, LibraryJson library)
+    {
+        foreach (var (key, value) in library.Published ?? throw new JsonException("The save's \"published\" is null."))
+        {
+            // Lowercase only, as the custom level files name them
+            if (!Guid.TryParseExact(key, "D", out var id) || id == Guid.Empty || key != id.ToString("D"))
+            {
+                throw new JsonException($"The save's published level \"{key}\" isn't a lowercase GUID, or is all zeros.");
+            }
+            if (value is null
+                || !DateTimeOffset.TryParseExact(
+                    value, TimeFormat, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var edited))
+            {
+                throw new JsonException($"The save's published level {key} has a time that isn't yyyy-MM-ddTHH:mm:ssZ.");
+            }
+            save.published[id] = edited;
+        }
     }
 
     private static void ReadServer(SaveGame save, ServerJson server)
@@ -364,6 +414,7 @@ public sealed class SaveGame
             {
                 PlayData = WriteConsent(ConsentTo(ConsentKind.PlayData)),
                 Leaderboards = WriteConsent(ConsentTo(ConsentKind.Leaderboards)),
+                Library = WriteConsent(ConsentTo(ConsentKind.Library)),
             },
             Player = player?.ToString("D"),
             Server = new ServerJson
@@ -371,6 +422,12 @@ public sealed class SaveGame
                 Session = sessionToken,
                 PendingDeletions = pendingDeletions.Select(id => id.ToString("D")).Order(StringComparer.Ordinal).ToArray(),
                 RecordsSent = recordsSent,
+            },
+            Library = new LibraryJson
+            {
+                Published = published.OrderBy(pair => pair.Key.ToString("D"), StringComparer.Ordinal).ToDictionary(
+                    pair => pair.Key.ToString("D"),
+                    pair => (string?)pair.Value.UtcDateTime.ToString(TimeFormat, CultureInfo.InvariantCulture)),
             },
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
@@ -380,6 +437,9 @@ public sealed class SaveGame
         answer is null ? null : new ConsentJson { Answer = answer.Yes ? "yes" : "no", Wording = answer.Wording };
 
     private const char ByteOrderMark = (char)0xFEFF;
+
+    // The custom level files' time format, so a published level's time compares with its file's Edited
+    private const string TimeFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     // The version decides how the rest is read, so a newer file with keys this build doesn't know is never called broken
     private static SaveKeys CheckVersion(string text)
@@ -417,19 +477,23 @@ public sealed class SaveGame
             throw new JsonException($"The save's \"version\" is {number}; it must be at least 1.");
         }
         // Read here because the strict reader can't tell a missing key from a null one
-        var settings = root.TryGetProperty("settings", out var element) && element.ValueKind == JsonValueKind.Object
-            ? element.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal)
-            : [];
-        return new SaveKeys(number, root.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal), settings);
+        return new SaveKeys(
+            number, root.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal), KeysOf(root, "settings"), KeysOf(root, "consents"));
     }
+
+    private static IReadOnlySet<string> KeysOf(JsonElement root, string key) =>
+        root.TryGetProperty(key, out var element) && element.ValueKind == JsonValueKind.Object
+            ? element.EnumerateObject().Select(property => property.Name).ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>();
 
     private static bool IsFingerprint(string? layout) =>
         layout is { Length: 16 } && layout.All(c => c is >= '0' and <= '9' or >= 'a' and <= 'f');
 
     private sealed record LevelRecord(int BestMoves, string Layout);
 
-    // The keys at the save's root and in its settings, so each section checks its own key against the versions that have it
-    private sealed record SaveKeys(int Number, IReadOnlySet<string> Root, IReadOnlySet<string> Settings)
+    // The keys at the save's root, in its settings and in its consents, so each section checks its own key against the
+    // versions that have it
+    private sealed record SaveKeys(int Number, IReadOnlySet<string> Root, IReadOnlySet<string> Settings, IReadOnlySet<string> Consents)
     {
         // last: the final version with the key, for one a later version dropped
         public void Require(IReadOnlySet<string> keys, string key, int since, int? last = null)
@@ -471,6 +535,15 @@ internal sealed record SaveJson
 
     // Since version 5
     public ServerJson? Server { get; init; }
+
+    // Since version 6
+    public LibraryJson? Library { get; init; }
+}
+
+internal sealed record LibraryJson
+{
+    // A level's ID to the Edited time of the version published
+    public required Dictionary<string, string?>? Published { get; init; }
 }
 
 internal sealed record ServerJson
@@ -487,6 +560,9 @@ internal sealed record ConsentsJson
     public required ConsentJson? PlayData { get; init; }
 
     public required ConsentJson? Leaderboards { get; init; }
+
+    // Since version 6
+    public ConsentJson? Library { get; init; }
 }
 
 internal sealed record ConsentJson

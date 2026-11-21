@@ -30,16 +30,26 @@ public static class DataDeletion
         var player = save.Player;
         var session = save.SessionToken;
         var sent = save.RecordsSent;
+        var published = save.Published.ToArray();
         // Only a device that signed in since the last deletion can have sent anything under this ID
         var serverPending = player is { } id && session is not null && save.AddPendingDeletion(id);
         save.Player = null;
         save.SessionToken = null;
         save.RecordsSent = 0;
+        // The server deletes the player's library levels with everything else under the ID
+        foreach (var (level, _) in published)
+        {
+            save.RemovePublished(level);
+        }
         if (!writeSave())
         {
             save.Player = player;
             save.SessionToken = session;
             save.RecordsSent = sent;
+            foreach (var (level, edited) in published)
+            {
+                save.RecordPublished(level, edited);
+            }
             if (serverPending)
             {
                 save.RemovePendingDeletion(player!.Value);

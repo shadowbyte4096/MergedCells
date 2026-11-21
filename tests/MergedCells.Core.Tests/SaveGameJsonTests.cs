@@ -42,6 +42,81 @@ public class SaveGameJsonTests
     // Version 5 adds the server section: the session, the IDs still to delete on the server, and how far the records are sent
     internal static string Valid5 => Valid4.Replace("\"version\":4", "\"version\":5")[..^1] + ",\"server\":" + ServerSection + "}";
 
+    private const string LibraryYes = """{"answer":"yes","wording":1}""";
+
+    private const string Consents6 = $$"""{"playData":{{PlayDataYes}},"leaderboards":null,"library":{{LibraryYes}}}""";
+
+    private const string PublishedId = "3c9e1b7a-2d4f-4e6a-8b1c-5d7e9f0a2b4c";
+
+    private const string PublishedAt = "2026-11-20T10:22:31Z";
+
+    private const string LibrarySection = $$$"""{"published":{"{{{PublishedId}}}":"{{{PublishedAt}}}"}}""";
+
+    // Version 6 adds the library's answer and the levels this device published
+    internal static string Valid6 =>
+        Valid5.Replace("\"version\":5", "\"version\":6").Replace(Consents4, Consents6)[..^1] + ",\"library\":" + LibrarySection + "}";
+
+    private static string Published(SaveGame save) =>
+        string.Join(",", save.Published.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key:D}={pair.Value:O}"));
+
+    [Fact]
+    public void Version_6_save_reads_its_library_answer()
+    {
+        Assert.Equal(new Consent(true, 1), SaveGame.Parse(Valid6).ConsentTo(ConsentKind.Library));
+    }
+
+    [Fact]
+    public void Version_6_save_reads_what_was_published()
+    {
+        var save = SaveGame.Parse(Valid6);
+
+        Assert.Equal($"{PublishedId}={DateTimeOffset.Parse(PublishedAt, System.Globalization.CultureInfo.InvariantCulture):O}", Published(save));
+    }
+
+    [Fact]
+    public void Version_5_save_reads_as_no_library_answer_and_nothing_published()
+    {
+        var save = SaveGame.Parse(Valid5);
+
+        Assert.Equal(((Consent?)null, 0), (save.ConsentTo(ConsentKind.Library), save.Published.Count));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Library_answer_round_trips(bool yes, byte wording)
+    {
+        var save = new SaveGame();
+        save.SetConsent(ConsentKind.Library, new Consent(yes, wording));
+
+        Assert.Equal(new Consent(yes, wording), SaveGame.Parse(save.ToJson()).ConsentTo(ConsentKind.Library));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Published_round_trips(Guid a, Guid b, uint secondsA, uint secondsB)
+    {
+        var save = new SaveGame();
+        save.RecordPublished(a, DateTimeOffset.UnixEpoch.AddSeconds(secondsA));
+        save.RecordPublished(b, DateTimeOffset.UnixEpoch.AddSeconds(secondsB));
+
+        Assert.Equal(Published(save), Published(SaveGame.Parse(save.ToJson())));
+    }
+
+    [Theory]
+    [AutoData]
+    public void Published_is_written_in_id_order(Guid a, Guid b, Guid c)
+    {
+        var save = new SaveGame();
+        foreach (var id in new[] { a, b, c })
+        {
+            save.RecordPublished(id, DateTimeOffset.UnixEpoch);
+        }
+
+        var written = JsonDocument.Parse(save.ToJson()).RootElement.GetProperty("library").GetProperty("published")
+            .EnumerateObject().Select(entry => entry.Name).ToArray();
+        Assert.Equal(written.Order(StringComparer.Ordinal), written);
+    }
+
     private static (Consent? PlayData, Consent? Leaderboards, Guid? Player) Answers(SaveGame save) =>
         (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Player);
 
@@ -165,18 +240,20 @@ public class SaveGameJsonTests
     }
 
     [Fact]
-    public void Written_save_is_version_5_without_the_version_3_keys()
+    public void Written_save_is_version_6_without_the_version_3_keys()
     {
         var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
 
         Assert.Equal(
-            (5, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null),
+            (6, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0),
             (root.GetProperty("version").GetInt32(),
                 root.TryGetProperty("playtester", out _),
                 root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
                 root.GetProperty("consents").GetProperty("playData").ValueKind,
                 root.GetProperty("consents").GetProperty("leaderboards").ValueKind,
-                root.GetProperty("player").ValueKind));
+                root.GetProperty("consents").GetProperty("library").ValueKind,
+                root.GetProperty("player").ValueKind,
+                root.GetProperty("library").GetProperty("published").EnumerateObject().Count()));
     }
 
     [Fact]
@@ -418,6 +495,22 @@ public class SaveGameJsonTests
         Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":1.5"),
         Valid5.Replace(",\"recordsSent\":120", ""),
         Valid5.Replace("\"recordsSent\":120", "\"recordsSent\":120,\"extra\":1"),
+        Valid5[..^1] + ",\"library\":" + LibrarySection + "}",
+        Valid5.Replace(Consents4, Consents6),
+        Valid6.Replace(",\"library\":" + LibrarySection, ""),
+        Valid6.Replace(Consents6, Consents4),
+        Valid6.Replace(LibrarySection, "null"),
+        Valid6.Replace(LibrarySection, "{}"),
+        Valid6.Replace(LibrarySection, """{"published":null}"""),
+        Valid6.Replace(LibrarySection, """{"published":{},"extra":1}"""),
+        Valid6.Replace(PublishedId, PublishedId.ToUpperInvariant()),
+        Valid6.Replace(PublishedId, "00000000-0000-0000-0000-000000000000"),
+        Valid6.Replace(PublishedId, "not-a-guid"),
+        Valid6.Replace($"\"{PublishedAt}\"", "null"),
+        Valid6.Replace(PublishedAt, "2026-11-20T10:22:31.5Z"),
+        Valid6.Replace(PublishedAt, "2026-11-20 10:22:31"),
+        Valid6.Replace(PublishedAt, "2026-11-20T10:22:31+01:00"),
+        Valid6.Replace(LibraryYes, """{"answer":"maybe","wording":1}"""),
     };
 
     [Theory]
@@ -462,8 +555,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("6.0", 6)]
-    [InlineData("6e0", 6)]
+    [InlineData("7.0", 7)]
+    [InlineData("7e0", 7)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

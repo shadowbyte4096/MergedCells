@@ -123,6 +123,36 @@ public class DataDeletionTests
             (result.ServerPending, save.SessionToken, save.RecordsSent, save.PendingDeletions.Count));
     }
 
+    // The server deletes the published levels with the player, so the save stops claiming them in the same write
+    [Theory]
+    [AutoData]
+    public void Published_is_cleared_in_the_same_write_as_the_player(Guid player, Guid level)
+    {
+        var save = new SaveGame { Player = player };
+        save.RecordPublished(level, DateTimeOffset.UnixEpoch);
+        int? written = null;
+
+        DataDeletion.Run(save, () =>
+        {
+            written = save.Published.Count;
+            return true;
+        }, () => null);
+
+        Assert.Equal(0, written);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Published_is_back_when_the_save_cannot_be_written(Guid player, Guid level)
+    {
+        var save = new SaveGame { Player = player };
+        save.RecordPublished(level, DateTimeOffset.UnixEpoch);
+
+        DataDeletion.Run(save, () => false, () => null);
+
+        Assert.Equal([level], save.Published.Keys);
+    }
+
     [Fact]
     public void Answers_stay()
     {

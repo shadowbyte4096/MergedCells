@@ -34,6 +34,8 @@ public sealed record GameConfig
 
     public required LeaderboardConfig Leaderboard { get; init; }
 
+    public required LibraryConfig Library { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -72,6 +74,7 @@ public sealed record GameConfig
         Server.CheckRanges();
         Privacy.CheckRanges();
         Leaderboard.CheckRanges();
+        Library.CheckRanges(CustomLevels);
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -180,6 +183,14 @@ public sealed record GameConfig
         if (config.Leaderboard is null)
         {
             throw new JsonException("The config's \"leaderboard\" group is null.");
+        }
+        if (config.Library is null)
+        {
+            throw new JsonException("The config's \"library\" group is null.");
+        }
+        if (config.Library.SizeSteps is null)
+        {
+            throw new JsonException("The config's \"sizeSteps\" is null.");
         }
         return config;
     }

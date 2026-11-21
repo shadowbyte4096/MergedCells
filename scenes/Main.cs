@@ -46,6 +46,8 @@ public partial class Main : Node
 
     [Export] public PackedScene CustomLevelsScene { get; set; }
 
+    [Export] public PackedScene LibraryScene { get; set; }
+
     [Export] public PackedScene InfiniteSetupScene { get; set; }
 
     public override void _Notification(int what)
@@ -223,6 +225,7 @@ public partial class Main : Node
         list.BackPressed += ShowModeSelect;
         list.NewPressed += NewCustomLevel;
         list.ImportPressed += ImportCustomLevel;
+        WireLibrary(list);
         list.EditPressed += custom =>
         {
             if (custom.IsImported)
@@ -265,6 +268,8 @@ public partial class Main : Node
             GameConfigFile.Current.CustomLevels,
             CustomLevelFiles.Notice,
             copyable,
+            SaveGameFile.Current.Published,
+            PublishStateOf,
             shown);
         back = ShowModeSelect;
     });
@@ -297,6 +302,7 @@ public partial class Main : Node
         {
             Rules = new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit),
             Recording = record ? CustomRecording(custom, par) : null,
+            Library = LibraryCardFor(custom),
         });
         back = backTo;
     });

@@ -136,6 +136,39 @@ public class LevelImportTests
         Assert.Equal(new ImportResult(ImportOutcome.Loops, null), Import(Level(TestMaps.LoopingLane()), Load()));
     }
 
+    public static TheoryData<string> Scenarios =>
+        ["added", "updated", "same", "have newer", "yours", "restored", "unreadable", "unlisted", "too big", "can't be won", "loops"];
+
+    // The library hands over a level, not clipboard text: both ways in must decide alike
+    [Theory]
+    [MemberData(nameof(Scenarios))]
+    public void Level_overload_decides_as_the_clipboard_overload(string scenario)
+    {
+        var held = Level(imported: Then);
+        var (coded, load, shared) = scenario switch
+        {
+            "added" => (Level(), Load(), NoneShared),
+            "updated" => (held with { Edited = Then.AddDays(1), Imported = null }, Load(held), NoneShared),
+            "same" => (held with { Imported = null }, Load(held), NoneShared),
+            "have newer" => (held with { Edited = Then.AddDays(-1), Imported = null }, Load(held), NoneShared),
+            "yours" => (held with { Imported = null }, Load(held with { Imported = null }), NoneShared),
+            "restored" => (held with { Imported = null }, Load(), new HashSet<Guid> { held.Id }),
+            "unreadable" => (held with { Imported = null }, new CustomLevelLoad([], [], new HashSet<Guid> { held.Id }), NoneShared),
+            "unlisted" => (Level(), new CustomLevelLoad([], ["can't be listed"], new HashSet<Guid>(), Listed: false), NoneShared),
+            "too big" => (Level(Map.Create(new int[2, Config.MaxSide + 1].Fill(), new(0, 0), new(1, Config.MaxSide))), Load(), NoneShared),
+            "can't be won" => (Level(Map.Create(TestMaps.Grid("ABZ"), new(0, 0), new(0, 2), TestMaps.Walls(1, 3, (0, 1)))), Load(), NoneShared),
+            _ => (Level(TestMaps.LoopingLane()), Load(), NoneShared),
+        };
+        var level = ShareCode.Read(ShareCode.Write(coded)).Level!;
+
+        var fromText = LevelImport.Of(ShareCode.Write(coded), load, shared, Config, Now);
+        var fromLevel = LevelImport.Of(level, load, shared, Config, Now);
+
+        Assert.Equal(
+            (fromText.Outcome, fromText.Level?.Id, fromText.Level?.Edited, fromText.Level?.Imported),
+            (fromLevel.Outcome, fromLevel.Level?.Id, fromLevel.Level?.Edited, fromLevel.Level?.Imported));
+    }
+
     public static TheoryData<string, ImportOutcome> Problems => new()
     {
         { "nothing here", ImportOutcome.NoCode },

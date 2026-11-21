@@ -11,8 +11,9 @@ namespace MergedCells;
 public sealed record CopyChoice(Chapter Chapter, int Number, Level Level);
 
 // The player's custom levels, newest first (an imported level by when it was imported), each with its picture, size and
-// par and band, or why it can't be played yet. "+ New level" picks a size, or a 3-starred campaign level to copy, and
-// opens the editor; Import reads a share code from the clipboard; a row opens its actions
+// par and band, or why it can't be played yet, and whether it's in the library. "+ New level" picks a size, or a 3-starred
+// campaign level to copy, and opens the editor; Import reads a share code from the clipboard; Library opens the online
+// library; a row opens its actions
 public partial class CustomLevelsScreen : CanvasLayer, IScreen
 {
     private Control root;
@@ -27,9 +28,14 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
     private LevelSheet levelSheet;
     private ImportSheet importSheet;
     private CopySheet copySheet;
+    private ConsentSheet consent;
     private CustomLevelsConfig config;
     private IReadOnlyList<CopyChoice> copyable = [];
+    private IReadOnlyDictionary<Guid, DateTimeOffset> published = new Dictionary<Guid, DateTimeOffset>();
+    private Func<CustomLevel, LevelStatus, PublishState?> publishStateOf = (_, _) => null;
     private CustomLevel selected;
+    private LevelStatus selectedStatus;
+    private bool libraryChanged;
     private CustomLevel imported;
     private Vector2 pressedAt;
     private bool dragged;
@@ -56,7 +62,20 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
 
     public event Action<Level> CopyChosen;
 
+    public event Action LibraryPressed;
+
+    // The player's own playable level, and its status for the par and score it's published with
+    public event Action<CustomLevel, LevelStatus> PublishPressed;
+
+    public event Action<CustomLevel> RemovePressed;
+
+    // A publish or remove was answered and its sheet has closed, so the rows' library lines may be out of date
+    public event Action LibraryChanged;
+
     [Export] public AppLooks Looks { get; set; }
+
+    // The library's question, asked here when the player taps Library or Publish
+    public ConsentSheet Consent => consent;
 
     public bool Dark
     {
@@ -81,10 +100,27 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
         levelSheet = GetNode<LevelSheet>("Root/LevelSheet");
         importSheet = GetNode<ImportSheet>("Root/ImportSheet");
         copySheet = GetNode<CopySheet>("Root/CopySheet");
+        consent = GetNode<ConsentSheet>("Root/Consent");
 
         GetNode<Button>("Root/Layout/TopBar/Row/Back").Pressed += () => BackPressed?.Invoke();
         GetNode<Button>("Root/Layout/NewRow/Buttons/New").Pressed += OpenNewSheet;
         GetNode<Button>("Root/Layout/NewRow/Buttons/Import").Pressed += () => ImportPressed?.Invoke();
+        GetNode<Button>("Root/Layout/LibraryRow/Library").Pressed += () => LibraryPressed?.Invoke();
+        levelSheet.PublishPressed += () => PublishPressed?.Invoke(selected, selectedStatus);
+        levelSheet.RemoveConfirmed += () => RemovePressed?.Invoke(selected);
+        levelSheet.Settled += () =>
+        {
+            libraryChanged = true;
+            levelSheet.SetPublish(PublishStateOf(selected, selectedStatus), IsPublished(selected));
+        };
+        levelSheet.Closed += () =>
+        {
+            if (libraryChanged)
+            {
+                libraryChanged = false;
+                LibraryChanged?.Invoke();
+            }
+        };
         newSheet.ResizePressed += (rows, columns) =>
         {
             newSheet.Close();
@@ -103,15 +139,19 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
     }
 
     /// <summary>
-    /// Reads and checks every level each time it opens, so the list always matches the files. <paramref name="shown"/> is
-    /// an import just made, whose sheet opens over the list.
+    /// Reads and checks every level each time it opens, so the list always matches the files. <paramref name="published"/>
+    /// is the save's live list of levels this phone published, and <paramref name="publishStateOf"/> gives an own level's
+    /// Publish button. <paramref name="shown"/> is an import just made, whose sheet opens over the list.
     /// </summary>
     public void Open(
         CustomLevelLoad load, DifficultyRater rater, CustomLevelsConfig config, string notice, IReadOnlyList<CopyChoice> copyable,
+        IReadOnlyDictionary<Guid, DateTimeOffset> published, Func<CustomLevel, LevelStatus, PublishState?> publishStateOf,
         ImportResult shown = null)
     {
         this.config = config;
         this.copyable = copyable;
+        this.published = published;
+        this.publishStateOf = publishStateOf;
         var clock = Stopwatch.StartNew();
         foreach (var level in load.Levels)
         {
@@ -133,6 +173,13 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
     }
 
     public void ShowCopied() => levelSheet.ShowCopied();
+
+    // A publish or remove under way on the open level's sheet: pending shows now, outcome is polled until it has a sentence
+    public void Watch(string pending, Func<string> outcome) => levelSheet.Watch(pending, outcome);
+
+    private PublishState? PublishStateOf(CustomLevel level, LevelStatus status) => level.IsImported ? null : publishStateOf(level, status);
+
+    private bool IsPublished(CustomLevel level) => !level.IsImported && published.ContainsKey(level.Id);
 
     // Read before the rows, so a touch that scrolled the list past the swipe distance doesn't also open the row it ends on.
     // Godot sends the button its own emulated mouse release, so marking the touch handled wouldn't stop it
@@ -167,6 +214,12 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
 
     public bool CloseOverlay()
     {
+        // The ask is over every sheet, so it closes on its own first
+        if (consent.IsOpen)
+        {
+            consent.Close();
+            return true;
+        }
         var open = newSheet.IsOpen || levelSheet.IsOpen || importSheet.IsOpen || copySheet.IsOpen;
         newSheet.Close();
         levelSheet.Close();
@@ -181,91 +234,27 @@ public partial class CustomLevelsScreen : CanvasLayer, IScreen
     private void AddRow(CustomLevel level, LevelStatus status)
     {
         var line = Line(level.Map, status);
+        string inLibrary = null;
+        if (IsPublished(level))
+        {
+            inLibrary = level.Edited > published[level.Id] ? "In the library · update it" : "In the library";
+        }
         list.AddChild(Pressable(
-            RowPanel("ListRowPanel", level.Map, level.Name, level.IsImported, line, !status.IsPlayable),
+            RowPanel("ListRowPanel", level.Map, level.Name, level.IsImported, line, !status.IsPlayable, inLibrary),
             () =>
             {
                 selected = level;
-                levelSheet.Open(level.Name, line, status.IsPlayable, status.IsPlayable && ShareCode.CanWrite(level), level.IsImported);
+                selectedStatus = status;
+                levelSheet.Open(
+                    level.Name, line, status.IsPlayable, status.IsPlayable && ShareCode.CanWrite(level), level.IsImported,
+                    PublishStateOf(level, status), IsPublished(level));
             }));
     }
 
-    // A see-through button over the whole row takes the tap. It passes presses on, so the scroll container can drag, and
-    // ignores a press at the end of a drag (see _Input)
-    private MarginContainer Pressable(Control panel, Action pressed)
-    {
-        var row = new MarginContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
-        row.AddChild(panel);
-        var button = new Button
-        {
-            ThemeTypeVariation = "ListRow",
-            FocusMode = Control.FocusModeEnum.None,
-            MouseFilter = Control.MouseFilterEnum.Pass,
-        };
-        button.Pressed += () =>
-        {
-            if (!dragged)
-            {
-                pressed();
-            }
-        };
-        row.AddChild(button);
-        return row;
-    }
+    private MarginContainer Pressable(Control panel, Action pressed) => LevelRows.Pressable(panel, pressed, () => dragged);
 
-    // A level's picture, its name (with the Imported tag) and a line under it, in a row panel. The tag sits at the end of
-    // the name's line: Godot's HBox can't keep it hugging a name that has to shrink and ellipsize
-    private PanelContainer RowPanel(string variation, Map map, string name, bool isImported, string line, bool warn)
-    {
-        var panel = new PanelContainer { ThemeTypeVariation = variation, MouseFilter = Control.MouseFilterEnum.Ignore };
-        var content = new HBoxContainer { ThemeTypeVariation = "PictureRow", MouseFilter = Control.MouseFilterEnum.Ignore };
-        var picture = new LevelPictureView
-        {
-            Map = map,
-            Board = Looks.Board(dark),
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        pictures.Add(picture);
-        content.AddChild(picture);
-        var column = new VBoxContainer
-        {
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-        };
-        var nameRow = new HBoxContainer { ThemeTypeVariation = "NameRow", MouseFilter = Control.MouseFilterEnum.Ignore };
-        nameRow.AddChild(new Label
-        {
-            Text = name,
-            ThemeTypeVariation = "RowName",
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            SizeFlagsHorizontal = Control.SizeFlags.ExpandFill,
-            ClipText = true,
-            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
-        });
-        if (isImported)
-        {
-            nameRow.AddChild(new Label
-            {
-                Text = "Imported",
-                ThemeTypeVariation = "ImportedTag",
-                MouseFilter = Control.MouseFilterEnum.Ignore,
-                SizeFlagsVertical = Control.SizeFlags.ShrinkCenter,
-            });
-        }
-        column.AddChild(nameRow);
-        column.AddChild(new Label
-        {
-            Text = line,
-            ThemeTypeVariation = warn ? "RowMetaWarn" : "RowMeta",
-            MouseFilter = Control.MouseFilterEnum.Ignore,
-            ClipText = true,
-            TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis,
-        });
-        content.AddChild(column);
-        panel.AddChild(content);
-        return panel;
-    }
+    private PanelContainer RowPanel(string variation, Map map, string name, bool isImported, string line, bool warn, string stats = null) =>
+        LevelRows.Panel(variation, map, Looks.Board(dark), pictures, name, isImported ? "Imported" : null, line, warn, stats);
 
     private void OpenNewSheet()
     {
