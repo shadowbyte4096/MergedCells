@@ -26,6 +26,7 @@ public class ServerQueueTests
         ScoresPerRequest = 200,
         RecordsPerRequest = 3,
         RecordBytesPerRequest = 1_000_000,
+        RecordMaxBytes = ServerConfig.MaxRecordBytes,
     };
 
     // The example map at par 3, under three IDs
@@ -46,6 +47,16 @@ public class ServerQueueTests
                 {
                     var from = Lines.Count > 0 && offset > Lines[^1].End ? 0 : offset;
                     return Lines.Where(line => line.End > from).Take(max).ToArray();
+                },
+                offset => Lines.Count > 0 && Lines[^1].End == offset,
+                () =>
+                {
+                    if (!Deletable)
+                    {
+                        return "The file is in use.";
+                    }
+                    Lines.Clear();
+                    return null;
                 },
                 () =>
                 {
@@ -78,6 +89,8 @@ public class ServerQueueTests
         public int Writes { get; private set; }
 
         public bool Writable { get; set; } = true;
+
+        public bool Deletable { get; set; } = true;
 
         public Guid Player => Save.Player!.Value;
 
@@ -467,9 +480,8 @@ public class ServerQueueTests
         rig.Start();
 
         var request = rig.SignedIn()!;
-        rig.Answer(200, Stored(1));
 
-        Assert.Equal((Ids(kept), rig.Lines[^1].End), (RecordIds(request), rig.Save.RecordsSent));
+        Assert.Equal(Ids(kept), RecordIds(request));
     }
 
     [Fact]
@@ -517,8 +529,25 @@ public class ServerQueueTests
         Assert.Equal((Ids(records[0]), Ids(records[1])), (RecordIds(first), RecordIds(second)));
     }
 
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(-1, false)]
+    public void Record_over_the_size_limit_is_passed_over(int fromSize, bool sent)
+    {
+        var rig = new Rig();
+        rig.PlayData();
+        rig.AddRecord();
+        var size = Encoding.UTF8.GetByteCount(rig.Lines[0].Text);
+        rig = WithLines(Config with { RecordMaxBytes = size + fromSize }, rig);
+        rig.Queue.Wake();
+
+        var request = rig.Queue.Next();
+
+        Assert.Equal(sent, request is not null);
+    }
+
     [Fact]
-    public void Stretch_with_no_eligible_line_moves_the_offset_without_a_request()
+    public void Stretch_with_no_eligible_line_is_emptied_without_a_request()
     {
         var rig = new Rig();
         rig.PlayData();
@@ -527,7 +556,7 @@ public class ServerQueueTests
 
         rig.Queue.Wake();
 
-        Assert.Equal(((ServerRequest?)null, rig.Lines[^1].End), (rig.Queue.Next(), rig.Save.RecordsSent));
+        Assert.Equal(((ServerRequest?)null, 0, 0L), (rig.Queue.Next(), rig.Lines.Count, rig.Save.RecordsSent));
     }
 
     [Theory]
@@ -550,6 +579,21 @@ public class ServerQueueTests
     [Fact]
     public void Records_offset_moves_past_the_batch_on_a_2xx()
     {
+        var rig = new Rig(Config with { RecordsPerRequest = 1 });
+        rig.PlayData();
+        rig.AddRecord();
+        rig.AddRecord();
+        rig.Start();
+        rig.SignedIn();
+
+        rig.Answer(200, Stored(1));
+
+        Assert.Equal(rig.Lines[0].End, rig.Save.RecordsSent);
+    }
+
+    [Fact]
+    public void Once_every_record_is_sent_the_file_is_emptied_and_the_offset_reset()
+    {
         var rig = new Rig();
         rig.PlayData();
         rig.AddRecord();
@@ -559,7 +603,55 @@ public class ServerQueueTests
 
         rig.Answer(200, Stored(2));
 
-        Assert.Equal(rig.Lines[^1].End, rig.Save.RecordsSent);
+        Assert.Equal((0, 0L), (rig.Lines.Count, rig.Save.RecordsSent));
+    }
+
+    // Only the records the server confirmed are behind the offset, so one added while they were sent isn't lost
+    [Fact]
+    public void Record_added_during_an_upload_keeps_the_file_and_goes_next()
+    {
+        var rig = new Rig();
+        rig.PlayData();
+        rig.AddRecord();
+        rig.Start();
+        rig.SignedIn();
+        var added = rig.AddRecord();
+
+        var next = rig.Answer(200, Stored(1))!;
+
+        Assert.Equal((Ids(added), 2), (RecordIds(next), rig.Lines.Count));
+    }
+
+    // Emptying the file with the offset still saved past its end would skip the next records
+    [Fact]
+    public void Save_that_cannot_be_written_keeps_the_file()
+    {
+        var rig = new Rig();
+        rig.PlayData();
+        rig.AddRecord();
+        rig.Start();
+        rig.SignedIn();
+        rig.Writable = false;
+
+        rig.Answer(200, Stored(1));
+
+        Assert.Equal((1, rig.Lines[0].End), (rig.Lines.Count, rig.Save.RecordsSent));
+    }
+
+    // The server keeps each record ID once, so sending them again is safe
+    [Fact]
+    public void File_that_cannot_be_emptied_is_sent_again()
+    {
+        var rig = new Rig();
+        rig.PlayData();
+        rig.AddRecord();
+        rig.Start();
+        rig.SignedIn();
+        rig.Deletable = false;
+
+        rig.Answer(200, Stored(1));
+
+        Assert.Equal((1, 0L), (rig.Lines.Count, rig.Save.RecordsSent));
     }
 
     // A reply after "Delete my data" belongs to the deleted ID

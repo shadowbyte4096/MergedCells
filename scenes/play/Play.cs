@@ -412,7 +412,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         }
     }
 
-    // A finished map would close an open sheet, or reach a freed one from Export's save picker, so the gear waits too
+    // A finished map would close an open sheet, so the gear waits too
     private void OpenSettings()
     {
         // Once the winning move has started, the results are on their way

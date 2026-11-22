@@ -188,6 +188,13 @@ focus_mode = 0
 theme_type_variation = &"CaptionButton"
 text = "Unblock everyone"
 
+[node name="Discord" type="Button" parent="Root/Layout/Scroll/Margin/Column"]
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Talk about levels on Discord"
+
 [node name="BottomPad" type="Control" parent="Root/Layout"]
 layout_mode = 2
 mouse_filter = 2

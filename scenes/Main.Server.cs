@@ -35,6 +35,8 @@ public partial class Main
             SaveGameFile.Current,
             campaign.Levels,
             PlayRecordFiles.ReadFrom,
+            PlayRecordFiles.EndsAt,
+            PlayRecordFiles.Delete,
             SaveGameFile.Save,
             Guid.NewGuid,
             () => DateTimeOffset.UtcNow,

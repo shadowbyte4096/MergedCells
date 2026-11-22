@@ -7,6 +7,7 @@ on:
       - README.md
       - LICENSE
       - PRIVACY.md
+      - TERMS.md
   workflow_dispatch:
 
 # A newer push replaces a build still in progress, so the release always matches the latest commit

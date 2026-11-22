@@ -32,11 +32,19 @@ public class RetiredLevelsTests
     }
 
     [Theory]
-    [InlineData(new[] { 1, 2, 5 }, new[] { 7 }, 8)]
-    [InlineData(new[] { 1, 9 }, new[] { 3 }, 10)]
-    [InlineData(new int[0], new int[0], 1)]
-    public void Next_id_is_one_past_the_highest(int[] levelIds, int[] retired, int next)
+    [InlineData(2, new[] { 2001, 2002 }, new int[0], 2003)]
+    [InlineData(2, new[] { 2001 }, new[] { 2002 }, 2003)]
+    [InlineData(2, new[] { 1015, 2001, 3001 }, new int[0], 2002)]
+    [InlineData(1, new[] { 11, 93 }, new[] { 3 }, 1001)]
+    [InlineData(4, new int[0], new int[0], 4001)]
+    public void Next_id_is_one_past_the_highest_in_the_chapter_s_block(int chapter, int[] levelIds, int[] retired, int next)
     {
-        Assert.Equal(next, RetiredLevels.NextId(levelIds, retired));
+        Assert.Equal(next, RetiredLevels.NextId(chapter, levelIds, retired));
+    }
+
+    [Fact]
+    public void Next_id_is_null_once_the_block_s_last_id_is_used()
+    {
+        Assert.Null(RetiredLevels.NextId(1, [1001], [1999]));
     }
 }

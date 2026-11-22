@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The first screen: the title, the star total, Campaign, Custom levels, Infinite, the modes still to come greyed out, Credits and the gear
+// The first screen: the title, the star total, Campaign, Custom levels, Infinite, Credits and the gear
 public partial class ModeSelect : CanvasLayer, IScreen
 {
     private Control root;
@@ -12,9 +12,6 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private Control bottomBar;
     private StarsView star;
     private Label totalLabel;
-    private Button testBoards;
-    private Button resetSave;
-    private bool resetArmed;
     private Label saveNotice;
     private SettingsSheet settings;
     private ConsentSheet consent;
@@ -27,11 +24,6 @@ public partial class ModeSelect : CanvasLayer, IScreen
     public event Action InfinitePressed;
 
     public event Action CreditsPressed;
-
-    public event Action TestBoardsPressed;
-
-    // Debug builds only, after a second tap: the first only asks
-    public event Action ResetSaveConfirmed;
 
     [Export] public AppLooks Looks { get; set; }
 
@@ -56,8 +48,6 @@ public partial class ModeSelect : CanvasLayer, IScreen
         bottomBar = GetNode<Control>("Root/BottomBar");
         star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
         totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
-        testBoards = GetNode<Button>("Root/Centre/Column/TestBoards");
-        resetSave = GetNode<Button>("Root/Centre/Column/ResetSave");
         saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
         settings = GetNode<SettingsSheet>("Root/Settings");
         consent = GetNode<ConsentSheet>("Root/Consent");
@@ -65,8 +55,6 @@ public partial class ModeSelect : CanvasLayer, IScreen
         star.Looks = [StarLook.Earned];
         GetNode<Button>("Root/Centre/Column/Campaign").Pressed += () => CampaignPressed?.Invoke();
         GetNode<Button>("Root/Centre/Column/CustomLevels").Pressed += () => CustomLevelsPressed?.Invoke();
-        testBoards.Pressed += () => TestBoardsPressed?.Invoke();
-        resetSave.Pressed += OnResetSavePressed;
         GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();
         GetNode<Button>("Root/Centre/Column/Infinite").Pressed += () => InfinitePressed?.Invoke();
         GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open();
@@ -75,12 +63,10 @@ public partial class ModeSelect : CanvasLayer, IScreen
         ApplySafeArea();
     }
 
-    // debug shows Test boards and Reset save. saveNotice: why this run's progress isn't being kept, or null while saving works
-    public void Open(int totalStars, bool debug, string saveNotice)
+    // saveNotice: why this run's progress isn't being kept, or null while saving works
+    public void Open(int totalStars, string saveNotice)
     {
         totalLabel.Text = totalStars.ToString();
-        testBoards.Visible = debug;
-        resetSave.Visible = debug;
         ShowSaveNotice(saveNotice);
         GD.Print("Screen: mode select");
     }
@@ -90,17 +76,6 @@ public partial class ModeSelect : CanvasLayer, IScreen
     {
         saveNotice.Text = notice ?? "";
         saveNotice.Visible = notice != null;
-    }
-
-    private void OnResetSavePressed()
-    {
-        if (!resetArmed)
-        {
-            resetArmed = true;
-            resetSave.Text = "Tap again to reset";
-            return;
-        }
-        ResetSaveConfirmed?.Invoke();
     }
 
     public bool CloseOverlay()

@@ -11,6 +11,10 @@ public sealed record ServerConfig
 
     public const int MaxRecordsPerRequest = 100;
 
+    // Half upload_records' per-record cap (131072), which it measures as jsonb text: that spaces out every key and value,
+    // so a record the game measures under this is under the cap too. A record over the cap is skipped, never stored
+    public const int MaxRecordBytes = 65536;
+
     // The project's address, https with no trailing slash, or empty for no server
     public required string Url { get; init; }
 
@@ -31,6 +35,9 @@ public sealed record ServerConfig
 
     // A record bigger than this goes alone
     public required int RecordBytesPerRequest { get; init; }
+
+    // A record bigger than this is never sent
+    public required int RecordMaxBytes { get; init; }
 
     public bool IsOn => Url.Length > 0;
 
@@ -61,6 +68,10 @@ public sealed record ServerConfig
             throw new ArgumentOutOfRangeException("server.recordsPerRequest", RecordsPerRequest, $"Must be from 1 to {MaxRecordsPerRequest}.");
         }
         ArgumentOutOfRangeException.ThrowIfLessThan(RecordBytesPerRequest, 1024, "server.recordBytesPerRequest");
+        if (RecordMaxBytes is < 1024 or > MaxRecordBytes)
+        {
+            throw new ArgumentOutOfRangeException("server.recordMaxBytes", RecordMaxBytes, $"Must be from 1024 to {MaxRecordBytes}.");
+        }
     }
 
     private static void Positive(double seconds, string name)

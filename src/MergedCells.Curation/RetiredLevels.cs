@@ -32,8 +32,21 @@ internal static class RetiredLevels
     public static string Write(IEnumerable<int> ids) =>
         "{\n  \"retired\": [" + string.Join(", ", ids.Order().Select(id => id.ToString(CultureInfo.InvariantCulture))) + "]\n}\n";
 
-    // New levels always get higher IDs, as the chapter order already assumes
-    public static int NextId(IEnumerable<int> levelIds, IEnumerable<int> retired) => levelIds.Concat(retired).DefaultIfEmpty(0).Max() + 1;
+    // Since the ID reset after chunk 34b (id-reset.csv beside the tool maps the old IDs), chapter n's levels take IDs
+    // n × 1000 + 1 to n × 1000 + 999, so an ID tells which chapter a level was made for. A level that later moves
+    // chapter keeps its ID
+    public const int IdsPerChapter = 1000;
+
+    // One past the highest ID the chapter's block has ever held, so a retired ID never comes back; null once the block is
+    // used up
+    public static int? NextId(int chapter, IEnumerable<int> levelIds, IEnumerable<int> retired)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(chapter, 1);
+        var first = chapter * IdsPerChapter + 1;
+        var last = first + IdsPerChapter - 2;
+        var next = levelIds.Concat(retired).Where(id => id >= first && id <= last).DefaultIfEmpty(first - 1).Max() + 1;
+        return next <= last ? next : null;
+    }
 }
 
 internal sealed record RetiredFileJson

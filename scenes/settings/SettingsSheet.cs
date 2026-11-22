@@ -10,6 +10,7 @@ namespace MergedCells;
 public partial class SettingsSheet : Control
 {
     private const string ArmedDelete = "Tap again to delete";
+    private const string CopyIdText = "Copy player ID";
 
     private Control mainPage;
     private Control privacyPage;
@@ -22,8 +23,6 @@ public partial class SettingsSheet : Control
     private Button dark;
     private CheckButton playDataSwitch;
     private Label playDataNote;
-    private Button export;
-    private Label exportResult;
     private CheckButton leaderboardsSwitch;
     private CheckButton librarySwitch;
     private Label cantChange;
@@ -31,14 +30,15 @@ public partial class SettingsSheet : Control
     private Button delete;
     private string deleteText;
     private Label deleteResult;
+    private Label playerId;
+    private Button copyId;
+    private Guid? player;
     private Appearance current;
     private bool deleteArmed;
 
     public event Action<Appearance> AppearanceChosen;
 
     public event Action<ConsentWording, bool> ConsentChosen;
-
-    public event Action ExportPressed;
 
     // After the second press: the first only asks
     public event Action DeleteConfirmed;
@@ -62,8 +62,6 @@ public partial class SettingsSheet : Control
         dark = GetNode<Button>("Sheet/Column/Switch/Dark");
         playDataSwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/PlayDataSwitch");
         playDataNote = GetNode<Label>("Sheet/Privacy/Scroll/Body/PlayDataNote");
-        export = GetNode<Button>("Sheet/Privacy/Scroll/Body/Export");
-        exportResult = GetNode<Label>("Sheet/Privacy/Scroll/Body/ExportResult");
         leaderboardsSwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/LeaderboardsSwitch");
         var leaderboardsNote = GetNode<Label>("Sheet/Privacy/Scroll/Body/LeaderboardsNote");
         librarySwitch = GetNode<CheckButton>("Sheet/Privacy/Scroll/Body/LibrarySwitch");
@@ -74,6 +72,8 @@ public partial class SettingsSheet : Control
         delete = GetNode<Button>("Sheet/Privacy/Scroll/Body/Delete");
         deleteText = delete.Text;
         deleteResult = GetNode<Label>("Sheet/Privacy/Scroll/Body/DeleteResult");
+        playerId = GetNode<Label>("Sheet/Privacy/Scroll/Body/PlayerId");
+        copyId = GetNode<Button>("Sheet/Privacy/Scroll/Body/CopyId");
 
         // The texts that go with each kind's answer live with its wording version in Core
         playDataSwitch.Text = ConsentWordings.PlayData.SwitchLabel;
@@ -93,15 +93,12 @@ public partial class SettingsSheet : Control
         dark.Pressed += () => Choose(Appearance.Dark);
         GetNode<Button>("Sheet/Column/PrivacyRow").Pressed += () => ShowPage(privacy: true);
         GetNode<Button>("Sheet/Privacy/Header/Back").Pressed += () => ShowPage(privacy: false);
+        GetNode<Button>("Sheet/Column/DiscordRow").Pressed += () => OS.ShellOpen(Community.DiscordUrl);
         playDataSwitch.Toggled += on => Choose(ConsentWordings.PlayData, on);
         leaderboardsSwitch.Toggled += on => Choose(ConsentWordings.Leaderboards, on);
         librarySwitch.Toggled += on => Choose(ConsentWordings.Library, on);
-        export.Pressed += () =>
-        {
-            Disarm();
-            ExportPressed?.Invoke();
-        };
         delete.Pressed += OnDeletePressed;
+        copyId.Pressed += OnCopyIdPressed;
         terms.Pressed += () =>
         {
             Disarm();
@@ -125,7 +122,7 @@ public partial class SettingsSheet : Control
         Show();
     }
 
-    // Reads the values again, as after a choice that changes the record count
+    // Reads the values again, as after a choice or a deletion
     public void Refresh()
     {
         var values = Current();
@@ -140,26 +137,25 @@ public partial class SettingsSheet : Control
         playDataSwitch.Disabled = !values.CanChange;
         leaderboardsSwitch.Disabled = !values.CanChange;
         librarySwitch.Disabled = !values.CanChange;
-        var recorded = values.Recorded switch
+        var waiting = values.Waiting switch
         {
-            0 => "Nothing recorded yet.",
-            1 => "1 map recorded.",
-            _ => $"{values.Recorded} maps recorded.",
+            0 => "",
+            1 => " 1 map is waiting to be sent.",
+            _ => $" {values.Waiting} maps are waiting to be sent.",
         };
-        playDataNote.Text = $"{ConsentWordings.PlayData.SwitchNote} {recorded}";
-        export.Disabled = values.Recorded == 0;
+        playDataNote.Text = ConsentWordings.PlayData.SwitchNote + waiting;
         // A save that can't be written at all, or the last write that failed: an answer or deletion then isn't kept
         cantChange.Text = values.CanChange ? values.SaveProblem : cantChangeText;
         cantChange.Visible = !values.CanChange || values.SaveProblem != null;
         delete.Visible = values.HasData;
         delete.Disabled = !values.CanChange;
+        // Without accounts the ID is the only way to name a player's data in an email; "Delete my data" drops it
+        player = values.Player;
+        playerId.Text = player is { } id ? $"Your player ID: {id:D}" : "";
+        playerId.Visible = player is not null;
+        copyId.Visible = player is not null;
+        copyId.Text = CopyIdText;
         Disarm();
-    }
-
-    public void ShowExportResult(string sentence)
-    {
-        exportResult.Text = sentence;
-        exportResult.Show();
     }
 
     public void ShowDeleteResult(string sentence)
@@ -219,8 +215,8 @@ public partial class SettingsSheet : Control
     private void ShowPage(bool privacy)
     {
         Disarm();
-        exportResult.Hide();
         deleteResult.Hide();
+        copyId.Text = CopyIdText;
         mainPage.Visible = !privacy;
         privacyPage.Visible = privacy;
         if (privacy)
@@ -259,6 +255,16 @@ public partial class SettingsSheet : Control
         }
         Disarm();
         DeleteConfirmed?.Invoke();
+    }
+
+    private void OnCopyIdPressed()
+    {
+        Disarm();
+        if (player is { } id)
+        {
+            DisplayServer.ClipboardSet(id.ToString("D"));
+            copyId.Text = "Copied";
+        }
     }
 
     private void Disarm()

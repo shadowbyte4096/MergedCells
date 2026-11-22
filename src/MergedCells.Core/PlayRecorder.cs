@@ -2,7 +2,8 @@ namespace MergedCells.Core;
 
 /// <summary>
 /// Builds one visit's record as it's played, from the moves, undos and restarts the play screen reports with their times,
-/// and hands it to <c>write</c> once, when the visit ends. Anything reported after that is ignored. Main thread only.
+/// and hands it to <c>write</c> once, when the visit ends, unless the player did nothing. Anything reported after that is
+/// ignored. Main thread only.
 /// </summary>
 public sealed class PlayRecorder
 {
@@ -54,6 +55,11 @@ public sealed class PlayRecorder
             return;
         }
         Ended = true;
+        // A map left or skipped before a single move says nothing about how hard it is, so it isn't kept
+        if (actions.Count == 0)
+        {
+            return;
+        }
         write(new PlayRecord(start, outcome, moves, undos, restarts, ms, actions.ToArray()));
     }
 

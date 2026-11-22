@@ -36,7 +36,7 @@ public sealed class PromoteCommandTests : IDisposable
     {
         Promote(Candidate(1), "--name", "Fresh Start");
 
-        Assert.Equal(TempWorkspace.NextId, LevelFile.Parse(File.ReadAllText(Path.Combine(temp.Workspace.LevelsFolder, "fresh-start.json"))).Id);
+        Assert.Equal(TempWorkspace.NextId(1), LevelFile.Parse(File.ReadAllText(Path.Combine(temp.Workspace.LevelsFolder, "fresh-start.json"))).Id);
     }
 
     [Fact]
@@ -44,7 +44,7 @@ public sealed class PromoteCommandTests : IDisposable
     {
         Promote(Candidate(2), "--name", "Fresh Start");
 
-        Assert.Equal([3, 6, TempWorkspace.NextId], ChapterIds(2));
+        Assert.Equal([3, 6, TempWorkspace.NextId(2)], ChapterIds(2));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class PromoteCommandTests : IDisposable
     {
         Promote(Candidate(2), "--name", "Fresh Start", "--after", "3");
 
-        Assert.Equal([3, TempWorkspace.NextId, 6], ChapterIds(2));
+        Assert.Equal([3, TempWorkspace.NextId(2), 6], ChapterIds(2));
     }
 
     [Fact]
@@ -62,7 +62,7 @@ public sealed class PromoteCommandTests : IDisposable
 
         var chapter = Files().Campaign.Chapters[^1];
         Assert.Equal(
-            (TempWorkspace.ChapterCount + 1, $"Recipe {TempWorkspace.ChapterCount + 1}", 0, TempWorkspace.NextId),
+            (TempWorkspace.ChapterCount + 1, $"Recipe {TempWorkspace.ChapterCount + 1}", 0, TempWorkspace.NextId(TempWorkspace.ChapterCount + 1)),
             (chapter.Number, chapter.Name, chapter.Intro.Count, chapter.Levels.Single().Id));
     }
 
@@ -71,7 +71,7 @@ public sealed class PromoteCommandTests : IDisposable
     {
         Promote(Candidate(1, oneStarExtraMoves: 2), "--name", "Fresh Start");
 
-        Assert.Equal(TempWorkspace.LevelTwoStars, Files().Config.Campaign.LevelStars[TempWorkspace.NextId]);
+        Assert.Equal(TempWorkspace.LevelTwoStars, Files().Config.Campaign.LevelStars[TempWorkspace.NextId(1)]);
     }
 
     [Fact]
@@ -91,7 +91,7 @@ public sealed class PromoteCommandTests : IDisposable
         var levels = Files().Levels.Select(onDisk => onDisk.Level).ToArray();
         Assert.Equal(
             (ServerLevels.Write(levels), true),
-            (File.ReadAllText(temp.Workspace.ServerLevelsFile), levels.Any(level => level.Id == TempWorkspace.NextId)));
+            (File.ReadAllText(temp.Workspace.ServerLevelsFile), levels.Any(level => level.Id == TempWorkspace.NextId(1))));
     }
 
     [Fact]
@@ -136,6 +136,19 @@ public sealed class PromoteCommandTests : IDisposable
         var before = temp.Snapshot();
 
         var result = Promote(path, ["--name", name, .. extra]);
+
+        Assert.Equal(CommandResult.Refused, result.ExitCode);
+        Assert.Equal(before, temp.Snapshot());
+    }
+
+    [Fact]
+    public void Refuses_a_chapter_whose_ids_are_used_up_and_changes_nothing()
+    {
+        File.WriteAllText(temp.Workspace.RetiredFile, RetiredLevels.Write([5, 2 * RetiredLevels.IdsPerChapter + RetiredLevels.IdsPerChapter - 1]));
+        var path = Candidate(2);
+        var before = temp.Snapshot();
+
+        var result = Promote(path, "--name", "Fresh Start");
 
         Assert.Equal(CommandResult.Refused, result.ExitCode);
         Assert.Equal(before, temp.Snapshot());

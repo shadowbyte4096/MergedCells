@@ -103,16 +103,22 @@ public sealed class RetireCommandTests : IDisposable
     }
 
     [Fact]
-    public void Next_promote_after_retiring_the_highest_id_skips_it()
+    public void Next_promote_after_retiring_the_block_s_highest_id_skips_it()
     {
-        Retire(6);
+        PromoteIntoChapter3("first.json", "First Try");
+        Retire(TempWorkspace.NextId(3));
+
+        PromoteIntoChapter3("second.json", "Fresh Start");
+
+        Assert.Equal(TempWorkspace.NextId(3) + 1, Files().Levels.Single(level => level.Level.Name == "Fresh Start").Level.Id);
+    }
+
+    private void PromoteIntoChapter3(string fileName, string name)
+    {
         var map = TempWorkspace.ReachableMap();
-        var candidate = Path.Combine(temp.Root, "c1.json");
+        var candidate = Path.Combine(temp.Root, fileName);
         File.WriteAllText(candidate, LevelFile.Write(new Level(1, "Candidate 1", 3, map, Solver.Solve(map).Par!.Value)));
-
-        PromoteCommand.Run(temp.Workspace, [candidate, "--name", "Fresh Start"]);
-
-        Assert.Equal(TempWorkspace.NextId, Files().Levels.Single(level => level.Level.Name == "Fresh Start").Level.Id);
+        PromoteCommand.Run(temp.Workspace, [candidate, "--name", name]);
     }
 
     [Fact]

@@ -84,6 +84,8 @@ public sealed class ServerQueue
     private readonly SaveGame save;
     private readonly IReadOnlyList<Level> levels;
     private readonly Func<long, int, IReadOnlyList<RecordLine>> readRecords;
+    private readonly Func<long, bool> recordsEndAt;
+    private readonly Func<string?> deleteRecords;
     private readonly Func<bool> writeSave;
     private readonly Func<Guid> newPlayer;
     private readonly Func<DateTimeOffset> now;
@@ -126,6 +128,8 @@ public sealed class ServerQueue
         SaveGame save,
         IReadOnlyList<Level> levels,
         Func<long, int, IReadOnlyList<RecordLine>> readRecords,
+        Func<long, bool> recordsEndAt,
+        Func<string?> deleteRecords,
         Func<bool> writeSave,
         Func<Guid> newPlayer,
         Func<DateTimeOffset> now,
@@ -135,6 +139,8 @@ public sealed class ServerQueue
         this.save = save ?? throw new ArgumentNullException(nameof(save));
         this.levels = levels ?? throw new ArgumentNullException(nameof(levels));
         this.readRecords = readRecords ?? throw new ArgumentNullException(nameof(readRecords));
+        this.recordsEndAt = recordsEndAt ?? throw new ArgumentNullException(nameof(recordsEndAt));
+        this.deleteRecords = deleteRecords ?? throw new ArgumentNullException(nameof(deleteRecords));
         this.writeSave = writeSave ?? throw new ArgumentNullException(nameof(writeSave));
         this.newPlayer = newPlayer ?? throw new ArgumentNullException(nameof(newPlayer));
         this.now = now ?? throw new ArgumentNullException(nameof(now));
@@ -524,7 +530,13 @@ public sealed class ServerQueue
                 if (line.Record is { } record && record.Start.Consent >= 1 && record.Start.Player == player)
                 {
                     var size = Encoding.UTF8.GetByteCount(line.Text);
-                    // A record over the limit goes alone rather than never
+                    if (size > config.RecordMaxBytes)
+                    {
+                        log($"records: passed over one of {size} bytes, over the {config.RecordMaxBytes}-byte limit");
+                        end = line.End;
+                        continue;
+                    }
+                    // A record over the batch limit goes alone rather than never
                     if (batch.Count > 0 && bytes + size > config.RecordBytesPerRequest)
                     {
                         break;
@@ -544,7 +556,30 @@ public sealed class ServerQueue
             }
             save.RecordsSent = end;
             writeSave();
+            EmptyRecordsWhenAllSent();
         }
+    }
+
+    // Once the sent position reaches the end of the file, the file is emptied, so the device keeps only records waiting to
+    // be sent (since after chunk 34b, when Export went). The position goes back to 0 and is saved first: should the app stop
+    // before the file is emptied, its records go again, and the server keeps each record ID once. Main thread only, so no
+    // record is added between the check and the delete
+    private void EmptyRecordsWhenAllSent()
+    {
+        var sent = save.RecordsSent;
+        if (!recordsEndAt(sent))
+        {
+            return;
+        }
+        save.RecordsSent = 0;
+        if (!writeSave())
+        {
+            save.RecordsSent = sent;
+            return;
+        }
+        log(deleteRecords() is { } problem
+            ? $"records: all sent, but the file couldn't be emptied ({problem}), so its records go again"
+            : "records: all sent, so the file was emptied");
     }
 
     // The access token when it has long enough left and still belongs to the save's session, else null
@@ -696,6 +731,7 @@ public sealed class ServerQueue
         writeSave();
         log($"records: {read.Stored} stored, {read.Duplicates} already held, {read.Skipped} skipped"
             + (read.PlayerDeleted ? ", the player ID was deleted" : ""));
+        EmptyRecordsWhenAllSent();
     }
 
     // A 401 means the access token was refused: get a new one and try once more in this round

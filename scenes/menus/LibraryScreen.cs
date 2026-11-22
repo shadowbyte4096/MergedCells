@@ -136,6 +136,7 @@ public partial class LibraryScreen : CanvasLayer, IScreen
         retry.Pressed += () => LoadPage(more: false);
         more.Pressed += () => LoadPage(more: true);
         unblock.Pressed += OnUnblockPressed;
+        GetNode<Button>("Root/Layout/Scroll/Margin/Column/Discord").Pressed += () => OS.ShellOpen(Community.DiscordUrl);
 
         levelSheet.GetPressed += () => GetPressed?.Invoke(selected);
         levelSheet.ReportPressed += () =>

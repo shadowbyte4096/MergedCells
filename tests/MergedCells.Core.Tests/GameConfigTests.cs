@@ -51,7 +51,7 @@ public class GameConfigTests
         """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"loadingDelaySeconds":0,"difficulties":"""
         + InfiniteEntries + "}";
     private const string ServerGroup =
-        """{"url":"https://example.test","publishableKey":"k","timeoutSeconds":1,"retrySeconds":1,"refreshMarginSeconds":1,"scoresPerRequest":1,"recordsPerRequest":1,"recordBytesPerRequest":1024}""";
+        """{"url":"https://example.test","publishableKey":"k","timeoutSeconds":1,"retrySeconds":1,"refreshMarginSeconds":1,"scoresPerRequest":1,"recordsPerRequest":1,"recordBytesPerRequest":1024,"recordMaxBytes":1024}""";
 
     private const string PrivacyGroup = """{"askGuardSeconds":0}""";
 
@@ -121,10 +121,10 @@ public class GameConfigTests
     // The server group with every value valid unless given
     private static string Server(
         string url = "https://example.test", string key = "k", double timeout = 1, double retry = 1, double margin = 1, int scores = 1,
-        int records = 1, int bytes = 1024) =>
+        int records = 1, int bytes = 1024, int maxBytes = 1024) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$"""{"url":"{{url}}","publishableKey":"{{key}}","timeoutSeconds":{{timeout}},"retrySeconds":{{retry}},"refreshMarginSeconds":{{margin}},"scoresPerRequest":{{scores}},"recordsPerRequest":{{records}},"recordBytesPerRequest":{{bytes}}}""");
+            $$"""{"url":"{{url}}","publishableKey":"{{key}}","timeoutSeconds":{{timeout}},"retrySeconds":{{retry}},"refreshMarginSeconds":{{margin}},"scoresPerRequest":{{scores}},"recordsPerRequest":{{records}},"recordBytesPerRequest":{{bytes}},"recordMaxBytes":{{maxBytes}}}""");
 
     private static string Privacy(double guard) =>
         string.Create(CultureInfo.InvariantCulture, $$"""{"askGuardSeconds":{{guard}}}""");
@@ -236,6 +236,7 @@ public class GameConfigTests
         Valid.Replace(""","privacy":""" + PrivacyGroup, ""),
         Valid.Replace(",\"recordBytesPerRequest\":1024", ""),
         Valid.Replace("\"recordBytesPerRequest\":1024", "\"recordBytesPerRequest\":1024,\"extra\":1"),
+        Valid.Replace(",\"recordMaxBytes\":1024", ""),
         Valid.Replace(PrivacyGroup, "{}"),
         Valid.Replace(""","leaderboard":""" + LeaderboardGroup, ""),
         Valid.Replace(LeaderboardGroup, "{}"),
@@ -283,13 +284,13 @@ public class GameConfigTests
 
     [Theory]
     [AutoData]
-    public void Parse_reads_the_server_and_privacy_groups(byte scores, byte records, ushort bytes, byte guardTenths)
+    public void Parse_reads_the_server_and_privacy_groups(byte scores, byte records, ushort bytes, ushort maxBytes, byte guardTenths)
     {
-        var config = GameConfig.Parse(ConfigText(server: Server(scores: scores, records: records, bytes: bytes), privacy: Privacy(guardTenths / 10.0)));
+        var config = GameConfig.Parse(ConfigText(server: Server(scores: scores, records: records, bytes: bytes, maxBytes: maxBytes), privacy: Privacy(guardTenths / 10.0)));
 
         Assert.Equal(
-            ((int)scores, (int)records, (int)bytes, guardTenths / 10.0),
-            (config.Server.ScoresPerRequest, config.Server.RecordsPerRequest, config.Server.RecordBytesPerRequest, config.Privacy.AskGuardSeconds));
+            ((int)scores, (int)records, (int)bytes, (int)maxBytes, guardTenths / 10.0),
+            (config.Server.ScoresPerRequest, config.Server.RecordsPerRequest, config.Server.RecordBytesPerRequest, config.Server.RecordMaxBytes, config.Privacy.AskGuardSeconds));
     }
 
     [Theory]
@@ -626,6 +627,8 @@ public class GameConfigTests
         ConfigText(server: Server(records: 0)),
         ConfigText(server: Server(records: ServerConfig.MaxRecordsPerRequest + 1)),
         ConfigText(server: Server(bytes: 1023)),
+        ConfigText(server: Server(maxBytes: 1023)),
+        ConfigText(server: Server(maxBytes: ServerConfig.MaxRecordBytes + 1)),
         ConfigText(privacy: Privacy(-1)),
         ConfigText(leaderboard: """{"columns":1}"""),
         ConfigText(leaderboard: """{"columns":11}"""),

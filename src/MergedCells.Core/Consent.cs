@@ -61,7 +61,7 @@ public static class ConsentWordings
         Offered: true,
         AskTitle: "Help tune the puzzles?",
         Body: "Merged Cells can record how you play each map: the map, your moves, times, undos and restarts, with a random ID "
-            + "and never your name. Records are sent to the developer's server automatically, and in any file you export. "
+            + "and never your name. Records are sent to the developer's server automatically, then deleted from this device. "
             + "They're used only to tune how hard maps are.",
         Small: "Change this or delete your records any time in Settings. If you're under 16, check with a parent first.",
         No: "No thanks",
@@ -72,7 +72,7 @@ public static class ConsentWordings
         ChangedYes: "Keep recording",
         SwitchLabel: "Record play data",
         SwitchNote: "The map, your moves, times and undos, with a random ID and never your name, for tuning difficulty. Sent to "
-            + "the developer's server automatically, and in any file you export.");
+            + "the developer's server automatically, then deleted from this device.");
 
     // Its Version is raised the same way
     public static readonly ConsentWording Leaderboards = new(
@@ -97,11 +97,11 @@ public static class ConsentWordings
     // Its Version is raised the same way, and also whenever TERMS.md changes what players agree to
     public static readonly ConsentWording Library = new(
         ConsentKind.Library,
-        Version: 1,
+        Version: 2,
         Offered: true,
         AskTitle: "Join the level library?",
         Body: "Play levels other players made, and publish your own. Levels you publish are shown to everyone with their "
-            + "names. The library counts the levels you beat and like, and keeps your reports and blocks, with a random ID "
+            + "names, and the developer can use them any way they like. The library counts the levels you beat and like, and keeps your reports and blocks, with a random ID "
             + "and never your name.",
         Small: "Joining means accepting the library's terms. Change this or delete your data any time in Settings. If you're "
             + "under 16, check with a parent first.",

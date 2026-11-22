@@ -13,23 +13,23 @@ public partial class Main
         sheet.Current = SheetNow;
         sheet.AppearanceChosen += OnAppearanceChosen;
         sheet.ConsentChosen += (wording, on) => OnConsentChosen(sheet, wording, on);
-        sheet.ExportPressed += () => PlayRecordFiles.Export(sheet.ShowExportResult);
         sheet.DeleteConfirmed += () => DeleteMyData(sheet);
     }
 
     private static SheetValues SheetNow()
     {
         var save = SaveGameFile.Current;
-        var recorded = PlayRecordFiles.Count;
+        var waiting = PlayRecordFiles.Count;
         return new SheetValues(
             save.Appearance,
             Consents.IsGiven(save.ConsentTo(ConsentKind.PlayData), ConsentWordings.PlayData),
             Consents.IsGiven(save.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards),
             Consents.IsGiven(save.ConsentTo(ConsentKind.Library), ConsentWordings.Library),
-            recorded,
-            recorded > 0 || save.Player is not null,
+            waiting,
+            waiting > 0 || save.Player is not null,
             SaveGameFile.CanWrite,
-            SaveGameFile.Notice);
+            SaveGameFile.Notice,
+            save.Player);
     }
 
     // A save that can't be written can't keep the answer or the player ID, so nothing is recorded in that run

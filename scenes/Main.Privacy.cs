@@ -100,18 +100,17 @@ public partial class Main
         var again = Consents.IsGiven(SaveGameFile.Current.ConsentTo(ConsentKind.Leaderboards), ConsentWordings.Leaderboards)
             ? " \"Share my scores\" is still on, so your best moves will be shared again under a new random ID."
             : "";
-        const string Sent = " For files you've already sent, see the privacy policy.";
         if (!result.ServerPending)
         {
-            sheet.ShowDeleteResult(Done("") + again + Sent);
+            sheet.ShowDeleteResult(Done("") + again);
             return;
         }
         sheet.ShowDeleteResult(Done(" on this phone") + " Asking the server to delete what was sent…" + again);
         AwaitServerDeletion(
             sheet,
             player!.Value,
-            Done(", here and on the server") + (published ? " Levels you published are removed from the library." : "") + again + Sent,
+            Done(", here and on the server") + (published ? " Levels you published are removed from the library." : "") + again,
             Done(" on this phone") + " The server's copy will be deleted the next time you're online."
-                + (published ? " So will the levels you published to the library." : "") + again + Sent);
+                + (published ? " So will the levels you published to the library." : "") + again);
     }
 }

@@ -21,9 +21,9 @@ internal static class Program
               traps (x), with - for nothing, . where the tool may add twists, and S for the start or s for
               squares the start may use.
           promote <candidate file> --name "<name>" [--after <id>] [--band <band>]
-              Makes the candidate a level file under the next unused ID, adds it to its chapter in
-              campaign/chapters.json (at the end, or after level <id>) and sets its star limits from the
-              band (read from run.json beside the file, or --band).
+              Makes the candidate a level file under its chapter's next ID (chapter 3's are 3001 to 3999),
+              adds it to its chapter in campaign/chapters.json (at the end, or after level <id>) and sets its
+              star limits from the band (read from run.json beside the file, or --band).
           retire <id>
               Takes a level out of the campaign, backs its file up into builds/retired/ and records its ID
               in src/MergedCells.Curation/retired-levels.json, so it's never used again.

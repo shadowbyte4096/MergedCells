@@ -54,16 +54,31 @@ public class PlayRecorderTests
     public void Outcome_moves_and_time_are_recorded(PlayOutcome outcome)
     {
         var recorder = Recorder();
+        recorder.Move(Direction.Up, 1);
 
         recorder.End(outcome, 7, 4321);
 
         Assert.Equal((outcome, 7, 4321L), (written.Single().Outcome, written.Single().Moves, written.Single().ActiveMs));
     }
 
+    [Theory]
+    [InlineData(PlayOutcome.Won)]
+    [InlineData(PlayOutcome.GaveUp)]
+    [InlineData(PlayOutcome.Left)]
+    public void Visit_with_nothing_done_writes_nothing(PlayOutcome outcome)
+    {
+        var recorder = Recorder();
+
+        recorder.End(outcome, 0, 4321);
+
+        Assert.Empty(written);
+    }
+
     [Fact]
     public void End_writes_the_record_once()
     {
         var recorder = Recorder();
+        recorder.Move(Direction.Up, 1);
 
         recorder.End(PlayOutcome.Won, 3, 10);
         recorder.End(PlayOutcome.Left, 3, 20);
@@ -75,13 +90,14 @@ public class PlayRecorderTests
     public void Calls_after_end_are_ignored()
     {
         var recorder = Recorder();
+        recorder.Move(Direction.Up, 1);
         recorder.End(PlayOutcome.Won, 3, 10);
 
         recorder.Move(Direction.Up, 11);
         recorder.Undo(12);
         recorder.Restart(13);
 
-        Assert.Equal((0, 0, 0), (written.Single().Actions.Count, written.Single().Undos, written.Single().Restarts));
+        Assert.Equal((1, 0, 0), (written.Single().Actions.Count, written.Single().Undos, written.Single().Restarts));
     }
 
     [Fact]

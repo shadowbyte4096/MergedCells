@@ -142,47 +142,6 @@ public class SaveGameTests
 
     [Theory]
     [AutoData]
-    public void Clearing_progress_forgets_every_best(int firstId, int offset)
-    {
-        var save = new SaveGame();
-        var first = LevelWith(Positive(firstId));
-        var second = LevelWith(Positive(firstId) + Positive(offset));
-        save.RecordFinish(first, 7, Shipped);
-        save.RecordFinish(second, 3, Shipped);
-
-        save.ClearProgress();
-
-        Assert.Equal((0, (int?)null, (int?)null), (save.LevelCount, save.BestMoves(first), save.BestMoves(second)));
-    }
-
-    // Appearance is a setting, not progress
-    [Theory]
-    [InlineData(Appearance.Light)]
-    [InlineData(Appearance.Dark)]
-    public void Clearing_progress_keeps_the_appearance(Appearance appearance)
-    {
-        var save = new SaveGame { Appearance = appearance };
-
-        save.ClearProgress();
-
-        Assert.Equal(appearance, save.Appearance);
-    }
-
-    // What this device published isn't progress: it says which levels are in the library
-    [Theory]
-    [AutoData]
-    public void Clearing_progress_keeps_published(Guid id)
-    {
-        var save = new SaveGame();
-        save.RecordPublished(id, DateTimeOffset.UnixEpoch);
-
-        save.ClearProgress();
-
-        Assert.Equal([id], save.Published.Keys);
-    }
-
-    [Theory]
-    [AutoData]
     public void Recording_a_published_level_again_replaces_its_time(Guid id, uint first, uint second)
     {
         var save = new SaveGame();
@@ -212,49 +171,6 @@ public class SaveGameTests
         save.RecordPublished(id, DateTimeOffset.UnixEpoch);
 
         Assert.Equal((true, 0), (save.RemovePublished(id), save.Published.Count));
-    }
-
-    // The levels shared from this device aren't progress: they keep a shared level from coming back as imported
-    [Theory]
-    [AutoData]
-    public void Clearing_progress_keeps_shared_levels(Guid id)
-    {
-        var save = new SaveGame();
-        save.RecordShared(id);
-
-        save.ClearProgress();
-
-        Assert.Equal([id], save.SharedLevels);
-    }
-
-    // The answers, the last infinite choice and the player ID are settings and preferences, not progress
-    [Theory]
-    [AutoData]
-    public void Clearing_progress_keeps_answers_choice_and_player(bool yes, int wording, Guid player, bool walls)
-    {
-        var choice = new InfiniteChoice(4, 12, walls, false, true, false);
-        var answer = new Consent(yes, Math.Abs(wording % 100));
-        var save = new SaveGame { Infinite = choice, Player = player };
-        save.SetConsent(ConsentKind.PlayData, answer);
-        save.SetConsent(ConsentKind.Leaderboards, answer);
-
-        save.ClearProgress();
-
-        Assert.Equal(
-            (answer, answer, choice, (Guid?)player),
-            (save.ConsentTo(ConsentKind.PlayData), save.ConsentTo(ConsentKind.Leaderboards), save.Infinite, save.Player));
-    }
-
-    [Theory]
-    [AutoData]
-    public void Clearing_progress_keeps_the_server_section(string token, Guid pending, uint sent)
-    {
-        var save = new SaveGame { SessionToken = token, RecordsSent = sent };
-        save.AddPendingDeletion(pending);
-
-        save.ClearProgress();
-
-        Assert.Equal((token, true, (long)sent), (save.SessionToken, save.PendingDeletions.Contains(pending), save.RecordsSent));
     }
 
     [Fact]
@@ -296,17 +212,6 @@ public class SaveGameTests
     public void Player_cannot_be_empty()
     {
         Assert.Throws<ArgumentException>(() => new SaveGame { Player = Guid.Empty });
-    }
-
-    [Fact]
-    public void Cleared_save_writes_no_levels()
-    {
-        var save = new SaveGame();
-        save.RecordFinish(LevelWith(4), 3, Shipped);
-
-        save.ClearProgress();
-
-        Assert.Equal(0, SaveGame.Parse(save.ToJson()).LevelCount);
     }
 
     public static TheoryData<int, int, int, int> Configs => new()

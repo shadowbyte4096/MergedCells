@@ -188,10 +188,6 @@ public sealed class SaveGame
         return finish;
     }
 
-    /// <summary>Forgets every level's record, including those for levels this build doesn't have. The settings, the shared
-    /// levels, the answers, the player ID and the server section stay.</summary>
-    public void ClearProgress() => levels.Clear();
-
     /// <summary>
     /// Reads a save file's text. Throws <see cref="NewerSaveException"/> when its version is newer than this build's,
     /// checked before anything else, and <see cref="JsonException"/>, naming the problem, for anything else wrong with it.

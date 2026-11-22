@@ -68,14 +68,18 @@ while (-not $serial) {
 $model = (& $adb -s $serial shell getprop ro.product.model | Out-String).Trim()
 Write-Host "Installing on $model ($serial)..."
 for ($attempt = 1; ; $attempt++) {
-    # cmd merges adb's error stream, which Windows PowerShell would otherwise wrap in error records
-    $output = cmd /c "`"$adb`" -s $serial install -r `"$apk`" 2>&1" | Out-String
+    # cmd merges adb's error stream, which Windows PowerShell would otherwise wrap in error records. Only the phone's current
+    # user: adb's default puts a copy in every user (the Pixel has a "Temp" one), and a copy left there by a debug build
+    # blocks the playtest release, signed with another key, after the developer uninstalls it from their own profile
+    $output = cmd /c "`"$adb`" -s $serial install -r --user current `"$apk`" 2>&1" | Out-String
     if ($LASTEXITCODE -eq 0) {
         break
     }
-    if ($output -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE') {
-        Stop-WithError ("The phone has a copy signed with a different key (a release build?). Uninstall the game on the " +
-            "phone first, which deletes its levels and progress, then run this again.")
+    # A playtest release on the phone fails as a downgrade first (its version code is the CI run's; this build's is 1)
+    if ($output -match 'INSTALL_FAILED_UPDATE_INCOMPATIBLE|INSTALL_FAILED_VERSION_DOWNGRADE') {
+        Stop-WithError ("The phone has a copy from a newer build or signed with a different key (the playtest release?), " +
+            "maybe in another of its users. Uninstall it for every user first (`"$adb`" -s $serial uninstall $package), " +
+            "which deletes its levels and progress, then run this again.")
     }
     if ($attempt -ge 3) {
         Stop-WithError "The install failed three times:`n$output"

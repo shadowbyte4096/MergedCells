@@ -4,10 +4,10 @@ using System.Text.Json;
 namespace MergedCells.Core;
 
 /// <summary>
-/// What the records file holds: the records that read, how many lines didn't, the readable lines as an export writes them
-/// (each ending in a line break), and a problem when the file couldn't be read at all.
+/// What the records file holds: the records that read, how many lines didn't, and a problem when the file couldn't be
+/// read at all.
 /// </summary>
-public sealed record PlayRecordLoad(IReadOnlyList<PlayRecord> Records, int Skipped, string Text, string? Problem);
+public sealed record PlayRecordLoad(IReadOnlyList<PlayRecord> Records, int Skipped, string? Problem);
 
 /// <summary>
 /// One complete line of the records file: the byte offset just past its line break, its text, and its record, or null
@@ -16,8 +16,10 @@ public sealed record PlayRecordLoad(IReadOnlyList<PlayRecord> Records, int Skipp
 public sealed record RecordLine(long End, string Text, PlayRecord? Record);
 
 /// <summary>
-/// The play records file: one record per line, only ever added to. A line that doesn't read (half-written when the app was
-/// killed, from a newer build, broken) is skipped, never fatal. Plain .NET file code; main thread only.
+/// The play records file: one record per line, added to as maps end and emptied once the server holds every record in it
+/// (see <see cref="ServerQueue"/>), so the device keeps only records waiting to be sent. A line that doesn't read
+/// (half-written when the app was killed, from a newer build, broken) is skipped, never fatal. Plain .NET file code; main
+/// thread only.
 /// </summary>
 public sealed class PlayRecordStore
 {
@@ -43,22 +45,20 @@ public sealed class PlayRecordStore
         }
         catch (Exception exception) when (exception is FileNotFoundException or DirectoryNotFoundException)
         {
-            return new PlayRecordLoad([], 0, "", null);
+            return new PlayRecordLoad([], 0, null);
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
         {
-            return new PlayRecordLoad([], 0, "", exception.Message);
+            return new PlayRecordLoad([], 0, exception.Message);
         }
 
         var records = new List<PlayRecord>();
-        var text = new StringBuilder();
         var skipped = 0;
         foreach (var line in lines.Where(line => line.Length > 0))
         {
             if (Read(line) is { } record)
             {
                 records.Add(record);
-                text.Append(line).Append('\n');
             }
             else
             {
@@ -66,7 +66,24 @@ public sealed class PlayRecordStore
             }
         }
         count = records.Count;
-        return new PlayRecordLoad(records, skipped, text.ToString(), null);
+        return new PlayRecordLoad(records, skipped, null);
+    }
+
+    /// <summary>
+    /// Whether the file is exactly <paramref name="offset"/> bytes long, so everything up to that point is everything in it.
+    /// False when the file is missing or can't be read; never throws over I/O.
+    /// </summary>
+    public bool EndsAt(long offset)
+    {
+        try
+        {
+            var file = new FileInfo(Path);
+            return file.Exists && file.Length == offset;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            return false;
+        }
     }
 
     /// <summary>

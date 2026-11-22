@@ -96,6 +96,13 @@ icon = ExtResource("2_forward")
 alignment = 0
 icon_alignment = 2
 
+[node name="DiscordRow" type="Button" parent="Sheet/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"SheetRow"
+text = "Join the Discord"
+alignment = 0
+
 [node name="Done" type="Button" parent="Sheet/Column"]
 layout_mode = 2
 focus_mode = 0
@@ -145,20 +152,6 @@ theme_type_variation = &"RecordSwitch"
 custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 theme_type_variation = &"Muted"
-autowrap_mode = 3
-
-[node name="Export" type="Button" parent="Sheet/Privacy/Scroll/Body"]
-layout_mode = 2
-focus_mode = 0
-theme_type_variation = &"PillButton"
-text = "Export play data"
-
-[node name="ExportResult" type="Label" parent="Sheet/Privacy/Scroll/Body"]
-visible = false
-custom_minimum_size = Vector2(1, 0)
-layout_mode = 2
-theme_type_variation = &"Muted"
-horizontal_alignment = 1
 autowrap_mode = 3
 
 [node name="LeaderboardsSwitch" type="CheckButton" parent="Sheet/Privacy/Scroll/Body"]
@@ -212,6 +205,22 @@ layout_mode = 2
 theme_type_variation = &"Muted"
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="PlayerId" type="Label" parent="Sheet/Privacy/Scroll/Body"]
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="CopyId" type="Button" parent="Sheet/Privacy/Scroll/Body"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+focus_mode = 0
+theme_type_variation = &"CaptionButton"
+text = "Copy player ID"
 
 [node name="Links" type="HBoxContainer" parent="Sheet/Privacy/Scroll/Body"]
 layout_mode = 2

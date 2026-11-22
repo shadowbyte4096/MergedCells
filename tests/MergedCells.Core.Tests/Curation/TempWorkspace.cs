@@ -8,10 +8,11 @@ namespace MergedCells.Core.Tests;
 // 21b never changes what these tests expect. Only the config comes from the shipped file, so a config group added
 // later is there too; its campaign overrides are cleared, and level 2 is given its own star limits.
 //   Chapter 1 "One": levels 1 and 2. Chapter 2 "Two": levels 3 and 6. Chapter 3 "Three": level 4 alone.
-//   ID 5 is retired, so the next ID is 7. The recipes name chapters 1 to 4 and give each a "medium" band.
+//   ID 5 is retired. These IDs come before the chapter blocks, as the old IDs did, so each chapter's next ID is the
+//   first of its block. The recipes name chapters 1 to 4 and give each a "medium" band.
 internal sealed class TempWorkspace : IDisposable
 {
-    public const int NextId = 7;
+    public static int NextId(int chapter) => chapter * RetiredLevels.IdsPerChapter + 1;
 
     public const int ChapterCount = 3;
 

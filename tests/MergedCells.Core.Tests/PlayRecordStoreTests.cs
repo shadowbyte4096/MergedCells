@@ -71,13 +71,21 @@ public sealed class PlayRecordStoreTests : IDisposable
         Assert.Equal(3, load.Skipped);
     }
 
-    [Fact]
-    public void Text_holds_only_readable_lines()
+    [Theory]
+    [InlineData(0, true)]
+    [InlineData(-1, false)]
+    [InlineData(1, false)]
+    public void Ends_only_at_its_length(int fromLength, bool ends)
     {
-        var kept = NewRecord();
-        File.WriteAllText(FilePath, "rubbish\n" + PlayRecordFile.Write(kept) + "\n");
+        File.WriteAllText(FilePath, PlayRecordFile.Write(NewRecord()) + "\n");
 
-        Assert.Equal(PlayRecordFile.Write(kept) + "\n", new PlayRecordStore(FilePath).Load().Text);
+        Assert.Equal(ends, new PlayRecordStore(FilePath).EndsAt(new FileInfo(FilePath).Length + fromLength));
+    }
+
+    [Fact]
+    public void Missing_file_ends_nowhere()
+    {
+        Assert.False(new PlayRecordStore(FilePath).EndsAt(0));
     }
 
     [Fact]
@@ -108,7 +116,7 @@ public sealed class PlayRecordStoreTests : IDisposable
     {
         var load = new PlayRecordStore(FilePath).Load();
 
-        Assert.Equal((0, 0, "", (string?)null), (load.Records.Count, load.Skipped, load.Text, load.Problem));
+        Assert.Equal((0, 0, (string?)null), (load.Records.Count, load.Skipped, load.Problem));
     }
 
     [Fact]

@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells.Curation;
 
-// promote <file> --name "<name>" [--after <id>] [--band <band>]: makes a candidate a level under the next unused ID,
+// promote <file> --name "<name>" [--after <id>] [--band <band>]: makes a candidate a level under its chapter's next ID,
 // places it in its chapter and sets its star limits. Every new text is checked together before any file is written
 internal static class PromoteCommand
 {
@@ -76,8 +76,11 @@ internal static class PromoteCommand
             return Refuse($"{workspace.Relative(levelPath)} is already taken. Pick another name.");
         }
 
-        var id = RetiredLevels.NextId(files.Levels.Select(level => level.Level.Id), files.Retired);
         var chapterNumber = candidate.Chapter;
+        if (RetiredLevels.NextId(chapterNumber, files.Levels.Select(level => level.Level.Id), files.Retired) is not { } id)
+        {
+            return Refuse($"Chapter {chapterNumber}'s IDs ({chapterNumber * RetiredLevels.IdsPerChapter + 1} to {chapterNumber * RetiredLevels.IdsPerChapter + RetiredLevels.IdsPerChapter - 1}) are all used.");
+        }
         var chapters = files.Campaign.Chapters.Select(ChapterEntry.From).ToList();
         int place;
         if (chapterNumber <= chapters.Count)

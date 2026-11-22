@@ -22,12 +22,21 @@ public class ShippedLevelIdsTests
         Assert.Equal(Retired().Count, Retired().Distinct().Count());
     }
 
-    // Also catches a level file deleted by hand without retiring it, unless it had the highest ID
+    // Also catches a level file deleted by hand without retiring it, unless it had its block's highest ID. Each chapter
+    // has a block of IDs (RetiredLevels.IdsPerChapter); the IDs from before the reset after chunk 34b are block 0
     [Fact]
-    public void Every_id_up_to_the_highest_is_shipped_or_retired()
+    public void Every_id_up_to_its_block_s_highest_is_shipped_or_retired()
     {
         var taken = Shipped().Concat(Retired()).ToHashSet();
 
-        Assert.All(Enumerable.Range(1, taken.Max()), id => Assert.Contains(id, taken));
+        var missing = taken
+            .GroupBy(id => id / RetiredLevels.IdsPerChapter)
+            .SelectMany(block =>
+            {
+                var first = block.Key * RetiredLevels.IdsPerChapter + 1;
+                return Enumerable.Range(first, block.Max() - first + 1).Where(id => !taken.Contains(id));
+            });
+
+        Assert.Empty(missing);
     }
 }

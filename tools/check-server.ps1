@@ -138,6 +138,14 @@ Check 'upload_records stores two and skips one under another player' (
 $reply = Send 'rest/v1/rpc/upload_records' ('{"player":"' + $player + '","records":[' + $first + ']}') $token
 Check 'a record sent twice is stored once' ($reply.Status -eq 200 -and $reply.Json.duplicates -eq 1 -and $reply.Json.stored -eq 0) "status $($reply.Status)"
 
+# The limit is 131072 bytes as jsonb text (after chunk 34b); the game sends none over half that
+$padded = (Record $player).TrimEnd('}') + ',"pad":"' + ('x' * 120000) + '"}'
+$oversized = (Record $player).TrimEnd('}') + ',"pad":"' + ('x' * 140000) + '"}'
+$reply = Send 'rest/v1/rpc/upload_records' ('{"player":"' + $player + '","records":[' + $padded + ',' + $oversized + ']}') $token
+Check 'upload_records stores a record under the size limit and skips one over it' (
+    $reply.Status -eq 200 -and $reply.Json.stored -eq 1 -and $reply.Json.skipped -eq 1
+) "status $($reply.Status), $($reply.Json | ConvertTo-Json -Compress)"
+
 $reply = Send 'rest/v1/rpc/submit_scores' $scores
 Check 'submit_scores without a session is refused' ($reply.Status -ge 400 -and $reply.Status -lt 500) "status $($reply.Status)"
 
