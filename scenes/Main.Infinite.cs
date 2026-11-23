@@ -16,6 +16,8 @@ public partial class Main
     private int seedCounter;
     // The choice being played, or null outside infinite play
     private InfiniteChoice infiniteChoice;
+    // The run being played: made with its first map, kept through Next map and New map, and dropped by any screen change
+    private InfiniteRun infiniteRun;
     // The map being made in the background, the screen waiting for it, and what the log line needs
     private MapJob mapJob;
     private IMapWait waiting;
@@ -31,7 +33,7 @@ public partial class Main
         setup.PlayPressed += OnInfinitePlayPressed;
         setup.BackPressed += ShowModeSelect;
         setup.WaitCancelled += () => CancelWait(setup);
-        setup.Open(SaveGameFile.Current.Infinite?.Fitted(config) ?? InfiniteChoice.Start(config), config, notice);
+        setup.Open(SaveGameFile.Current.Infinite?.Fitted(config) ?? InfiniteChoice.Start(config), config, notice, SaveGameFile.Current.InfiniteBestFor);
         back = ShowModeSelect;
     });
 
@@ -125,6 +127,10 @@ public partial class Main
     private void StartInfinite(Play play, InfiniteChoice choice, InfiniteMap map)
     {
         infiniteChoice = choice;
+        var config = GameConfigFile.Current;
+        infiniteRun ??= new InfiniteRun(config.Infinite.Scoring, config.Stars);
+        infiniteRun.StartMap(map.Par);
+        var run = infiniteRun;
         play.Start(map.Map, map.Par, new PlaySetup($"Difficulty {choice.Difficulty}")
         {
             Detail = $"{choice.Side}×{choice.Side}",
@@ -133,16 +139,49 @@ public partial class Main
             Rules = PlayRules.Unlimited,
             NewMap = true,
             Recording = InfiniteRecording(choice, map),
+            ScoreFinish = moves => ScoreInfinite(run, choice, moves),
+            RunLine = () => InfiniteCard.RunLine(run),
         });
         back = () => ShowInfiniteSetup();
     }
 
+    // Only a best that rose writes the save, and nothing here throws for a finish at or above par
+    private InfiniteCard ScoreInfinite(InfiniteRun run, InfiniteChoice choice, int moves)
+    {
+        var score = run.Finish(moves);
+        var before = SaveGameFile.Current.InfiniteBestFor(choice);
+        var raised = RecordInfiniteBest(run, choice);
+        var after = SaveGameFile.Current.InfiniteBestFor(choice) ?? InfiniteBest.None;
+        var window = run.WindowAverage is { } average ? $"{average / 100}%" : $"{run.Maps} of {GameConfigFile.Current.Infinite.Scoring.EfficiencyWindow}";
+        var kept = score.Counted ? "" : $", kept {Plural(score.KeptMoves, "move")}";
+        GD.Print($"Infinite run: map {run.Maps}, {Plural(moves, "move")} ({score.Efficiency / 100}%){kept}, +{score.KeptPoints}, run {run.Score}, streak {run.Streak}, last {window}{(raised ? ", new best" : "")}");
+        return InfiniteCard.Of(score, run, before, after, GameConfigFile.Current.Infinite.Scoring);
+    }
+
+    // Whether a best rose; the save is written only then
+    private static bool RecordInfiniteBest(InfiniteRun run, InfiniteChoice choice)
+    {
+        if (!SaveGameFile.Current.RecordInfiniteBest(choice, run.Best))
+        {
+            return false;
+        }
+        SaveGameFile.Save();
+        return true;
+    }
+
     private void OnNewMapPressed()
     {
-        if (infiniteChoice is { } choice)
+        if (infiniteChoice is not { } choice)
         {
-            PlayInfinite(choice);
+            return;
         }
+        if (infiniteRun is { } run)
+        {
+            run.GiveUp();
+            var raised = RecordInfiniteBest(run, choice);
+            GD.Print($"Infinite run: New map on map {run.Maps}, run {run.Score}, streak {run.Streak}{(raised ? ", new best" : "")}");
+        }
+        PlayInfinite(choice);
     }
 
     // "plain", "walls", "walls and teleporters", "walls, traps and irregular", for the log

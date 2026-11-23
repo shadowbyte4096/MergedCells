@@ -45,7 +45,23 @@ public class InfiniteConfigTests
         { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: 10.01) },
         { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: double.NaN) },
         { "infinite.loadingDelaySeconds", InfiniteConfigs.With(loadingDelaySeconds: double.PositiveInfinity) },
+        { "infinite.scoring.pointsPerPar", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(pointsPerPar: 0)) },
+        { "infinite.scoring.pointsPerPar", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(pointsPerPar: 1001)) },
+        { "infinite.scoring.streakBonusPercent", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(streakBonusPercent: -1)) },
+        { "infinite.scoring.streakBonusPercent", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(streakBonusPercent: 1001)) },
+        { "infinite.scoring.streakBonusCapPercent", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(streakBonusCapPercent: -1)) },
+        { "infinite.scoring.streakBonusCapPercent", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(streakBonusCapPercent: 1001)) },
+        { "infinite.scoring.efficiencyWindow", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(efficiencyWindow: 0)) },
+        { "infinite.scoring.efficiencyWindow", InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(efficiencyWindow: 1001)) },
     };
+
+    [Theory]
+    [InlineData(1, 0, 0, 1)]
+    [InlineData(1000, 1000, 1000, 1000)]
+    public void Accepts_the_scoring_edges(int pointsPerPar, int streakBonusPercent, int streakBonusCapPercent, int efficiencyWindow)
+    {
+        InfiniteConfigs.With(scoring: InfiniteConfigs.Scoring(pointsPerPar, streakBonusPercent, streakBonusCapPercent, efficiencyWindow)).CheckRanges();
+    }
 
     [Theory]
     [InlineData(0.0)]

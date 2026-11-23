@@ -10,7 +10,7 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 6;
+    public const int CurrentVersion = 7;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
@@ -30,7 +30,52 @@ public sealed class SaveGame
 
     private readonly Dictionary<Guid, DateTimeOffset> published = new();
 
+    private readonly Dictionary<InfiniteChoice, InfiniteBest> infiniteBests = new();
+
     public Appearance Appearance { get; set; } = Appearance.System;
+
+    /// <summary>The personal bests for one infinite choice, or null when no run at it has raised any (since version 7).</summary>
+    public InfiniteBest? InfiniteBestFor(InfiniteChoice choice)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        return infiniteBests.GetValueOrDefault(choice);
+    }
+
+    /// <summary>
+    /// Keeps the larger of each saved best and the candidate's. Returns whether any rose, so the caller writes the save only
+    /// then. Throws <see cref="ArgumentOutOfRangeException"/>, changing nothing, for anything <see cref="Parse"/> would refuse.
+    /// </summary>
+    public bool RecordInfiniteBest(InfiniteChoice choice, InfiniteBest candidate)
+    {
+        ArgumentNullException.ThrowIfNull(choice);
+        ArgumentNullException.ThrowIfNull(candidate);
+        CheckChoice(choice);
+        ArgumentOutOfRangeException.ThrowIfNegative(candidate.Streak, nameof(candidate));
+        ArgumentOutOfRangeException.ThrowIfNegative(candidate.Run, nameof(candidate));
+        if (candidate.Efficiency is { } efficiency)
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(efficiency, nameof(candidate));
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(efficiency, MaxEfficiency, nameof(candidate));
+        }
+        var saved = infiniteBests.GetValueOrDefault(choice) ?? InfiniteBest.None;
+        var merged = saved.Max(candidate);
+        // All zeros is only ever give-ups filling the window: no best to show yet
+        if (merged == saved || merged is { Streak: 0, Run: 0, Efficiency: null or 0 })
+        {
+            return false;
+        }
+        infiniteBests[choice] = merged;
+        return true;
+    }
+
+    private const int MaxEfficiency = 10000;
+
+    private static void CheckChoice(InfiniteChoice choice)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(choice.Difficulty, 1, nameof(choice));
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(choice.Difficulty, InfiniteConfig.DifficultyCount, nameof(choice));
+        ArgumentOutOfRangeException.ThrowIfLessThan(choice.Side, 2, nameof(choice));
+    }
 
     // The last choice played in infinite mode, or null before any (since version 3). Only what Parse accepts, so a write
     // can never make the next load a broken save
@@ -41,9 +86,7 @@ public sealed class SaveGame
         {
             if (value is { } choice)
             {
-                ArgumentOutOfRangeException.ThrowIfLessThan(choice.Difficulty, 1, nameof(value));
-                ArgumentOutOfRangeException.ThrowIfGreaterThan(choice.Difficulty, InfiniteConfig.DifficultyCount, nameof(value));
-                ArgumentOutOfRangeException.ThrowIfLessThan(choice.Side, 2, nameof(value));
+                CheckChoice(choice);
             }
             infinite = value;
         }
@@ -253,6 +296,7 @@ public sealed class SaveGame
         keys.Require(keys.Root, "player", 4);
         keys.Require(keys.Root, "server", 5);
         keys.Require(keys.Root, "library", 6);
+        keys.Require(keys.Root, "infiniteBests", 7);
         if (keys.Number >= 4)
         {
             keys.Require(keys.Consents, "library", 6);
@@ -286,7 +330,43 @@ public sealed class SaveGame
         {
             ReadLibrary(save, file.Library ?? throw new JsonException("The save's \"library\" is null."));
         }
+        if (keys.Number >= 7)
+        {
+            ReadInfiniteBests(save, file.InfiniteBests ?? throw new JsonException("The save's \"infiniteBests\" is null."));
+        }
         return save;
+    }
+
+    private static void ReadInfiniteBests(SaveGame save, InfiniteBestJson?[] bests)
+    {
+        foreach (var entry in bests)
+        {
+            if (entry is null)
+            {
+                throw new JsonException("The save has a null infinite best.");
+            }
+            var choice = ReadChoice(new InfiniteChoiceJson
+            {
+                Difficulty = entry.Difficulty,
+                Side = entry.Side,
+                Walls = entry.Walls,
+                Traps = entry.Traps,
+                Teleporters = entry.Teleporters,
+                Irregular = entry.Irregular,
+            })!;
+            if (entry.Streak < 0 || entry.Run < 0)
+            {
+                throw new JsonException("The save's infinite best has a \"streak\" or \"run\" below 0.");
+            }
+            if (entry.Efficiency is < 0 or > MaxEfficiency)
+            {
+                throw new JsonException($"The save's infinite best has \"efficiency\" {entry.Efficiency}; it must be from 0 to {MaxEfficiency}.");
+            }
+            if (!save.infiniteBests.TryAdd(choice, new InfiniteBest(entry.Streak, entry.Run, entry.Efficiency)))
+            {
+                throw new JsonException("The save lists one infinite choice's bests twice.");
+            }
+        }
     }
 
     private static void ReadLibrary(SaveGame save, LibraryJson library)
@@ -425,6 +505,26 @@ public sealed class SaveGame
                     pair => pair.Key.ToString("D"),
                     pair => (string?)pair.Value.UtcDateTime.ToString(TimeFormat, CultureInfo.InvariantCulture)),
             },
+            InfiniteBests = infiniteBests
+                .OrderBy(pair => pair.Key.Difficulty)
+                .ThenBy(pair => pair.Key.Side)
+                .ThenBy(pair => pair.Key.Walls)
+                .ThenBy(pair => pair.Key.Traps)
+                .ThenBy(pair => pair.Key.Teleporters)
+                .ThenBy(pair => pair.Key.Irregular)
+                .Select(pair => (InfiniteBestJson?)new InfiniteBestJson
+                {
+                    Difficulty = pair.Key.Difficulty,
+                    Side = pair.Key.Side,
+                    Walls = pair.Key.Walls,
+                    Traps = pair.Key.Traps,
+                    Teleporters = pair.Key.Teleporters,
+                    Irregular = pair.Key.Irregular,
+                    Streak = pair.Value.Streak,
+                    Run = pair.Value.Run,
+                    Efficiency = pair.Value.Efficiency,
+                })
+                .ToArray(),
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
@@ -534,6 +634,31 @@ internal sealed record SaveJson
 
     // Since version 6
     public LibraryJson? Library { get; init; }
+
+    // Since version 7
+    public InfiniteBestJson?[]? InfiniteBests { get; init; }
+}
+
+internal sealed record InfiniteBestJson
+{
+    public required int Difficulty { get; init; }
+
+    public required int Side { get; init; }
+
+    public required bool Walls { get; init; }
+
+    public required bool Traps { get; init; }
+
+    public required bool Teleporters { get; init; }
+
+    public required bool Irregular { get; init; }
+
+    public required int Streak { get; init; }
+
+    public required long Run { get; init; }
+
+    // Hundredths of a percent; null while no run at the choice has reached the window
+    public required int? Efficiency { get; init; }
 }
 
 internal sealed record LibraryJson

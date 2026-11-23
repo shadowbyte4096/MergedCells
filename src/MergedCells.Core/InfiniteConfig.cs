@@ -38,6 +38,8 @@ public sealed record InfiniteConfig
     // How long a map may take before its loading bar shows, so a quick map doesn't flicker
     public required double LoadingDelaySeconds { get; init; }
 
+    public required InfiniteScoring Scoring { get; init; }
+
     // Difficulty 1 first
     public required IReadOnlyList<InfiniteDifficulty> Difficulties { get; init; }
 
@@ -90,6 +92,7 @@ public sealed record InfiniteConfig
         {
             throw new ArgumentOutOfRangeException("infinite.loadingDelaySeconds", LoadingDelaySeconds, "Must be from 0 to 10 seconds.");
         }
+        Scoring.CheckRanges();
     }
 
     private void CheckSides(SideRange range, string name)

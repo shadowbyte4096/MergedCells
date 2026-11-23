@@ -90,6 +90,13 @@ theme_type_variation = &"MovesLine"
 text = "0 moves · par 0"
 horizontal_alignment = 1
 
+[node name="RunLabel" type="Label" parent="Hud/Root/TopBar/Row/Heading"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"RunLine"
+text = "Run 0 · streak 0"
+horizontal_alignment = 1
+
 [node name="SettingsButton" type="Button" parent="Hud/Root/TopBar/Row"]
 custom_minimum_size = Vector2(48, 0)
 layout_mode = 2
@@ -315,6 +322,90 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_type_variation = &"BestLine"
 text = "Your best · 0 moves"
+horizontal_alignment = 1
+
+[node name="Run" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]
+visible = false
+custom_minimum_size = Vector2(520, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Placeholder"
+
+[node name="Tiles" type="HBoxContainer" parent="Hud/Root/Results/Sheet/Column/Run"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatTiles"
+
+[node name="Streak" type="VBoxContainer" parent="Hud/Root/Results/Sheet/Column/Run/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Streak"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Streak"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Streak"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 1
+
+[node name="Note" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Streak"]
+layout_mode = 2
+theme_type_variation = &"StatNote"
+text = "best 0"
+horizontal_alignment = 1
+
+[node name="Run" type="VBoxContainer" parent="Hud/Root/Results/Sheet/Column/Run/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Run"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Run"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Run"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 1
+
+[node name="Note" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Run"]
+layout_mode = 2
+theme_type_variation = &"StatNote"
+text = "+0 this map"
+horizontal_alignment = 1
+
+[node name="Efficiency" type="VBoxContainer" parent="Hud/Root/Results/Sheet/Column/Run/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Efficiency"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Last 10"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Efficiency"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "0%"
+horizontal_alignment = 1
+
+[node name="Note" type="Label" parent="Hud/Root/Results/Sheet/Column/Run/Tiles/Efficiency"]
+layout_mode = 2
+theme_type_variation = &"StatNote"
+text = "best 0%"
 horizontal_alignment = 1
 
 [node name="Leaderboard" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]

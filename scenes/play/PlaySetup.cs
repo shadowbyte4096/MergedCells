@@ -20,6 +20,13 @@ public sealed record PlaySetup(string Title)
     // Called with the move count on a win, returning how it compares with the saved best; null records nothing
     public Func<int, LevelFinish> RecordFinish { get; init; }
 
+    // An infinite map's scoring: called with the move count on a win, before the play record ends, returning the card's words;
+    // null isn't scored
+    public Func<int, InfiniteCard> ScoreFinish { get; init; }
+
+    // The run's line under the moves, asked as the map starts, after a scored finish and after New map; null hides it
+    public Func<string> RunLine { get; init; }
+
     // Null is unlimited undo
     public PlayRules Rules { get; init; }
 

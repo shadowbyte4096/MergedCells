@@ -12,6 +12,10 @@ public partial class ResultsScreen : Control
     private Label movesLabel;
     private Label parLabel;
     private Label bestLabel;
+    private Control runPanel;
+    private TileLabels streakTile;
+    private TileLabels runTile;
+    private TileLabels efficiencyTile;
     private Control leaderboard;
     private BestMovesChart chart;
     private Control libraryPanel;
@@ -50,6 +54,10 @@ public partial class ResultsScreen : Control
         movesLabel = GetNode<Label>("Sheet/Column/MovesLabel");
         parLabel = GetNode<Label>("Sheet/Column/ParLabel");
         bestLabel = GetNode<Label>("Sheet/Column/BestLabel");
+        runPanel = GetNode<Control>("Sheet/Column/Run");
+        streakTile = TileLabels.At(runPanel, "Tiles/Streak");
+        runTile = TileLabels.At(runPanel, "Tiles/Run");
+        efficiencyTile = TileLabels.At(runPanel, "Tiles/Efficiency");
         leaderboard = GetNode<Control>("Sheet/Column/Leaderboard");
         chart = new BestMovesChart();
         leaderboard.AddChild(chart);
@@ -146,6 +154,7 @@ public partial class ResultsScreen : Control
     public void ShowResults(int moves, int par, int earned, int twoStarLimit, int oneStarLimit, LevelFinish finish)
     {
         stars.Visible = true;
+        runPanel.Visible = false;
         stars.Looks = StarLooks.For(earned, finish is null ? earned : finish.PreviousStars ?? 0);
         movesLabel.Text = Plural(moves);
         bestLabel.Visible = finish?.PreviousBest is not null;
@@ -167,11 +176,45 @@ public partial class ResultsScreen : Control
     public void ShowPlain(int moves, int par)
     {
         stars.Visible = false;
+        runPanel.Visible = false;
         movesLabel.Text = Plural(moves);
         bestLabel.Visible = false;
         parLabel.Text = $"Par {par}";
         Show();
     }
 
+    // An infinite map: the moves, its efficiency on the par line, its best line on a Retry, and the run's three tiles
+    public void ShowRun(int moves, InfiniteCard card)
+    {
+        stars.Visible = false;
+        movesLabel.Text = Plural(moves);
+        parLabel.Text = card.ParLine;
+        bestLabel.Visible = card.BestLine is not null;
+        bestLabel.Text = card.BestLine ?? "";
+        streakTile.Fill(card.Streak);
+        runTile.Fill(card.Run);
+        efficiencyTile.Fill(card.Efficiency);
+        runPanel.Visible = true;
+        Show();
+    }
+
     private static string Plural(int moves) => moves == 1 ? "1 move" : $"{moves} moves";
+}
+
+// One tile's three labels; the setup screen's tiles have no note
+public sealed record TileLabels(Label Key, Label Value, Label Note)
+{
+    public static TileLabels At(Node parent, string path) =>
+        new(parent.GetNode<Label>($"{path}/Key"), parent.GetNode<Label>($"{path}/Value"), parent.GetNodeOrNull<Label>($"{path}/Note"));
+
+    public void Fill(StatTile tile)
+    {
+        Key.Text = tile.Key;
+        Value.Text = tile.Value;
+        if (Note is not null)
+        {
+            Note.Text = tile.Note;
+            Note.ThemeTypeVariation = tile.Strong ? "StatNoteStrong" : "StatNote";
+        }
+    }
 }

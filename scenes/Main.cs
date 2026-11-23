@@ -407,6 +407,7 @@ public partial class Main : Node
         level = null;
         testBoard = null;
         infiniteChoice = null;
+        infiniteRun = null;
         return node;
     }
 

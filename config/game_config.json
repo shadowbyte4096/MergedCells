@@ -142,6 +142,7 @@
     "trapPercent": 3,
     "teleporterPercent": 2,
     "loadingDelaySeconds": 0.25,
+    "scoring": { "pointsPerPar": 10, "streakBonusPercent": 10, "streakBonusCapPercent": 100, "efficiencyWindow": 10 },
     "difficulties": [
       { "minScore": 0, "maxScore": 9, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },
       { "minScore": 10, "maxScore": 19, "plain": { "minSide": 4, "maxSide": 30 }, "twists": { "minSide": 4, "maxSide": 30 } },

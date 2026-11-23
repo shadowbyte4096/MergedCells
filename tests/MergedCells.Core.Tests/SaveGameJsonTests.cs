@@ -56,6 +56,36 @@ public class SaveGameJsonTests
     internal static string Valid6 =>
         Valid5.Replace("\"version\":5", "\"version\":6").Replace(Consents4, Consents6)[..^1] + ",\"library\":" + LibrarySection + "}";
 
+    private const string BestEntry =
+        """{"difficulty":4,"side":12,"walls":true,"traps":false,"teleporters":true,"irregular":false,"streak":7,"run":3410,"efficiency":9400}""";
+
+    private const string BestsSection = "[" + BestEntry + "]";
+
+    // Version 7 adds infinite mode's personal bests, one entry per choice
+    internal static string Valid7 => Valid6.Replace("\"version\":6", "\"version\":7")[..^1] + ",\"infiniteBests\":" + BestsSection + "}";
+
+    private static readonly InfiniteChoice BestChoice = new(4, 12, true, false, true, false);
+
+    [Fact]
+    public void Version_7_save_reads_its_infinite_bests()
+    {
+        Assert.Equal(new InfiniteBest(7, 3410, 9400), SaveGame.Parse(Valid7).InfiniteBestFor(BestChoice));
+    }
+
+    [Fact]
+    public void Version_7_save_reads_a_null_efficiency()
+    {
+        var text = Valid7.Replace("\"efficiency\":9400", "\"efficiency\":null");
+
+        Assert.Equal(new InfiniteBest(7, 3410, null), SaveGame.Parse(text).InfiniteBestFor(BestChoice));
+    }
+
+    [Fact]
+    public void Version_6_save_reads_as_no_infinite_bests()
+    {
+        Assert.Null(SaveGame.Parse(Valid6).InfiniteBestFor(BestChoice));
+    }
+
     private static string Published(SaveGame save) =>
         string.Join(",", save.Published.OrderBy(pair => pair.Key).Select(pair => $"{pair.Key:D}={pair.Value:O}"));
 
@@ -240,12 +270,12 @@ public class SaveGameJsonTests
     }
 
     [Fact]
-    public void Written_save_is_version_6_without_the_version_3_keys()
+    public void Written_save_is_version_7_without_the_version_3_keys()
     {
         var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
 
         Assert.Equal(
-            (6, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0),
+            (7, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0, 0),
             (root.GetProperty("version").GetInt32(),
                 root.TryGetProperty("playtester", out _),
                 root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
@@ -253,7 +283,8 @@ public class SaveGameJsonTests
                 root.GetProperty("consents").GetProperty("leaderboards").ValueKind,
                 root.GetProperty("consents").GetProperty("library").ValueKind,
                 root.GetProperty("player").ValueKind,
-                root.GetProperty("library").GetProperty("published").EnumerateObject().Count()));
+                root.GetProperty("library").GetProperty("published").EnumerateObject().Count(),
+                root.GetProperty("infiniteBests").GetArrayLength()));
     }
 
     [Fact]
@@ -511,6 +542,21 @@ public class SaveGameJsonTests
         Valid6.Replace(PublishedAt, "2026-11-20 10:22:31"),
         Valid6.Replace(PublishedAt, "2026-11-20T10:22:31+01:00"),
         Valid6.Replace(LibraryYes, """{"answer":"maybe","wording":1}"""),
+        Valid6[..^1] + ",\"infiniteBests\":" + BestsSection + "}",
+        Valid7.Replace(",\"infiniteBests\":" + BestsSection, ""),
+        Valid7.Replace(BestsSection, "null"),
+        Valid7.Replace(BestsSection, "[null]"),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"difficulty\":4", "\"difficulty\":0")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"difficulty\":4", "\"difficulty\":11")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"side\":12", "\"side\":1")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"streak\":7", "\"streak\":-1")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"run\":3410", "\"run\":-1")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"efficiency\":9400", "\"efficiency\":-1")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"efficiency\":9400", "\"efficiency\":10001")),
+        Valid7.Replace(BestEntry, BestEntry.Replace(",\"efficiency\":9400", "")),
+        Valid7.Replace(BestEntry, BestEntry.Replace(",\"walls\":true", "")),
+        Valid7.Replace(BestEntry, BestEntry.Replace("\"efficiency\":9400", "\"efficiency\":9400,\"extra\":1")),
+        Valid7.Replace(BestsSection, "[" + BestEntry + "," + BestEntry.Replace("\"streak\":7", "\"streak\":2") + "]"),
     };
 
     [Theory]
@@ -555,8 +601,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("7.0", 7)]
-    [InlineData("7e0", 7)]
+    [InlineData("8.0", 8)]
+    [InlineData("8e0", 8)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

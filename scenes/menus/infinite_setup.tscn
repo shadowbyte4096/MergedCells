@@ -228,6 +228,92 @@ theme_type_variation = &"Muted"
 horizontal_alignment = 1
 autowrap_mode = 3
 
+[node name="Bests" type="PanelContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Placeholder"
+
+[node name="Column" type="VBoxContainer" parent="Root/Centre/Column/Bests"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Title" type="Label" parent="Root/Centre/Column/Bests/Column"]
+layout_mode = 2
+theme_type_variation = &"BestLine"
+text = "Your bests at these settings"
+horizontal_alignment = 1
+
+[node name="Area" type="MarginContainer" parent="Root/Centre/Column/Bests/Column"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Tiles" type="HBoxContainer" parent="Root/Centre/Column/Bests/Column/Area"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"StatTiles"
+
+[node name="Streak" type="VBoxContainer" parent="Root/Centre/Column/Bests/Column/Area/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Streak"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Streak"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Streak"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 1
+
+[node name="Run" type="VBoxContainer" parent="Root/Centre/Column/Bests/Column/Area/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Run"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Run"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Run"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "0"
+horizontal_alignment = 1
+
+[node name="Efficiency" type="VBoxContainer" parent="Root/Centre/Column/Bests/Column/Area/Tiles"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
+[node name="Key" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Efficiency"]
+layout_mode = 2
+theme_type_variation = &"StatKey"
+text = "Best 10"
+horizontal_alignment = 1
+uppercase = true
+
+[node name="Value" type="Label" parent="Root/Centre/Column/Bests/Column/Area/Tiles/Efficiency"]
+layout_mode = 2
+theme_type_variation = &"StatValue"
+text = "–"
+horizontal_alignment = 1
+
+[node name="Empty" type="Label" parent="Root/Centre/Column/Bests/Column/Area"]
+visible = false
+layout_mode = 2
+theme_type_variation = &"StatNote"
+text = "No runs at these settings yet"
+horizontal_alignment = 1
+vertical_alignment = 1
+
 [node name="Gap" type="Control" parent="Root/Centre/Column"]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2

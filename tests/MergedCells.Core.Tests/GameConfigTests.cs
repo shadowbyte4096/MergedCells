@@ -46,9 +46,11 @@ public class GameConfigTests
         "[" + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + ","
         + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + "," + InfiniteEntry + "]";
 
+    private const string ScoringGroup = """{"pointsPerPar":1,"streakBonusPercent":0,"streakBonusCapPercent":0,"efficiencyWindow":1}""";
+
     // Passes the range check with the generator group above, so a case can break one value of it
     private const string InfiniteGroup =
-        """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"loadingDelaySeconds":0,"difficulties":"""
+        """{"minSide":2,"maxSide":2,"startDifficulty":1,"startSide":2,"minPar":1,"maxPar":1,"climbSteps":1,"stallSteps":1,"wallPercent":0,"trapPercent":0,"teleporterPercent":0,"loadingDelaySeconds":0,"scoring":""" + ScoringGroup + ""","difficulties":"""
         + InfiniteEntries + "}";
     private const string ServerGroup =
         """{"url":"https://example.test","publishableKey":"k","timeoutSeconds":1,"retrySeconds":1,"refreshMarginSeconds":1,"scoresPerRequest":1,"recordsPerRequest":1,"recordBytesPerRequest":1024,"recordMaxBytes":1024}""";
@@ -231,6 +233,9 @@ public class GameConfigTests
         Valid.Replace("\"teleporterPercent\":0", "\"teleporterPercent\":0,\"extra\":1"),
         Valid.Replace(""","startSide":2""", ""),
         Valid.Replace(""","loadingDelaySeconds":0""", ""),
+        Valid.Replace(""","scoring":""" + ScoringGroup, ""),
+        Valid.Replace(""","efficiencyWindow":1""", ""),
+        Valid.Replace("\"efficiencyWindow\":1", "\"efficiencyWindow\":1,\"extra\":1"),
         Valid.Replace(InfiniteEntries, "[" + InfiniteEntry.Replace("\"maxScore\":100", "\"maxScore\":100,\"extra\":1") + "]"),
         Valid.Replace(""","server":""" + ServerGroup, ""),
         Valid.Replace(""","privacy":""" + PrivacyGroup, ""),
@@ -304,6 +309,7 @@ public class GameConfigTests
     public static TheoryData<string> NullInfiniteTexts => new()
     {
         Valid.Replace(InfiniteGroup, "null"),
+        Valid.Replace(ScoringGroup, "null"),
         Valid.Replace(InfiniteEntries, "null"),
         Valid.Replace(InfiniteEntries, "[null]"),
         Valid.Replace(InfiniteEntries, "[" + InfiniteEntry.Replace("\"plain\":{\"minSide\":2,\"maxSide\":2}", "\"plain\":null") + "]"),
@@ -614,6 +620,7 @@ public class GameConfigTests
         ConfigText(bands: """[{"name":" ","minScore":0}]"""),
         ConfigText(infinite: InfiniteGroup.Replace("\"climbSteps\":1,\"stallSteps\":1", "\"climbSteps\":0,\"stallSteps\":0")),
         ConfigText(infinite: InfiniteGroup.Replace("\"loadingDelaySeconds\":0", "\"loadingDelaySeconds\":-1")),
+        ConfigText(infinite: InfiniteGroup.Replace("\"efficiencyWindow\":1", "\"efficiencyWindow\":0")),
         ConfigText(server: Server(url: "http://example.test")),
         ConfigText(server: Server(url: "https://example.test/")),
         ConfigText(server: Server(url: "https://")),

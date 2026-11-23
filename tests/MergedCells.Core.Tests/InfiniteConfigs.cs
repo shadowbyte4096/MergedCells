@@ -16,7 +16,8 @@ internal static class InfiniteConfigs
         int trapPercent = 3,
         int teleporterPercent = 2,
         IReadOnlyList<InfiniteDifficulty>? difficulties = null,
-        double loadingDelaySeconds = 0.25) => new()
+        double loadingDelaySeconds = 0.25,
+        InfiniteScoring? scoring = null) => new()
     {
         MinSide = minSide,
         MaxSide = maxSide,
@@ -30,7 +31,20 @@ internal static class InfiniteConfigs
         TrapPercent = trapPercent,
         TeleporterPercent = teleporterPercent,
         LoadingDelaySeconds = loadingDelaySeconds,
+        Scoring = scoring ?? Scoring(),
         Difficulties = difficulties ?? Tenths(minSide, maxSide),
+    };
+
+    public static InfiniteScoring Scoring(
+        int pointsPerPar = 10,
+        int streakBonusPercent = 10,
+        int streakBonusCapPercent = 100,
+        int efficiencyWindow = 10) => new()
+    {
+        PointsPerPar = pointsPerPar,
+        StreakBonusPercent = streakBonusPercent,
+        StreakBonusCapPercent = streakBonusCapPercent,
+        EfficiencyWindow = efficiencyWindow,
     };
 
     // Bands of ten score points, 90 to 100 last, each allowing every size

@@ -34,9 +34,13 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
     private Button teleporters;
     private Button irregular;
     private Label notice;
+    private Control bestsTiles;
+    private TileLabels[] bestTiles;
+    private Label noBests;
     private SettingsSheet settings;
     private InfiniteConfig config;
     private InfiniteChoice choice;
+    private Func<InfiniteChoice, InfiniteBest> bestsFor;
     private bool dark;
 
     public event Action<InfiniteChoice> PlayPressed;
@@ -78,6 +82,10 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
         teleporters = GetNode<Button>($"{column}/Twists/Teleporters");
         irregular = GetNode<Button>($"{column}/Twists/Irregular");
         notice = GetNode<Label>($"{column}/Notice");
+        var bests = GetNode<Control>($"{column}/Bests");
+        bestsTiles = bests.GetNode<Control>("Column/Area/Tiles");
+        bestTiles = [TileLabels.At(bestsTiles, "Streak"), TileLabels.At(bestsTiles, "Run"), TileLabels.At(bestsTiles, "Efficiency")];
+        noBests = bests.GetNode<Label>("Column/Area/Empty");
         settings = GetNode<SettingsSheet>("Root/Settings");
 
         difficultySlider.ValueChanged += value => Choose(choice.WithDifficulty((int)value, config));
@@ -103,6 +111,7 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
             GetNode<Control>($"{column}/TwistsLabel"),
             GetNode<Control>($"{column}/Twists"),
             notice,
+            bests,
         ];
         GetNode<Button>("Root/TopBar/Row/Back").Pressed += () => BackPressed?.Invoke();
         gear = GetNode<Button>("Root/TopBar/Row/SettingsButton");
@@ -118,11 +127,12 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
         ApplySafeArea();
     }
 
-    // notice: why the last map couldn't be made, or null
-    public void Open(InfiniteChoice opened, InfiniteConfig infinite, string notice)
+    // notice: why the last map couldn't be made, or null. bests: the save's bests for a choice, shown for the one selected
+    public void Open(InfiniteChoice opened, InfiniteConfig infinite, string notice, Func<InfiniteChoice, InfiniteBest> bests)
     {
         // Set first: changing a slider's range can move its value, which reports a change
         config = infinite;
+        bestsFor = bests;
         choice = opened.Fitted(infinite);
         difficultySlider.MinValue = 1;
         difficultySlider.MaxValue = InfiniteConfig.DifficultyCount;
@@ -253,6 +263,23 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
         traps.SetPressedNoSignal(shown.Traps);
         teleporters.SetPressedNoSignal(shown.Teleporters);
         irregular.SetPressedNoSignal(shown.Irregular);
+        ShowBests(shown);
+    }
+
+    // The tiles go see-through rather than hidden when there are none, so the panel keeps their height
+    private void ShowBests(InfiniteChoice shown)
+    {
+        var tiles = InfiniteCard.SetupTiles(bestsFor(shown), config.Scoring);
+        noBests.Visible = tiles is null;
+        bestsTiles.Modulate = tiles is null ? Colors.Transparent : Colors.White;
+        if (tiles is null)
+        {
+            return;
+        }
+        for (var index = 0; index < bestTiles.Length; index++)
+        {
+            bestTiles[index].Fill(tiles[index]);
+        }
     }
 
     private void ApplyLook()
@@ -270,5 +297,7 @@ public partial class InfiniteSetup : CanvasLayer, IScreen, IMapWait
         var (top, _) = SafeArea.Insets(this);
         topBar.OffsetTop = top;
         topBar.OffsetBottom = top + topBar.GetCombinedMinimumSize().Y;
+        // Centred below the bar, so a tall column never slides under it on a short screen
+        GetNode<Control>("Root/Centre").OffsetTop = topBar.OffsetBottom;
     }
 }

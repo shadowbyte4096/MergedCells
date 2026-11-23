@@ -221,6 +221,10 @@ public sealed record GameConfig
         {
             throw new JsonException("The config's \"infinite\" group is null.");
         }
+        if (infinite.Scoring is null)
+        {
+            throw new JsonException("The config's \"infinite.scoring\" is null.");
+        }
         if (infinite.Difficulties is null)
         {
             throw new JsonException("The config's \"infinite.difficulties\" is null.");

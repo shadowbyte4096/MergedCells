@@ -20,6 +20,7 @@ public partial class Play : Node2D, IScreen, IMapWait
     private Control resultsTitleBar;
     private Label titleLabel;
     private Label movesLabel;
+    private Label runLabel;
     private Button undoButton;
     private Button undoCaption;
     private PanelContainer undoBadge;
@@ -95,6 +96,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         resultsTitleBar = GetNode<Control>("Hud/Root/Results/TitleBar");
         titleLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/TitleLabel");
         movesLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/MovesLabel");
+        runLabel = GetNode<Label>("Hud/Root/TopBar/Row/Heading/RunLabel");
         results = GetNode<ResultsScreen>("Hud/Root/Results");
         settings = GetNode<SettingsSheet>("Hud/Root/Settings");
         undoButton = GetNode<Button>("Hud/Root/BottomBar/Row/Undo/UndoButton");
@@ -199,6 +201,7 @@ public partial class Play : Node2D, IScreen, IMapWait
         titleLabel.Text = title;
         results.Title = title;
         RefreshMoves();
+        RefreshRunLine();
         RefreshUndo();
         ShowTutorial();
         SetClearColor();
@@ -393,6 +396,8 @@ public partial class Play : Node2D, IScreen, IMapWait
         GD.Print("New map");
         EndRecording(PlayOutcome.GaveUp);
         NewMapPressed?.Invoke();
+        // The give-up broke the streak, and the next map can take seconds to make
+        RefreshRunLine();
     }
 
     private void DisarmNewMap()
@@ -570,8 +575,9 @@ public partial class Play : Node2D, IScreen, IMapWait
 
     private void Finish()
     {
-        // The best first: play data is for tuning, and must never cost a player their result
+        // The best and the score first: play data is for tuning, and must never cost a player their result
         var finish = setup.RecordFinish?.Invoke(session.Moves);
+        var card = setup.ScoreFinish?.Invoke(session.Moves);
         EndRecording(PlayOutcome.Won);
         // Transparent rather than hidden, so the board's inset, and the board, stay where they are
         tutorialBlock.Modulate = Colors.Transparent;
@@ -584,6 +590,13 @@ public partial class Play : Node2D, IScreen, IMapWait
         if (setup.HasNext is not null)
         {
             results.HasNext = setup.HasNext();
+        }
+        if (card is not null)
+        {
+            RefreshRunLine();
+            results.ShowRun(session.Moves, card);
+            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {card.ParLine}");
+            return;
         }
         var stars = setup.Stars;
         if (stars is null)
@@ -601,6 +614,15 @@ public partial class Play : Node2D, IScreen, IMapWait
     {
         var moves = $"{Plural(session.Moves, "move")} · par {par}";
         movesLabel.Text = setup.Detail is null ? moves : $"{setup.Detail} · {moves}";
+    }
+
+    private void RefreshRunLine()
+    {
+        runLabel.Visible = setup.RunLine is not null;
+        if (setup.RunLine is { } line)
+        {
+            runLabel.Text = line();
+        }
     }
 
     // No badge when undo is unlimited. With none left, Undo greys out until a restart.
