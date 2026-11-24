@@ -30,6 +30,11 @@
     <None Include="..\..\themes\fonts\OFL.txt" Link="themes\fonts\OFL.txt" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\MergedCells.csproj" Link="MergedCells.csproj" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\supabase\levels.sql" Link="supabase\levels.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\icons\icon-art.json" LinkBase="icons" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\icons\*.svg;..\..\icons\*.png" LinkBase="icons" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\icon.svg" Link="icon.svg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\project.godot" Link="project.godot" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\export_presets.cfg" Link="export_presets.cfg" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures\levels\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

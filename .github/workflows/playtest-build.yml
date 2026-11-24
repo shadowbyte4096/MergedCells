@@ -29,6 +29,8 @@ env:
   MSBUILDDISABLENODEREUSE: 1
   DOTNET_CLI_USE_MSBUILD_SERVER: 0
   UseSharedCompilation: false
+  # The Android export is a Gradle build; a one-off build needs no daemon left running
+  GRADLE_OPTS: -Dorg.gradle.daemon=false
 
 jobs:
   build:
@@ -104,7 +106,8 @@ jobs:
 
       - name: Install Android SDK parts
         run: |
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "build-tools;35.0.1" "platforms;android-35" > /dev/null
+          # 36 and 36.1.0 are what Godot 4.7.2's Gradle build template compiles against (android/build/config.gradle)
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platform-tools" "build-tools;35.0.1" "build-tools;36.1.0" "platforms;android-35" "platforms;android-36" > /dev/null
           # Started here, detached, so Godot doesn't start its own adb server holding the step's output open
           "$ANDROID_HOME/platform-tools/adb" start-server > /dev/null 2>&1 < /dev/null
 
@@ -133,7 +136,8 @@ jobs:
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: ${{ secrets.PLAYTEST_KEYSTORE_PASSWORD }}
         run: |
           mkdir -p builds/android builds/windows
-          "$GODOT" --headless --path . --export-release "Android" builds/android/MergedCells.apk
+          # The Gradle build (since after chunk 34b, for the launch screen's colour) needs the build template in android/
+          "$GODOT" --headless --path . --install-android-build-template --export-release "Android" builds/android/MergedCells.apk
           "$GODOT" --headless --path . --export-release "Windows Desktop" builds/windows/MergedCells.exe
           test -f builds/android/MergedCells.apk
           test -f builds/windows/MergedCells.exe

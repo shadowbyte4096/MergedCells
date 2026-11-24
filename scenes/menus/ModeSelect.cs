@@ -13,6 +13,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private StarsView star;
     private Label totalLabel;
     private Label saveNotice;
+    private Label title;
     private SettingsSheet settings;
     private ConsentSheet consent;
     private bool dark;
@@ -32,6 +33,26 @@ public partial class ModeSelect : CanvasLayer, IScreen
     // The one-time ask about play data and, from chunk 33, leaderboards; Main decides what it asks
     public ConsentSheet Consent => consent;
 
+    // Where the title sits, for the intro's title to land on
+    public TitleSpot TitleSpot
+    {
+        get
+        {
+            var rect = title.GetGlobalRect();
+            var centre = rect.GetCenter();
+            return new TitleSpot(new System.Numerics.Vector2(centre.X, centre.Y), rect.Size.X, title.GetThemeFontSize("font_size"));
+        }
+    }
+
+    public Color TitleColour => title.GetThemeColor("font_color");
+
+    // Hidden while the intro's own title glides onto it, so only one title ever shows; transparent rather than invisible,
+    // so the column keeps its layout
+    public bool TitleShown
+    {
+        set => title.SelfModulate = value ? Colors.White : Colors.Transparent;
+    }
+
     public bool Dark
     {
         set
@@ -49,6 +70,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
         star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
         totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
         saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
+        title = GetNode<Label>("Root/Centre/Column/Title");
         settings = GetNode<SettingsSheet>("Root/Settings");
         consent = GetNode<ConsentSheet>("Root/Consent");
 

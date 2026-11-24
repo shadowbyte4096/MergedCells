@@ -10,6 +10,7 @@
 [ext_resource type="PackedScene" path="res://scenes/menus/custom_levels.tscn" id="8_custom"]
 [ext_resource type="PackedScene" path="res://scenes/menus/infinite_setup.tscn" id="9_infinite"]
 [ext_resource type="PackedScene" path="res://scenes/menus/library.tscn" id="10_library"]
+[ext_resource type="PackedScene" path="res://scenes/menus/intro_layer.tscn" id="11_intro"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
@@ -22,3 +23,4 @@ EditorScene = ExtResource("7_editor")
 CustomLevelsScene = ExtResource("8_custom")
 LibraryScene = ExtResource("10_library")
 InfiniteSetupScene = ExtResource("9_infinite")
+IntroScene = ExtResource("11_intro")

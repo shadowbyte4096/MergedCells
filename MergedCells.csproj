@@ -4,7 +4,7 @@
     <TargetFramework Condition=" '$(GodotTargetPlatform)' == 'android' ">net9.0</TargetFramework>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <!-- The SDK compiles every .cs below this folder; Core is referenced as its own project instead -->
-    <DefaultItemExcludes>$(DefaultItemExcludes);src/**;tests/**</DefaultItemExcludes>
+    <DefaultItemExcludes>$(DefaultItemExcludes);src/**;tests/**;android/**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="src\MergedCells.Core\MergedCells.Core.csproj" />

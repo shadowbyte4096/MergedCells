@@ -1,0 +1,29 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/IntroLayer.cs" id="1_intro"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Shader" path="res://scenes/menus/intro.gdshader" id="3_shader"]
+[ext_resource type="Theme" path="res://themes/dark_ui_theme.tres" id="4_theme"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_intro"]
+shader = ExtResource("3_shader")
+
+[node name="IntroLayer" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_intro")
+Looks = ExtResource("2_looks")
+
+[node name="Canvas" type="ColorRect" parent="."]
+material = SubResource("ShaderMaterial_intro")
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Title" type="Label" parent="."]
+mouse_filter = 2
+theme = ExtResource("4_theme")
+theme_type_variation = &"Title"
+text = "Merged Cells"
+horizontal_alignment = 1

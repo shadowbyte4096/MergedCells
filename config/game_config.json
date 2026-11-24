@@ -176,5 +176,11 @@
   "library": {
     "pageSize": 20,
     "sizeSteps": [10, 20]
+  },
+  "intro": {
+    "openSeconds": 0.6,
+    "titleSeconds": 0.3,
+    "holdSeconds": 0.5,
+    "handoffSeconds": 0.5
   }
 }

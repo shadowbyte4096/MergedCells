@@ -67,6 +67,6 @@ Playtesters are welcome to send in levels. Make one in the level editor, copy it
 Copyright © 2026 DefinitelyNotZac
 
 - **Code and everything not listed below:** [GNU General Public License v3.0 or later](LICENSE).
-- **Level files (`levels/*.json`) and the app icon (`icon.svg`):** not licensed under the GPL. All rights reserved.
+- **Level files (`levels/*.json`) and the app icon (`icon.svg` and `icons/`):** not licensed under the GPL. All rights reserved.
 - **Levels players make:** stay their makers'. [TERMS.md](TERMS.md) says what publishing one to the library, or sending one in for the game, allows.
 - **Inter font (`themes/fonts/`):** [SIL Open Font License 1.1](themes/fonts/OFL.txt).

@@ -25,7 +25,21 @@ public partial class Main
             askDismissed = true;
             GD.Print("Consent: ask closed unanswered");
         };
-        AskNext(menu);
+        // The first mode select opens under the intro, so the ask waits for it to end
+        if (intro is { Playing: true })
+        {
+            intro.Finished += () =>
+            {
+                if (screen == menu)
+                {
+                    AskNext(menu);
+                }
+            };
+        }
+        else
+        {
+            AskNext(menu);
+        }
     }
 
     private void AskNext(ModeSelect menu)

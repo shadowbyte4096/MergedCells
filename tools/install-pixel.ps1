@@ -27,6 +27,8 @@ if (-not (Get-Command $godot -ErrorAction SilentlyContinue)) {
 $env:MSBUILDDISABLENODEREUSE = '1'
 $env:DOTNET_CLI_USE_MSBUILD_SERVER = '0'
 $env:UseSharedCompilation = 'false'
+# The Android export is a Gradle build (since after chunk 34b), and Gradle's daemon holds the pipe open the same way
+$env:GRADLE_OPTS = '-Dorg.gradle.daemon=false'
 
 # Start adb detached first, or Godot starts its own server, which inherits the output pipe and never lets go
 (Start-Process -FilePath $adb -ArgumentList 'start-server' -WindowStyle Hidden -PassThru).WaitForExit()

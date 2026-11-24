@@ -101,6 +101,7 @@ public partial class Main : Node
             throw;
         }
         ShowModeSelect();
+        StartIntro();
         StartServer();
     }
 
@@ -519,6 +520,11 @@ public partial class Main : Node
     private void Back(bool fromSystem)
     {
         GD.Print("Back");
+        if (intro is { Playing: true })
+        {
+            intro.Skip();
+            return;
+        }
         if (screen is IScreen current && current.CloseOverlay())
         {
             return;
