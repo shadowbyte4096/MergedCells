@@ -163,7 +163,7 @@ public partial class Main : Node
         menu.CustomLevelsPressed += ShowCustomLevels;
         menu.CreditsPressed += ShowCredits;
         menu.InfinitePressed += () => ShowInfiniteSetup();
-        menu.Open(Progress().TotalStars, SaveGameFile.Notice);
+        menu.Open(Progress().TotalStars, SaveGameFile.Current.Coins, SaveGameFile.Notice);
         WireConsent(menu);
         back = null;
         atRoot = true;
@@ -297,14 +297,33 @@ public partial class Main : Node
         var par = Solver.Solve(custom.Map).Par
             ?? throw new InvalidOperationException($"The custom level \"{custom.Name}\" can't be won.");
         GD.Print($"Custom level: {custom.Name} (par {par})");
+        // One rating for the play record and the coins. An imported level is rated now, as it opens, so a big one never
+        // holds up its results card
+        var rated = RatedOnce(custom.Map, DifficultyMode.Custom, $"The custom level \"{custom.Name}\"");
+        if (custom.IsImported)
+        {
+            _ = rated();
+        }
         play.Start(custom.Map, par, new PlaySetup(custom.Name)
         {
             Rules = new PlayRules(GameConfigFile.Current.CustomLevels.UndoLimit),
-            Recording = record ? CustomRecording(custom, par) : null,
+            Recording = record ? CustomRecording(custom, par, rated) : null,
+            PayFinish = custom.IsImported ? moves => PayCustom(custom, par, moves, rated) : null,
             Library = LibraryCardFor(custom),
         });
         back = backTo;
     });
+
+    private static long PayCustom(CustomLevel custom, int par, int moves, Func<(DifficultyMetrics Metrics, int Score)> rated)
+    {
+        var paid = Wallet.PayCustom(custom, par, moves, rated().Score);
+        if (paid > 0)
+        {
+            SaveGameFile.Save();
+            GD.Print($"Coins: +{paid} for {custom.Name} ({CoinWords.Balance(Wallet.Balance)})");
+        }
+        return paid;
+    }
 
     public void OnAppearanceChosen(Appearance choice)
     {
@@ -365,6 +384,8 @@ public partial class Main : Node
     private static EditSession NewSession(CustomLevel custom) => new(custom, () => DateTimeOffset.UtcNow);
 
     private CampaignProgress Progress() => CampaignProgress.Of(campaign, SaveGameFile.Current, GameConfigFile.Current);
+
+    private static Wallet Wallet => new(SaveGameFile.Current, GameConfigFile.Current.Coins);
 
     // Deferred, because a screen asks for the next one from inside its own button handlers. A request made while one is
     // pending replaces it, so a double tap opens one screen.
@@ -501,9 +522,17 @@ public partial class Main : Node
     {
         var openBefore = Progress().OpenChapters.Count;
         var finish = SaveGameFile.Current.RecordFinish(finished, moves, stars);
-        if (finish.IsNewBest)
+        var paid = Wallet.PayStars(finish);
+        if (finish.IsNewBest || paid > 0)
         {
             SaveGameFile.Save();
+        }
+        if (paid > 0)
+        {
+            GD.Print($"Coins: +{paid} for {Plural(finish.NewStars, "new star")} ({CoinWords.Balance(Wallet.Balance)})");
+        }
+        if (finish.IsNewBest)
+        {
             var was = finish.PreviousBest is { } previous ? $"was {previous}" : "first finish";
             GD.Print($"New best: {Plural(moves, "move")} ({was})");
             WakeServer();
@@ -513,7 +542,7 @@ public partial class Main : Node
                 GD.Print($"Chapter {after.Furthest.Number} opened ({Plural(after.TotalStars, "star")})");
             }
         }
-        return finish;
+        return finish with { Coins = paid };
     }
 
     // An open sheet closes first. Otherwise the screen's way back; on the mode select Android's back quits and Esc does nothing

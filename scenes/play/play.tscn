@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="18_settings_sheet"]
 [ext_resource type="Script" path="res://scenes/play/SwipeHint.cs" id="19_swipe_hint"]
 [ext_resource type="Texture2D" path="res://themes/icons/new-map.svg" id="20_new_map"]
+[ext_resource type="Script" path="res://scenes/play/CoinView.cs" id="21_coin"]
 
 [node name="Play" type="Node2D"]
 script = ExtResource("1_play")
@@ -323,6 +324,25 @@ layout_mode = 2
 theme_type_variation = &"BestLine"
 text = "Your best · 0 moves"
 horizontal_alignment = 1
+
+[node name="Coins" type="HBoxContainer" parent="Hud/Root/Results/Sheet/Column"]
+visible = false
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TotalRow"
+alignment = 1
+
+[node name="Coin" type="Control" parent="Hud/Root/Results/Sheet/Column/Coins"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("21_coin")
+ThemeType = "EarnedCoin"
+
+[node name="CoinsLabel" type="Label" parent="Hud/Root/Results/Sheet/Column/Coins"]
+layout_mode = 2
+theme_type_variation = &"EarnedLine"
+text = "+0"
 
 [node name="Run" type="PanelContainer" parent="Hud/Root/Results/Sheet/Column"]
 visible = false

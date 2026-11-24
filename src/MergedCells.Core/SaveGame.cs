@@ -10,7 +10,7 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 7;
+    public const int CurrentVersion = 8;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
@@ -32,7 +32,37 @@ public sealed class SaveGame
 
     private readonly Dictionary<InfiniteChoice, InfiniteBest> infiniteBests = new();
 
+    private long coins;
+
+    private readonly Dictionary<Guid, long> customPayouts = new();
+
     public Appearance Appearance { get; set; } = Appearance.System;
+
+    /// <summary>The player's coin balance (since version 8). <see cref="Wallet"/> is the one place it rises.</summary>
+    public long Coins => coins;
+
+    /// <summary>Adds to the balance, stopping at <see cref="long.MaxValue"/> rather than overflowing.</summary>
+    public void AddCoins(long amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        coins = amount > long.MaxValue - coins ? long.MaxValue : coins + amount;
+    }
+
+    /// <summary>
+    /// The most an imported custom level has paid, across every version under its ID, or null when it never has (since
+    /// version 8). "Delete my data" keeps it, as it keeps the balance.
+    /// </summary>
+    public long? CustomPayout(Guid id) => customPayouts.TryGetValue(id, out var payout) ? payout : null;
+
+    public void SetCustomPayout(Guid id, long payout)
+    {
+        if (id == Guid.Empty)
+        {
+            throw new ArgumentException("A level ID can't be all zeros.", nameof(id));
+        }
+        ArgumentOutOfRangeException.ThrowIfLessThan(payout, 1);
+        customPayouts[id] = payout;
+    }
 
     /// <summary>The personal bests for one infinite choice, or null when no run at it has raised any (since version 7).</summary>
     public InfiniteBest? InfiniteBestFor(InfiniteChoice choice)
@@ -297,6 +327,7 @@ public sealed class SaveGame
         keys.Require(keys.Root, "server", 5);
         keys.Require(keys.Root, "library", 6);
         keys.Require(keys.Root, "infiniteBests", 7);
+        keys.Require(keys.Root, "coins", 8);
         if (keys.Number >= 4)
         {
             keys.Require(keys.Consents, "library", 6);
@@ -334,7 +365,33 @@ public sealed class SaveGame
         {
             ReadInfiniteBests(save, file.InfiniteBests ?? throw new JsonException("The save's \"infiniteBests\" is null."));
         }
+        if (keys.Number >= 8)
+        {
+            ReadCoins(save, file.Coins ?? throw new JsonException("The save's \"coins\" is null."));
+        }
         return save;
+    }
+
+    private static void ReadCoins(SaveGame save, CoinsJson coins)
+    {
+        if (coins.Balance < 0)
+        {
+            throw new JsonException($"The save's \"balance\" is {coins.Balance}; it must be at least 0.");
+        }
+        save.coins = coins.Balance;
+        foreach (var (key, payout) in coins.CustomPayouts ?? throw new JsonException("The save's \"customPayouts\" is null."))
+        {
+            // Lowercase only, as the custom level files name them
+            if (!Guid.TryParseExact(key, "D", out var id) || id == Guid.Empty || key != id.ToString("D"))
+            {
+                throw new JsonException($"The save's custom payout \"{key}\" isn't a lowercase GUID, or is all zeros.");
+            }
+            if (payout < 1)
+            {
+                throw new JsonException($"The save's custom payout for {key} is {payout}; it must be at least 1.");
+            }
+            save.customPayouts[id] = payout;
+        }
     }
 
     private static void ReadInfiniteBests(SaveGame save, InfiniteBestJson?[] bests)
@@ -525,6 +582,13 @@ public sealed class SaveGame
                     Efficiency = pair.Value.Efficiency,
                 })
                 .ToArray(),
+            Coins = new CoinsJson
+            {
+                Balance = coins,
+                CustomPayouts = customPayouts.OrderBy(pair => pair.Key.ToString("D"), StringComparer.Ordinal).ToDictionary(
+                    pair => pair.Key.ToString("D"),
+                    pair => pair.Value),
+            },
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
@@ -637,6 +701,17 @@ internal sealed record SaveJson
 
     // Since version 7
     public InfiniteBestJson?[]? InfiniteBests { get; init; }
+
+    // Since version 8
+    public CoinsJson? Coins { get; init; }
+}
+
+internal sealed record CoinsJson
+{
+    public required long Balance { get; init; }
+
+    // An imported custom level's ID to the most it has paid
+    public required Dictionary<string, long>? CustomPayouts { get; init; }
 }
 
 internal sealed record InfiniteBestJson

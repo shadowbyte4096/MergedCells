@@ -47,13 +47,10 @@ public partial class Main
             WriteRecord));
     }
 
-    private static Func<PlayRecorder> CustomRecording(CustomLevel custom, int par)
-    {
-        var rated = RatedOnce(custom.Map, DifficultyMode.Custom, $"The custom level \"{custom.Name}\"");
-        return Guarded(() => new PlayRecorder(
+    private static Func<PlayRecorder> CustomRecording(CustomLevel custom, int par, Func<(DifficultyMetrics Metrics, int Score)> rated) =>
+        Guarded(() => new PlayRecorder(
             NewStart(DifficultyMode.Custom, custom.Map, par, rated()) with { Custom = new CustomPlay(custom.Id, custom.IsImported) },
             WriteRecord));
-    }
 
     // The map's own metrics and score from its climb, so nothing is rated twice
     private static Func<PlayRecorder> InfiniteRecording(InfiniteChoice choice, InfiniteMap map) =>

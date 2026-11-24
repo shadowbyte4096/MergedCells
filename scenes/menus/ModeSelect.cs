@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The first screen: the title, the star total, Campaign, Custom levels, Infinite, Credits and the gear
+// The first screen: the title, the star total and coin balance, Campaign, Custom levels, Infinite, Credits and the gear
 public partial class ModeSelect : CanvasLayer, IScreen
 {
     private Control root;
@@ -12,6 +12,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
     private Control bottomBar;
     private StarsView star;
     private Label totalLabel;
+    private Label coinsLabel;
     private Label saveNotice;
     private Label title;
     private SettingsSheet settings;
@@ -69,6 +70,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
         bottomBar = GetNode<Control>("Root/BottomBar");
         star = GetNode<StarsView>("Root/Centre/Column/Total/Star");
         totalLabel = GetNode<Label>("Root/Centre/Column/Total/TotalLabel");
+        coinsLabel = GetNode<Label>("Root/Centre/Column/Coins/CoinsLabel");
         saveNotice = GetNode<Label>("Root/Centre/Column/SaveNotice");
         title = GetNode<Label>("Root/Centre/Column/Title");
         settings = GetNode<SettingsSheet>("Root/Settings");
@@ -86,9 +88,10 @@ public partial class ModeSelect : CanvasLayer, IScreen
     }
 
     // saveNotice: why this run's progress isn't being kept, or null while saving works
-    public void Open(int totalStars, string saveNotice)
+    public void Open(int totalStars, long coins, string saveNotice)
     {
         totalLabel.Text = totalStars.ToString();
+        coinsLabel.Text = CoinWords.Balance(coins);
         ShowSaveNotice(saveNotice);
         GD.Print("Screen: mode select");
     }

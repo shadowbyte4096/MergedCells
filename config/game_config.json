@@ -182,5 +182,11 @@
     "titleSeconds": 0.3,
     "holdSeconds": 0.5,
     "handoffSeconds": 0.5
+  },
+  "coins": {
+    "perStar": 10,
+    "daily": 20,
+    "perPar": 1,
+    "percentPerScore": 5
   }
 }

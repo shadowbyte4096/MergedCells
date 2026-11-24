@@ -578,6 +578,8 @@ public partial class Play : Node2D, IScreen, IMapWait
         // The best and the score first: play data is for tuning, and must never cost a player their result
         var finish = setup.RecordFinish?.Invoke(session.Moves);
         var card = setup.ScoreFinish?.Invoke(session.Moves);
+        var paid = setup.PayFinish?.Invoke(session.Moves);
+        var coins = finish?.Coins ?? card?.Coins ?? paid ?? 0;
         EndRecording(PlayOutcome.Won);
         // Transparent rather than hidden, so the board's inset, and the board, stay where they are
         tutorialBlock.Modulate = Colors.Transparent;
@@ -591,23 +593,25 @@ public partial class Play : Node2D, IScreen, IMapWait
         {
             results.HasNext = setup.HasNext();
         }
+        results.ShowCoins(coins);
+        var earnedNote = coins > 0 ? $", {CoinWords.Earned(coins)}" : "";
         if (card is not null)
         {
             RefreshRunLine();
             results.ShowRun(session.Moves, card);
-            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {card.ParLine}");
+            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {card.ParLine}{earnedNote}");
             return;
         }
         var stars = setup.Stars;
         if (stars is null)
         {
             results.ShowPlain(session.Moves, par);
-            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}");
+            GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}{earnedNote}");
             return;
         }
         var earned = Stars.Earned(session.Moves, par, stars);
         results.ShowResults(session.Moves, par, earned, Stars.TwoStarLimit(par, stars), Stars.OneStarLimit(par, stars), finish);
-        GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(earned, "star")}");
+        GD.Print($"Results: {Plural(session.Moves, "move")}, par {par}, {Plural(earned, "star")}{earnedNote}");
     }
 
     private void RefreshMoves()

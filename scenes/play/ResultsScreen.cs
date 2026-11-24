@@ -12,6 +12,8 @@ public partial class ResultsScreen : Control
     private Label movesLabel;
     private Label parLabel;
     private Label bestLabel;
+    private Control coinsRow;
+    private Label coinsLabel;
     private Control runPanel;
     private TileLabels streakTile;
     private TileLabels runTile;
@@ -54,6 +56,8 @@ public partial class ResultsScreen : Control
         movesLabel = GetNode<Label>("Sheet/Column/MovesLabel");
         parLabel = GetNode<Label>("Sheet/Column/ParLabel");
         bestLabel = GetNode<Label>("Sheet/Column/BestLabel");
+        coinsRow = GetNode<Control>("Sheet/Column/Coins");
+        coinsLabel = GetNode<Label>("Sheet/Column/Coins/CoinsLabel");
         runPanel = GetNode<Control>("Sheet/Column/Run");
         streakTile = TileLabels.At(runPanel, "Tiles/Streak");
         runTile = TileLabels.At(runPanel, "Tiles/Run");
@@ -134,6 +138,13 @@ public partial class ResultsScreen : Control
             chart.Watch(null);
             libraryBox.Watch(null);
         }
+    }
+
+    // What the finish paid; 0 hides the line
+    public void ShowCoins(long paid)
+    {
+        coinsRow.Visible = paid > 0;
+        coinsLabel.Text = paid > 0 ? CoinWords.Earned(paid) : "";
     }
 
     // Campaign levels only, while leaderboards are shared and the server is on for the run; null hides the area

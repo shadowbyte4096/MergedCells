@@ -6,4 +6,9 @@ public sealed record LevelFinish(int Moves, int Stars, int? PreviousBest, int? P
 {
     // Also whether the save changed and needs writing
     public bool IsNewBest => PreviousBest is null || Moves < PreviousBest;
+
+    public int NewStars => Math.Max(0, Stars - (PreviousStars ?? 0));
+
+    // What the finish paid, for the results card
+    public long Coins { get; init; }
 }

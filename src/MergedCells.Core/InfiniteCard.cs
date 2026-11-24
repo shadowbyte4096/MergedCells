@@ -7,13 +7,15 @@ public sealed record StatTile(string Key, string Value, string Note, bool Strong
 
 /// <summary>
 /// The words on an infinite map's results card: the par line, the map's best line (null on its first finish), and the
-/// streak, run and window tiles, each with a note giving the best for the choice or saying a best has just been set.
+/// streak, run and window tiles, each with a note giving the best for the choice or saying a best has just been set, and the
+/// coins the finish paid (0 hides the line).
 /// </summary>
-public sealed record InfiniteCard(string ParLine, string? BestLine, StatTile Streak, StatTile Run, StatTile Efficiency)
+public sealed record InfiniteCard(string ParLine, string? BestLine, StatTile Streak, StatTile Run, StatTile Efficiency, long Coins)
 {
     /// <param name="before">The choice's bests before this finish, null when none were saved.</param>
     /// <param name="after">The choice's bests after this finish was recorded.</param>
-    public static InfiniteCard Of(MapScore score, InfiniteRun run, InfiniteBest? before, InfiniteBest after, InfiniteScoring scoring)
+    public static InfiniteCard Of(
+        MapScore score, InfiniteRun run, InfiniteBest? before, InfiniteBest after, InfiniteScoring scoring, long coins)
     {
         ArgumentNullException.ThrowIfNull(score);
         ArgumentNullException.ThrowIfNull(run);
@@ -40,7 +42,7 @@ public sealed record InfiniteCard(string ParLine, string? BestLine, StatTile Str
         var runTile = after.Run > was.Run
             ? new StatTile("Run", Number(run.Score), $"{points} · new best", true)
             : new StatTile("Run", Number(run.Score), $"{points} this map", false);
-        return new InfiniteCard(parLine, bestLine, streak, runTile, Window(run, was, after, scoring.EfficiencyWindow));
+        return new InfiniteCard(parLine, bestLine, streak, runTile, Window(run, was, after, scoring.EfficiencyWindow), coins);
     }
 
     /// <summary>The HUD's line during a map: the run's score and streak as they stand.</summary>

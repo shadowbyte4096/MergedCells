@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scenes/play/StarsView.cs" id="5_stars"]
 [ext_resource type="PackedScene" path="res://scenes/settings/settings_sheet.tscn" id="6_sheet"]
 [ext_resource type="PackedScene" path="res://scenes/settings/consent_sheet.tscn" id="7_ask"]
+[ext_resource type="Script" path="res://scenes/play/CoinView.cs" id="8_coin"]
 
 [node name="ModeSelect" type="CanvasLayer"]
 script = ExtResource("1_mode")
@@ -85,6 +86,24 @@ ThemeType = "TotalStar"
 [node name="TotalLabel" type="Label" parent="Root/Centre/Column/Total"]
 layout_mode = 2
 theme_type_variation = &"TotalLine"
+text = "0"
+
+[node name="Coins" type="HBoxContainer" parent="Root/Centre/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"TotalRow"
+alignment = 1
+
+[node name="Coin" type="Control" parent="Root/Centre/Column/Coins"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("8_coin")
+ThemeType = "TotalCoin"
+
+[node name="CoinsLabel" type="Label" parent="Root/Centre/Column/Coins"]
+layout_mode = 2
+theme_type_variation = &"CoinLine"
 text = "0"
 
 [node name="Gap" type="Control" parent="Root/Centre/Column"]

@@ -38,6 +38,8 @@ public sealed record GameConfig
 
     public required IntroConfig Intro { get; init; }
 
+    public required CoinsConfig Coins { get; init; }
+
     // The one place a level's star thresholds are resolved: its own entry, then its chapter's, then the top-level group
     public StarsConfig StarsFor(Level level)
     {
@@ -78,6 +80,7 @@ public sealed record GameConfig
         Leaderboard.CheckRanges();
         Library.CheckRanges(CustomLevels);
         Intro.CheckRanges();
+        Coins.CheckRanges();
         CheckStarLimits(1, Stars, "The config's \"stars\"");
         foreach (var level in levels)
         {
@@ -198,6 +201,10 @@ public sealed record GameConfig
         if (config.Intro is null)
         {
             throw new JsonException("The config's \"intro\" group is null.");
+        }
+        if (config.Coins is null)
+        {
+            throw new JsonException("The config's \"coins\" group is null.");
         }
         return config;
     }

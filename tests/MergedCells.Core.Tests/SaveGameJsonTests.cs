@@ -66,6 +66,33 @@ public class SaveGameJsonTests
 
     private static readonly InfiniteChoice BestChoice = new(4, 12, true, false, true, false);
 
+    private const string PayoutId = "4b1d2c3e-5f60-4a7b-8c9d-0e1f2a3b4c5d";
+
+    private const string CoinsSection = $$$"""{"balance":1240,"customPayouts":{"{{{PayoutId}}}":14}}""";
+
+    // Version 8 adds the coin balance and each imported custom level's best payout
+    internal static string Valid8 => Valid7.Replace("\"version\":7", "\"version\":8")[..^1] + ",\"coins\":" + CoinsSection + "}";
+
+    [Fact]
+    public void Version_8_save_reads_its_balance()
+    {
+        Assert.Equal(1240L, SaveGame.Parse(Valid8).Coins);
+    }
+
+    [Fact]
+    public void Version_8_save_reads_its_custom_payouts()
+    {
+        Assert.Equal(14L, SaveGame.Parse(Valid8).CustomPayout(Guid.Parse(PayoutId)));
+    }
+
+    [Fact]
+    public void Version_7_save_reads_as_no_coins()
+    {
+        var save = SaveGame.Parse(Valid7);
+
+        Assert.Equal((0L, (long?)null), (save.Coins, save.CustomPayout(Guid.Parse(PayoutId))));
+    }
+
     [Fact]
     public void Version_7_save_reads_its_infinite_bests()
     {
@@ -270,12 +297,12 @@ public class SaveGameJsonTests
     }
 
     [Fact]
-    public void Written_save_is_version_7_without_the_version_3_keys()
+    public void Written_save_is_version_8_without_the_version_3_keys()
     {
         var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
 
         Assert.Equal(
-            (7, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0, 0),
+            (8, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0, 0),
             (root.GetProperty("version").GetInt32(),
                 root.TryGetProperty("playtester", out _),
                 root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
@@ -557,6 +584,22 @@ public class SaveGameJsonTests
         Valid7.Replace(BestEntry, BestEntry.Replace(",\"walls\":true", "")),
         Valid7.Replace(BestEntry, BestEntry.Replace("\"efficiency\":9400", "\"efficiency\":9400,\"extra\":1")),
         Valid7.Replace(BestsSection, "[" + BestEntry + "," + BestEntry.Replace("\"streak\":7", "\"streak\":2") + "]"),
+        Valid7[..^1] + ",\"coins\":" + CoinsSection + "}",
+        Valid8.Replace(",\"coins\":" + CoinsSection, ""),
+        Valid8.Replace(CoinsSection, "null"),
+        Valid8.Replace(CoinsSection, "{}"),
+        Valid8.Replace(CoinsSection, """{"balance":1}"""),
+        Valid8.Replace(CoinsSection, """{"balance":1,"customPayouts":null}"""),
+        Valid8.Replace(CoinsSection, """{"balance":1,"customPayouts":{},"extra":1}"""),
+        Valid8.Replace("\"balance\":1240", "\"balance\":-1"),
+        Valid8.Replace("\"balance\":1240", "\"balance\":1.5"),
+        Valid8.Replace("\"balance\":1240", "\"balance\":\"1240\""),
+        Valid8.Replace($"\"{PayoutId}\":14", $"\"{PayoutId}\":0"),
+        Valid8.Replace($"\"{PayoutId}\":14", $"\"{PayoutId}\":-1"),
+        Valid8.Replace($"\"{PayoutId}\":14", $"\"{PayoutId}\":null"),
+        Valid8.Replace(PayoutId, PayoutId.ToUpperInvariant()),
+        Valid8.Replace(PayoutId, "00000000-0000-0000-0000-000000000000"),
+        Valid8.Replace(PayoutId, "not-a-guid"),
     };
 
     [Theory]
@@ -601,8 +644,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("8.0", 8)]
-    [InlineData("8e0", 8)]
+    [InlineData("9.0", 9)]
+    [InlineData("9e0", 9)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

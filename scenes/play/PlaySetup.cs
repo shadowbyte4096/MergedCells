@@ -24,6 +24,10 @@ public sealed record PlaySetup(string Title)
     // null isn't scored
     public Func<int, InfiniteCard> ScoreFinish { get; init; }
 
+    // Coins for a mode whose finish has no record of its own (an imported custom level): called with the move count on a
+    // win, before the play record ends, returning what it paid; null pays nothing
+    public Func<int, long> PayFinish { get; init; }
+
     // The run's line under the moves, asked as the map starts, after a scored finish and after New map; null hides it
     public Func<string> RunLine { get; init; }
 

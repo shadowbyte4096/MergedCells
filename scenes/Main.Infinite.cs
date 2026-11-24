@@ -139,35 +139,34 @@ public partial class Main
             Rules = PlayRules.Unlimited,
             NewMap = true,
             Recording = InfiniteRecording(choice, map),
-            ScoreFinish = moves => ScoreInfinite(run, choice, moves),
+            ScoreFinish = moves => ScoreInfinite(run, choice, map.Score, moves),
             RunLine = () => InfiniteCard.RunLine(run),
         });
         back = () => ShowInfiniteSetup();
     }
 
-    // Only a best that rose writes the save, and nothing here throws for a finish at or above par
-    private InfiniteCard ScoreInfinite(InfiniteRun run, InfiniteChoice choice, int moves)
+    // Only a best that rose or coins paid write the save, once, and nothing here throws for a finish at or above par
+    private InfiniteCard ScoreInfinite(InfiniteRun run, InfiniteChoice choice, int difficultyScore, int moves)
     {
         var score = run.Finish(moves);
         var before = SaveGameFile.Current.InfiniteBestFor(choice);
         var raised = RecordInfiniteBest(run, choice);
+        var paid = Wallet.PayMap(score, difficultyScore);
+        if (raised || paid > 0)
+        {
+            SaveGameFile.Save();
+        }
         var after = SaveGameFile.Current.InfiniteBestFor(choice) ?? InfiniteBest.None;
         var window = run.WindowAverage is { } average ? $"{average / 100}%" : $"{run.Maps} of {GameConfigFile.Current.Infinite.Scoring.EfficiencyWindow}";
         var kept = score.Counted ? "" : $", kept {Plural(score.KeptMoves, "move")}";
-        GD.Print($"Infinite run: map {run.Maps}, {Plural(moves, "move")} ({score.Efficiency / 100}%){kept}, +{score.KeptPoints}, run {run.Score}, streak {run.Streak}, last {window}{(raised ? ", new best" : "")}");
-        return InfiniteCard.Of(score, run, before, after, GameConfigFile.Current.Infinite.Scoring);
+        var coins = paid > 0 ? $", {CoinWords.Earned(paid)} ({CoinWords.Balance(Wallet.Balance)})" : "";
+        GD.Print($"Infinite run: map {run.Maps}, {Plural(moves, "move")} ({score.Efficiency / 100}%){kept}, +{score.KeptPoints}, run {run.Score}, streak {run.Streak}, last {window}{(raised ? ", new best" : "")}{coins}");
+        return InfiniteCard.Of(score, run, before, after, GameConfigFile.Current.Infinite.Scoring, paid);
     }
 
-    // Whether a best rose; the save is written only then
-    private static bool RecordInfiniteBest(InfiniteRun run, InfiniteChoice choice)
-    {
-        if (!SaveGameFile.Current.RecordInfiniteBest(choice, run.Best))
-        {
-            return false;
-        }
-        SaveGameFile.Save();
-        return true;
-    }
+    // Whether a best rose, so the caller writes the save
+    private static bool RecordInfiniteBest(InfiniteRun run, InfiniteChoice choice) =>
+        SaveGameFile.Current.RecordInfiniteBest(choice, run.Best);
 
     private void OnNewMapPressed()
     {
@@ -179,6 +178,10 @@ public partial class Main
         {
             run.GiveUp();
             var raised = RecordInfiniteBest(run, choice);
+            if (raised)
+            {
+                SaveGameFile.Save();
+            }
             GD.Print($"Infinite run: New map on map {run.Maps}, run {run.Score}, streak {run.Streak}{(raised ? ", new best" : "")}");
         }
         PlayInfinite(choice);

@@ -1,3 +1,5 @@
+using AutoFixture.Xunit3;
+
 namespace MergedCells.Core.Tests;
 
 // Par 6's 2-star limit is 9 under these stars; a window of 3 keeps the window cases short
@@ -33,7 +35,7 @@ public class InfiniteCardTests
 
     // The bests before the last finish as given, after it raised by the run's values, as Main merges them
     private static InfiniteCard Card((InfiniteRun Run, MapScore Score) played, InfiniteBest? before, InfiniteScoring? scoring = null) =>
-        InfiniteCard.Of(played.Score, played.Run, before, (before ?? InfiniteBest.None).Max(played.Run.Best), scoring ?? Scoring);
+        InfiniteCard.Of(played.Score, played.Run, before, (before ?? InfiniteBest.None).Max(played.Run.Best), scoring ?? Scoring, 0);
 
     private static InfiniteBest High => new(99, 999_999, 10000);
 
@@ -47,6 +49,15 @@ public class InfiniteCardTests
     public void Par_line_names_the_limit_when_over_it()
     {
         Assert.Equal("Par 6 · 54% efficient · streak at 9", Card(Played(Scoring, [], 11), High).ParLine);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Card_carries_the_coins_paid(uint coins)
+    {
+        var played = Played(Scoring, [], 8);
+
+        Assert.Equal((long)coins, InfiniteCard.Of(played.Score, played.Run, High, High, Scoring, coins).Coins);
     }
 
     [Fact]
@@ -75,7 +86,7 @@ public class InfiniteCardTests
         run.Finish(1);
         var score = run.Finish(3);
 
-        Assert.Equal("Your best · 1 move", InfiniteCard.Of(score, run, High, High, Scoring).BestLine);
+        Assert.Equal("Your best · 1 move", InfiniteCard.Of(score, run, High, High, Scoring, 0).BestLine);
     }
 
     // As the headline and the HUD's moves line write them
@@ -87,7 +98,7 @@ public class InfiniteCardTests
         run.Finish(1001);
         var score = run.Finish(1000);
 
-        Assert.Equal("Improved · was 1001 moves", InfiniteCard.Of(score, run, High, High, Scoring).BestLine);
+        Assert.Equal("Improved · was 1001 moves", InfiniteCard.Of(score, run, High, High, Scoring, 0).BestLine);
     }
 
     [Fact]
@@ -96,7 +107,7 @@ public class InfiniteCardTests
         var run = new InfiniteRun(Scoring, Stars);
         run.StartMap(1000);
 
-        Assert.Equal("Par 1000 · 66% efficient · streak at 1500", InfiniteCard.Of(run.Finish(1501), run, High, High, Scoring).ParLine);
+        Assert.Equal("Par 1000 · 66% efficient · streak at 1500", InfiniteCard.Of(run.Finish(1501), run, High, High, Scoring, 0).ParLine);
     }
 
     [Fact]
