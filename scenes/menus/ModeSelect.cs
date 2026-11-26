@@ -4,7 +4,7 @@ using MergedCells.Core;
 
 namespace MergedCells;
 
-// The first screen: the title, the star total and coin balance, Campaign, Custom levels, Infinite, Credits and the gear
+// The first screen: the title, the star total and coin balance, Campaign, Custom levels, Infinite, Shop, Credits and the gear
 public partial class ModeSelect : CanvasLayer, IScreen
 {
     private Control root;
@@ -24,6 +24,8 @@ public partial class ModeSelect : CanvasLayer, IScreen
     public event Action CustomLevelsPressed;
 
     public event Action InfinitePressed;
+
+    public event Action ShopPressed;
 
     public event Action CreditsPressed;
 
@@ -81,6 +83,7 @@ public partial class ModeSelect : CanvasLayer, IScreen
         GetNode<Button>("Root/Centre/Column/CustomLevels").Pressed += () => CustomLevelsPressed?.Invoke();
         GetNode<Button>("Root/BottomBar/Credits").Pressed += () => CreditsPressed?.Invoke();
         GetNode<Button>("Root/Centre/Column/Infinite").Pressed += () => InfinitePressed?.Invoke();
+        GetNode<Button>("Root/Centre/Column/Shop").Pressed += () => ShopPressed?.Invoke();
         GetNode<Button>("Root/TopBar/Row/SettingsButton").Pressed += () => settings.Open();
         GetViewport().SizeChanged += ApplySafeArea;
         ApplyLook();

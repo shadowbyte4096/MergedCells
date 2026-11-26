@@ -5,6 +5,10 @@ public interface IScreen
 {
     bool Dark { set; }
 
+    // The theme and look the player wears (chunk 28), which Main sets before the screen enters the tree; setting Dark
+    // afterwards applies a change
+    AppLooks Looks { get; set; }
+
     // Closes a sheet over the screen, if one is open, and says whether it did; Main's back handling asks this first
     bool CloseOverlay();
 

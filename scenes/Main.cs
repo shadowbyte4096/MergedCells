@@ -93,6 +93,7 @@ public partial class Main : Node
             GameConfigFile.Current.CheckRanges(campaign.Levels);
             campaignRules = new PlayRules(GameConfigFile.Current.Campaign.UndoLimit);
             _ = Progress();
+            CosmeticsFile.Current.CheckPrices(GameConfigFile.Current.Shop);
         }
         catch (ArgumentOutOfRangeException exception)
         {
@@ -100,6 +101,7 @@ public partial class Main : Node
             GetTree().Quit(1);
             throw;
         }
+        WearCosmetics();
         ShowModeSelect();
         StartIntro();
         StartServer();
@@ -163,6 +165,7 @@ public partial class Main : Node
         menu.CustomLevelsPressed += ShowCustomLevels;
         menu.CreditsPressed += ShowCredits;
         menu.InfinitePressed += () => ShowInfiniteSetup();
+        menu.ShopPressed += ShowShop;
         menu.Open(Progress().TotalStars, SaveGameFile.Current.Coins, SaveGameFile.Notice);
         WireConsent(menu);
         back = null;
@@ -418,6 +421,7 @@ public partial class Main : Node
             screen.QueueFree();
         }
         var node = scene.Instantiate<T>();
+        node.Looks = wornLooks;
         AddChild(node);
         node.Dark = dark;
         if (((IScreen)node).Settings is { } sheet)

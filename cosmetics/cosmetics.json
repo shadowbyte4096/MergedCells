@@ -1,0 +1,82 @@
+{
+  "themes": [
+    {
+      "id": "teal",
+      "name": "Teal",
+      "light": {
+        "background": "#e3f1ed", "ink": "#235e56", "card": "#ffffff", "muted": "#3a7068", "chart": "#3a7068",
+        "placeholder": "#e5eceb", "disabled": "#8dafa9", "pressed": "#497b74", "new": "#349f8b",
+        "fills": ["#f2f5f5", "#e0e8e7", "#cfdcda", "#bdcfcc", "#abc2bf"],
+        "outline": "#235e56", "end": "#235e56", "wall": "#235e56", "wallMiddle": "#a9c5c0",
+        "trap": "#235e56", "teleporter": "#235e56", "player": "#235e56"
+      },
+      "dark": {
+        "background": "#0e1f1c", "ink": "#5ed3bf", "card": "#16312c", "muted": "#4aa696", "chart": "#62bdac",
+        "placeholder": "#1f443e", "disabled": "#327065", "pressed": "#4eaf9e", "new": "#9cf2e2",
+        "fills": ["#132a26", "#193833", "#204740", "#26554d", "#2c635a"],
+        "outline": "#5ed3bf", "end": "#5ed3bf", "wall": "#5ed3bf", "wallMiddle": "#26554d",
+        "trap": "#5ed3bf", "teleporter": "#5ed3bf", "player": "#5ed3bf"
+      }
+    },
+    {
+      "id": "ember",
+      "name": "Ember",
+      "light": {
+        "background": "#f7ebe2", "ink": "#8a3714", "card": "#ffffff", "muted": "#974d2d", "chart": "#8f4421",
+        "placeholder": "#f1e7e3", "disabled": "#c69a85", "pressed": "#a05b3d", "new": "#c2611f",
+        "fills": ["#f8f3f1", "#efe3de", "#e5d3cb", "#dcc3b9", "#d3b3a6"],
+        "outline": "#8a3714", "end": "#8a3714", "wall": "#8a3714", "wallMiddle": "#d6b5a4",
+        "trap": "#8a3714", "teleporter": "#8a3714", "player": "#8a3714"
+      },
+      "dark": {
+        "background": "#1e120d", "ink": "#f4a273", "card": "#332017", "muted": "#bf7e5a", "chart": "#e9a07a",
+        "placeholder": "#4a3022", "disabled": "#7e533b", "pressed": "#c9855f", "new": "#ffd2a8",
+        "fills": ["#2b1b13", "#3c261b", "#4d3223", "#5e3d2c", "#6f4934"],
+        "outline": "#f4a273", "end": "#f4a273", "wall": "#f4a273", "wallMiddle": "#5e3d2c",
+        "trap": "#f4a273", "teleporter": "#f4a273", "player": "#f4a273"
+      }
+    },
+    {
+      "id": "tide",
+      "name": "Tide",
+      "light": {
+        "background": "#e5edf7", "ink": "#1d4c88", "card": "#ffffff", "muted": "#355f95", "chart": "#2b5994",
+        "placeholder": "#e4eaf1", "disabled": "#8ba5c5", "pressed": "#456c9e", "new": "#3a73c4",
+        "fills": ["#f1f4f8", "#dfe6ee", "#cdd8e5", "#bbc9db", "#a9bbd2"],
+        "outline": "#1d4c88", "end": "#1d4c88", "wall": "#1d4c88", "wallMiddle": "#a9bdd6",
+        "trap": "#1d4c88", "teleporter": "#1d4c88", "player": "#1d4c88"
+      },
+      "dark": {
+        "background": "#0c1625", "ink": "#7db4f0", "card": "#172639", "muted": "#6694c7", "chart": "#8bbcf0",
+        "placeholder": "#23374f", "disabled": "#3f5d80", "pressed": "#6694c7", "new": "#c4e0ff",
+        "fills": ["#131f31", "#1c2c41", "#253952", "#2e4562", "#375272"],
+        "outline": "#7db4f0", "end": "#7db4f0", "wall": "#7db4f0", "wallMiddle": "#2e4562",
+        "trap": "#7db4f0", "teleporter": "#7db4f0", "player": "#7db4f0"
+      }
+    },
+    {
+      "id": "prism",
+      "name": "Prism",
+      "light": {
+        "background": "#f3f1ec", "ink": "#2e2a40", "card": "#ffffff", "muted": "#464255", "chart": "#4a4560",
+        "placeholder": "#e6e5e8", "disabled": "#9a979f", "pressed": "#555262", "new": "#9a6a00",
+        "fills": ["#f9d3d1", "#f9e6b3", "#cfe8cf", "#cde0f5", "#e1d5f2"],
+        "outline": "#2e2a40", "end": "#2e2a40", "wall": "#2e2a40", "wallMiddle": "#bdb7c9",
+        "trap": "#b3261e", "teleporter": "#2457a6", "player": "#2e2a40"
+      },
+      "dark": {
+        "background": "#141320", "ink": "#ecebf6", "card": "#2a2935", "muted": "#b6b5c1", "chart": "#c9c6dc",
+        "placeholder": "#41404c", "disabled": "#757480", "pressed": "#c1c0cb", "new": "#ffd77a",
+        "fills": ["#4b2a30", "#463b1c", "#223f2a", "#1f3755", "#372b50"],
+        "outline": "#ecebf6", "end": "#ecebf6", "wall": "#ecebf6", "wallMiddle": "#5a5670",
+        "trap": "#ff8a7a", "teleporter": "#8cc3ff", "player": "#ecebf6"
+      }
+    }
+  ],
+  "looks": [
+    { "id": "square", "name": "Square", "side": 0.56, "stroke": 0.1, "corner": 0.1, "filled": false, "turn": 0 },
+    { "id": "ring", "name": "Ring", "side": 0.56, "stroke": 0.1, "corner": 0.28, "filled": false, "turn": 0 },
+    { "id": "block", "name": "Block", "side": 0.5, "stroke": 0.1, "corner": 0.1, "filled": true, "turn": 0 },
+    { "id": "diamond", "name": "Diamond", "side": 0.48, "stroke": 0.1, "corner": 0.06, "filled": false, "turn": 45 }
+  ]
+}

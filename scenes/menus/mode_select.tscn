@@ -129,6 +129,12 @@ focus_mode = 0
 theme_type_variation = &"PillButton"
 text = "Infinite"
 
+[node name="Shop" type="Button" parent="Root/Centre/Column"]
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Shop"
+
 [node name="SaveNotice" type="Label" parent="Root/Centre/Column"]
 visible = false
 layout_mode = 2

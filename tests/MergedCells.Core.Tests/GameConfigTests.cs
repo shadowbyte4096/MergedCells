@@ -65,9 +65,11 @@ public class GameConfigTests
 
     private const string CoinsGroup = """{"perStar":1,"daily":1,"perPar":1,"percentPerScore":1}""";
 
+    private const string ShopGroup = """{"prices":{"ember":1}}""";
+
     private const string Valid =
         """{"input":{"swipeThreshold":1},"slide":""" + SlideGroup + ""","stars":{"twoStarMinExtraMoves":1,"twoStarExtraParPercent":1,"oneStarMinExtraMoves":1,"oneStarExtraParPercent":1},"camera":"""
-        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + ""","customLevels":""" + CustomLevelsGroup + ""","infinite":""" + InfiniteGroup + ""","server":""" + ServerGroup + ""","privacy":""" + PrivacyGroup + ""","leaderboard":""" + LeaderboardGroup + ""","library":""" + LibraryGroup + ""","intro":""" + IntroGroup + ""","coins":""" + CoinsGroup + "}";
+        + CameraGroup + ""","campaign":""" + CampaignGroup + ""","generator":""" + GeneratorGroup + ""","difficulty":""" + DifficultyGroup + ""","climb":""" + ClimbGroup + ""","customLevels":""" + CustomLevelsGroup + ""","infinite":""" + InfiniteGroup + ""","server":""" + ServerGroup + ""","privacy":""" + PrivacyGroup + ""","leaderboard":""" + LeaderboardGroup + ""","library":""" + LibraryGroup + ""","intro":""" + IntroGroup + ""","coins":""" + CoinsGroup + ""","shop":""" + ShopGroup + "}";
 
     private const string ChapterThreeStars =
         """{"3":{"twoStarMinExtraMoves":9,"twoStarExtraParPercent":9,"oneStarMinExtraMoves":9,"oneStarExtraParPercent":9}}""";
@@ -121,10 +123,11 @@ public class GameConfigTests
         string leaderboard = LeaderboardGroup,
         string library = LibraryGroup,
         string intro = IntroGroup,
-        string coins = CoinsGroup) =>
+        string coins = CoinsGroup,
+        string shop = ShopGroup) =>
         string.Create(
             CultureInfo.InvariantCulture,
-            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}},"customLevels":{"newSide":{{{newSide}}},"minSide":{{{minSide}}},"maxSide":{{{maxSide}}},"maxNameLength":{{{maxNameLength}}},"undoLimit":{{{customUndoLimit}}},"bands":{{{bands}}}},"infinite":{{{infinite}}},"server":{{{server}}},"privacy":{{{privacy}}},"leaderboard":{{{leaderboard}}},"library":{{{library}}},"intro":{{{intro}}},"coins":{{{coins}}}}""");
+            $$$"""{"input":{"swipeThreshold":{{{threshold}}}},"slide":{"squaresPerSecond":{{{squaresPerSecond}}},"maxSeconds":{{{maxSeconds}}},"trapShrinkSeconds":{{{trapShrink}}},"trapPauseSeconds":{{{trapPause}}},"trapGrowSeconds":{{{trapGrow}}},"teleportShrinkSeconds":{{{teleportShrink}}},"teleportGrowSeconds":{{{teleportGrow}}}},"stars":{"twoStarMinExtraMoves":{{{twoStarMin}}},"twoStarExtraParPercent":{{{twoStarPercent}}},"oneStarMinExtraMoves":{{{oneStarMin}}},"oneStarExtraParPercent":{{{oneStarPercent}}}},"camera":{"readableSquareSize":{{{readable}}},"closestSquareSize":{{{closest}}},"followZonePercent":{{{zonePercent}}},"glideSeconds":{{{glide}}},"openingSeconds":{{{opening}}},"openingHoldSeconds":{{{hold}}},"zoomStep":{{{zoomStep}}},"gestureSlop":{{{slop}}}},"campaign":{"gatePercent":{{{gatePercent}}},"chapterGatePercent":{{{chapterGatePercent}}},"chapterStars":{{{chapterStars}}},"levelStars":{{{levelStars}}},"undoLimit":{{{undoLimit}}}},"generator":{"acrossWeight":1,"downWeight":1,"singleWeight":1,"blockWeight":1,"maxStripPercent":1,"maxBlockSide":{{{maxBlockSide}}},"bendPercent":1,"maxBendSquares":3,"cornerPercent":1,"minDistancePercent":1,"maxAttempts":{{{maxAttempts}}},"maxWallRun":{{{maxWallRun}}}},"difficulty":{"nearOptimalExtraMoves":{{{nearOptimalExtraMoves}}},"bruteForceLookahead":{{{bruteForceLookahead}}},"caps":{"awayMoves":1,"greedyGap":1,"decoys":{{{decoysCap}}},"nearOptimalRoutes":1,"bruteForceExtraMoves":1},"weights":{{{weights}}},"modeWeights":{{{modeWeights}}}},"climb":{"maxSteps":{{{maxSteps}}},"stallSteps":{{{stallSteps}}},{{{climbWeights}}}},"customLevels":{"newSide":{{{newSide}}},"minSide":{{{minSide}}},"maxSide":{{{maxSide}}},"maxNameLength":{{{maxNameLength}}},"undoLimit":{{{customUndoLimit}}},"bands":{{{bands}}}},"infinite":{{{infinite}}},"server":{{{server}}},"privacy":{{{privacy}}},"leaderboard":{{{leaderboard}}},"library":{{{library}}},"intro":{{{intro}}},"coins":{{{coins}}},"shop":{{{shop}}}}""");
 
     // The server group with every value valid unless given
     private static string Server(
@@ -268,6 +271,12 @@ public class GameConfigTests
         Valid.Replace(CoinsGroup, CoinsGroup.Replace("\"perPar\":1,", "")),
         Valid.Replace(CoinsGroup, CoinsGroup.Replace(",\"percentPerScore\":1", "")),
         Valid.Replace(CoinsGroup, CoinsGroup.Replace("\"perStar\":1", "\"perStar\":1.5")),
+        Valid.Replace(""","shop":""" + ShopGroup, ""),
+        Valid.Replace(ShopGroup, """{"prices":{"ember":1},"extra":1}"""),
+        Valid.Replace(ShopGroup, """{}"""),
+        Valid.Replace(ShopGroup, """{"prices":{"ember":1.5}}"""),
+        Valid.Replace(ShopGroup, """{"prices":{"ember":null}}"""),
+        Valid.Replace(ShopGroup, """{"prices":{"ember":1,"ember":2}}"""),
     };
 
     public static TheoryData<string> NullServerTexts => new()
@@ -278,6 +287,8 @@ public class GameConfigTests
         Valid.Replace(LibraryGroup, "null"),
         Valid.Replace(IntroGroup, "null"),
         Valid.Replace(CoinsGroup, "null"),
+        Valid.Replace(ShopGroup, "null"),
+        Valid.Replace(ShopGroup, """{"prices":null}"""),
         Valid.Replace("\"sizeSteps\":[1]", "\"sizeSteps\":null"),
         Valid.Replace("\"url\":\"https://example.test\"", "\"url\":null"),
         Valid.Replace("\"publishableKey\":\"k\"", "\"publishableKey\":null"),
@@ -369,6 +380,15 @@ public class GameConfigTests
 
         Assert.Equal(
             new CoinsConfig { PerStar = perStar, Daily = daily, PerPar = perPar, PercentPerScore = percentPerScore }, config.Coins);
+    }
+
+    [Theory]
+    [AutoData]
+    public void Parse_reads_the_shop_group(ushort price)
+    {
+        var config = GameConfig.Parse(ConfigText(shop: $$$"""{"prices":{"tide":{{{price}}}}}"""));
+
+        Assert.Equal(price, config.Shop.PriceOf("tide"));
     }
 
     [Theory]
@@ -726,6 +746,8 @@ public class GameConfigTests
         ConfigText(library: """{"pageSize":0,"sizeSteps":[1]}"""),
         ConfigText(library: """{"pageSize":1,"sizeSteps":[4]}"""),
         ConfigText(coins: """{"perStar":-1,"daily":1,"perPar":1,"percentPerScore":1}"""),
+        ConfigText(shop: """{"prices":{"ember":0}}"""),
+        ConfigText(shop: """{"prices":{"ember":100001}}"""),
     };
 
     [Theory]

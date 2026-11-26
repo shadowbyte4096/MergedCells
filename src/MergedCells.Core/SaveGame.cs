@@ -10,7 +10,7 @@ namespace MergedCells.Core;
 /// </summary>
 public sealed class SaveGame
 {
-    public const int CurrentVersion = 8;
+    public const int CurrentVersion = 9;
 
     private readonly Dictionary<int, LevelRecord> levels = new();
 
@@ -35,6 +35,12 @@ public sealed class SaveGame
     private long coins;
 
     private readonly Dictionary<Guid, long> customPayouts = new();
+
+    private readonly HashSet<string> owned = new(StringComparer.Ordinal);
+
+    private string? chosenTheme;
+
+    private string? chosenLook;
 
     public Appearance Appearance { get; set; } = Appearance.System;
 
@@ -62,6 +68,57 @@ public sealed class SaveGame
         }
         ArgumentOutOfRangeException.ThrowIfLessThan(payout, 1);
         customPayouts[id] = payout;
+    }
+
+    /// <summary>
+    /// Takes the amount off the balance, or returns false and changes nothing when the balance is short. Only
+    /// <see cref="Wallet"/> spends.
+    /// </summary>
+    public bool SpendCoins(long amount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(amount);
+        if (amount > coins)
+        {
+            return false;
+        }
+        coins -= amount;
+        return true;
+    }
+
+    /// <summary>The cosmetics bought from the shop, by catalogue ID (since version 9). The free defaults are never listed.</summary>
+    public IReadOnlySet<string> Owned => owned;
+
+    /// <summary>Records a bought cosmetic, returning false when it was already owned. Only <see cref="Wallet"/> adds.</summary>
+    public bool AddOwned(string id)
+    {
+        if (!Core.Cosmetics.IsId(id))
+        {
+            throw new ArgumentException($"\"{id}\" isn't a cosmetics ID.", nameof(id));
+        }
+        return owned.Add(id);
+    }
+
+    /// <summary>The theme being worn: an owned ID, or null for the free default.</summary>
+    public string? ChosenTheme
+    {
+        get => chosenTheme;
+        set => chosenTheme = CheckChoice(value);
+    }
+
+    /// <summary>The player look being worn: an owned ID, or null for the free default.</summary>
+    public string? ChosenLook
+    {
+        get => chosenLook;
+        set => chosenLook = CheckChoice(value);
+    }
+
+    private string? CheckChoice(string? id)
+    {
+        if (id is not null && !owned.Contains(id))
+        {
+            throw new ArgumentException($"\"{id}\" isn't owned, so it can't be chosen.", nameof(id));
+        }
+        return id;
     }
 
     /// <summary>The personal bests for one infinite choice, or null when no run at it has raised any (since version 7).</summary>
@@ -328,6 +385,7 @@ public sealed class SaveGame
         keys.Require(keys.Root, "library", 6);
         keys.Require(keys.Root, "infiniteBests", 7);
         keys.Require(keys.Root, "coins", 8);
+        keys.Require(keys.Root, "cosmetics", 9);
         if (keys.Number >= 4)
         {
             keys.Require(keys.Consents, "library", 6);
@@ -369,6 +427,10 @@ public sealed class SaveGame
         {
             ReadCoins(save, file.Coins ?? throw new JsonException("The save's \"coins\" is null."));
         }
+        if (keys.Number >= 9)
+        {
+            ReadCosmetics(save, file.Cosmetics ?? throw new JsonException("The save's \"cosmetics\" is null."));
+        }
         return save;
     }
 
@@ -392,6 +454,33 @@ public sealed class SaveGame
             }
             save.customPayouts[id] = payout;
         }
+    }
+
+    private static void ReadCosmetics(SaveGame save, CosmeticsSaveJson cosmetics)
+    {
+        foreach (var id in cosmetics.Owned ?? throw new JsonException("The save's \"owned\" is null."))
+        {
+            if (!Core.Cosmetics.IsId(id))
+            {
+                throw new JsonException($"The save's owned cosmetic \"{id}\" isn't a cosmetics ID.");
+            }
+            if (!save.owned.Add(id!))
+            {
+                throw new JsonException($"The save owns \"{id}\" twice.");
+            }
+        }
+        save.chosenTheme = ReadChoice(save, cosmetics.Theme, "theme");
+        save.chosenLook = ReadChoice(save, cosmetics.Look, "look");
+    }
+
+    // A bought item, or null for the free default: the save never names a free item, since it doesn't know which they are
+    private static string? ReadChoice(SaveGame save, string? id, string key)
+    {
+        if (id is not null && !save.owned.Contains(id))
+        {
+            throw new JsonException($"The save's \"{key}\" is \"{id}\", which it doesn't own.");
+        }
+        return id;
     }
 
     private static void ReadInfiniteBests(SaveGame save, InfiniteBestJson?[] bests)
@@ -589,6 +678,12 @@ public sealed class SaveGame
                     pair => pair.Key.ToString("D"),
                     pair => pair.Value),
             },
+            Cosmetics = new CosmeticsSaveJson
+            {
+                Owned = owned.Order(StringComparer.Ordinal).ToArray(),
+                Theme = chosenTheme,
+                Look = chosenLook,
+            },
         };
         return JsonSerializer.Serialize(file, SaveJsonContext.Default.SaveJson) + "\n";
     }
@@ -704,6 +799,18 @@ internal sealed record SaveJson
 
     // Since version 8
     public CoinsJson? Coins { get; init; }
+
+    // Since version 9 (chunk 28)
+    public CosmeticsSaveJson? Cosmetics { get; init; }
+}
+
+internal sealed record CosmeticsSaveJson
+{
+    public required string?[]? Owned { get; init; }
+
+    public required string? Theme { get; init; }
+
+    public required string? Look { get; init; }
 }
 
 internal sealed record CoinsJson

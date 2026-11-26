@@ -73,6 +73,33 @@ public class SaveGameJsonTests
     // Version 8 adds the coin balance and each imported custom level's best payout
     internal static string Valid8 => Valid7.Replace("\"version\":7", "\"version\":8")[..^1] + ",\"coins\":" + CoinsSection + "}";
 
+    private const string CosmeticsSection = """{"owned":["ember","ring"],"theme":"ember","look":null}""";
+
+    // Version 9 (chunk 28) adds what the player owns and wears from the shop
+    internal static string Valid9 => Valid8.Replace("\"version\":8", "\"version\":9")[..^1] + ",\"cosmetics\":" + CosmeticsSection + "}";
+
+    [Fact]
+    public void Version_9_save_reads_what_is_owned()
+    {
+        Assert.Equal(["ember", "ring"], SaveGame.Parse(Valid9).Owned.Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void Version_9_save_reads_the_choices()
+    {
+        var save = SaveGame.Parse(Valid9);
+
+        Assert.Equal(("ember", (string?)null), (save.ChosenTheme, save.ChosenLook));
+    }
+
+    [Fact]
+    public void Version_8_save_reads_as_nothing_owned()
+    {
+        var save = SaveGame.Parse(Valid8);
+
+        Assert.Equal((0, (string?)null, (string?)null), (save.Owned.Count, save.ChosenTheme, save.ChosenLook));
+    }
+
     [Fact]
     public void Version_8_save_reads_its_balance()
     {
@@ -297,12 +324,12 @@ public class SaveGameJsonTests
     }
 
     [Fact]
-    public void Written_save_is_version_8_without_the_version_3_keys()
+    public void Written_save_is_version_9_without_the_version_3_keys()
     {
         var root = JsonDocument.Parse(new SaveGame().ToJson()).RootElement;
 
         Assert.Equal(
-            (8, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0, 0),
+            (9, false, false, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, JsonValueKind.Null, 0, 0),
             (root.GetProperty("version").GetInt32(),
                 root.TryGetProperty("playtester", out _),
                 root.GetProperty("settings").TryGetProperty("recordPlayData", out _),
@@ -600,6 +627,19 @@ public class SaveGameJsonTests
         Valid8.Replace(PayoutId, PayoutId.ToUpperInvariant()),
         Valid8.Replace(PayoutId, "00000000-0000-0000-0000-000000000000"),
         Valid8.Replace(PayoutId, "not-a-guid"),
+        Valid8[..^1] + ",\"cosmetics\":" + CosmeticsSection + "}",
+        Valid9.Replace(",\"cosmetics\":" + CosmeticsSection, ""),
+        Valid9.Replace(CosmeticsSection, "null"),
+        Valid9.Replace(CosmeticsSection, """{"owned":null,"theme":null,"look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":[],"theme":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":[],"theme":null,"look":null,"extra":1}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["ember","ember"],"theme":null,"look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["Ember"],"theme":null,"look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":[null],"theme":null,"look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["a--b"],"theme":null,"look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["ember"],"theme":"tide","look":null}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["ember"],"theme":null,"look":"ring"}"""),
+        Valid9.Replace(CosmeticsSection, """{"owned":["ember"],"theme":"Ember","look":null}"""),
     };
 
     [Theory]
@@ -644,8 +684,8 @@ public class SaveGameJsonTests
 
     // No build writes these, so whatever did is newer: the file must be left alone, not set aside as broken
     [Theory]
-    [InlineData("9.0", 9)]
-    [InlineData("9e0", 9)]
+    [InlineData("10.0", 10)]
+    [InlineData("10e0", 10)]
     [InlineData("99999999999", int.MaxValue)]
     public void A_newer_version_in_an_odd_form_is_still_newer(string version, int expected)
     {

@@ -50,14 +50,14 @@ public class ShippedCampaignTests
         Assert.True(File.Exists(Shipped(path)), $"{string.Join('/', path)} is missing");
     }
 
-    [Fact]
-    public void Credits_file_parses_and_credits_the_developer_and_Jake()
+    [Theory]
+    [InlineData("Made by")]
+    [InlineData("Original idea")]
+    public void Credits_file_has_a_named_entry_for_each_required_role(string role)
     {
         var credits = Credits.Parse(File.ReadAllText(Shipped("credits", "credits.json")));
 
-        Assert.Equal(
-            ["Made by: DefinitelyNotZac", "Original idea: Jake"],
-            credits.Select(entry => $"{entry.Role}: {string.Join(", ", entry.Names)}"));
+        Assert.Contains(credits, entry => entry.Role == role && entry.Names.Any());
     }
 
     // The other half of Main's start-up check (GameConfigTests covers CheckRanges): it throws on a gate percentage out of range

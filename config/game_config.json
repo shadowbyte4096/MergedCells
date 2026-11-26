@@ -188,5 +188,15 @@
     "daily": 20,
     "perPar": 1,
     "percentPerScore": 5
+  },
+  "shop": {
+    "prices": {
+      "ember": 300,
+      "tide": 300,
+      "prism": 400,
+      "ring": 150,
+      "block": 150,
+      "diamond": 150
+    }
   }
 }

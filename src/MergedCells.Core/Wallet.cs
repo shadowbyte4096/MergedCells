@@ -1,8 +1,9 @@
 namespace MergedCells.Core;
 
 /// <summary>
-/// The one place coins are earned: each method works out what a finish pays, adds it to the save's balance and returns
-/// it, so the caller shows it and writes the save once. Nothing here writes the file. Main thread only.
+/// The one place coins change: each Pay method works out what a finish pays, adds it to the save's balance and returns
+/// it, and <see cref="Buy"/> spends on a cosmetic, so the caller shows it and writes the save once. Nothing here writes
+/// the file. Main thread only.
 /// </summary>
 public sealed class Wallet(SaveGame save, CoinsConfig config)
 {
@@ -53,6 +54,25 @@ public sealed class Wallet(SaveGame save, CoinsConfig config)
 
     // For chunk 25's daily puzzle: its once-a-day rule is that chunk's
     public long PayDaily() => Pay(config.Daily);
+
+    /// <summary>
+    /// Buys a cosmetic: takes the price and records it as owned, or returns false and changes nothing when it's already
+    /// owned or the balance is short. The caller puts it in use and writes the save once.
+    /// </summary>
+    public bool Buy(string id, long price)
+    {
+        // Checked before anything is spent, so a bad ID can never cost coins
+        if (!Cosmetics.IsId(id))
+        {
+            throw new ArgumentException($"\"{id}\" isn't a cosmetics ID.", nameof(id));
+        }
+        if (save.Owned.Contains(id) || !save.SpendCoins(price))
+        {
+            return false;
+        }
+        save.AddOwned(id);
+        return true;
+    }
 
     private long Pay(long amount)
     {

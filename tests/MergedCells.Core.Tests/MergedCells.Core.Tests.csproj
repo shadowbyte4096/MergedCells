@@ -33,6 +33,10 @@
     <None Include="..\..\icons\icon-art.json" LinkBase="icons" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\icons\*.svg;..\..\icons\*.png" LinkBase="icons" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\icon.svg" Link="icon.svg" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\cosmetics\*.json" LinkBase="cosmetics" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\themes\*.tres" LinkBase="themes" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\themes\icons\*.svg" LinkBase="themes\icons" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\scenes\**\*.tscn" LinkBase="scenes" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\project.godot" Link="project.godot" CopyToOutputDirectory="PreserveNewest" />
     <None Include="..\..\export_presets.cfg" Link="export_presets.cfg" CopyToOutputDirectory="PreserveNewest" />
     <None Update="Fixtures\levels\*.json" CopyToOutputDirectory="PreserveNewest" />

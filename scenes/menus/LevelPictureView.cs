@@ -35,6 +35,23 @@ public partial class LevelPictureView : Control
         }
     }
 
+    // The shop's pictures (chunk 28): a player in a look drawn on a square, and the start and end left out for a close-up
+    public Cell? Player { get; set; }
+
+    public PlayerLook Look
+    {
+        get => look;
+        set
+        {
+            look = value;
+            QueueRedraw();
+        }
+    }
+
+    public bool ShowMarkers { get; set; } = true;
+
+    private PlayerLook look;
+
     private void Rebuild()
     {
         picture = map is null || board is null ? null : LevelPicture.Of(map, Math.Max(board.Fills.Length, RectangleColoring.MinimumColors));
@@ -100,7 +117,14 @@ public partial class LevelPictureView : Control
         {
             DrawCircle(Cell(teleporter, 0).GetCenter(), 0.28f * square, board.Teleporter, antialiased: true);
         }
-        DrawRect(Cell(picture.End, 0.15f), board.End);
-        DrawRect(Cell(picture.Start, 0.2f), board.Outline, filled: false, width: Math.Max(0.14f * square, pixel));
+        if (ShowMarkers)
+        {
+            DrawRect(Cell(picture.End, 0.15f), board.End);
+            DrawRect(Cell(picture.Start, 0.2f), board.Outline, filled: false, width: Math.Max(0.14f * square, pixel));
+        }
+        if (Player is { } player && look is not null)
+        {
+            PlayerShape.Draw(this, look, Cell(player, 0).GetCenter(), square, flat: false);
+        }
     }
 }

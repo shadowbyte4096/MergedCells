@@ -14,6 +14,11 @@ public partial class PlayerLook : Resource
 
     [Export] public float CornerFraction { get; set; } = 0.1f;
 
+    // A bought look's shape (chunk 28): solid rather than an outline, and turned clockwise, as a diamond is
+    [Export] public bool Filled { get; set; }
+
+    [Export] public float TurnDegrees { get; set; }
+
     [Export] public float TrailAlpha { get; set; } = 0.22f;
 
     [Export] public float TrailFadeSeconds { get; set; } = 0.3f;

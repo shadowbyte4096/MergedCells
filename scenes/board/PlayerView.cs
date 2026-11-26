@@ -6,7 +6,6 @@ namespace MergedCells;
 public partial class PlayerView : Node2D
 {
     private PlayerLook look;
-    private StyleBoxFlat outline;
     private Cell cell;
 
     [Export]
@@ -16,12 +15,6 @@ public partial class PlayerView : Node2D
         set
         {
             look = value;
-            if (look != null)
-            {
-                outline = new StyleBoxFlat { DrawCenter = false, BorderColor = look.Color, AntiAliasing = true };
-                outline.SetBorderWidthAll(Mathf.RoundToInt(look.StrokeFraction * BoardView.CellSize));
-                outline.SetCornerRadiusAll(Mathf.RoundToInt(look.CornerFraction * BoardView.CellSize));
-            }
             QueueRedraw();
         }
     }
@@ -42,17 +35,6 @@ public partial class PlayerView : Node2D
         {
             return;
         }
-
-        var side = look.SideFraction * BoardView.CellSize;
-        var square = new Rect2(-side / 2, -side / 2, side, side);
-        // Zoomed out, a hollow square would vanish
-        if (GetParent<BoardView>().Gap > 0)
-        {
-            DrawStyleBox(outline, square);
-        }
-        else
-        {
-            DrawRect(square, look.Color);
-        }
+        PlayerShape.Draw(this, look, Vector2.Zero, BoardView.CellSize, flat: GetParent<BoardView>().Gap == 0);
     }
 }

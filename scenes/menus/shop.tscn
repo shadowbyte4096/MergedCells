@@ -1,0 +1,175 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scenes/menus/ShopScreen.cs" id="1_screen"]
+[ext_resource type="Resource" path="res://themes/app_looks.tres" id="2_looks"]
+[ext_resource type="Theme" path="res://themes/light_ui_theme.tres" id="3_theme"]
+[ext_resource type="Texture2D" path="res://themes/icons/back.svg" id="4_back"]
+[ext_resource type="Script" path="res://scenes/play/CoinView.cs" id="5_coin"]
+[ext_resource type="Script" path="res://scenes/menus/ShopSheet.cs" id="6_sheet"]
+[ext_resource type="Script" path="res://scenes/menus/BoardPreview.cs" id="7_preview"]
+
+[node name="Shop" type="CanvasLayer"]
+script = ExtResource("1_screen")
+Looks = ExtResource("2_looks")
+
+[node name="Root" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("3_theme")
+
+[node name="Layout" type="VBoxContainer" parent="Root"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_type_variation = &"PageColumn"
+
+[node name="TopBar" type="MarginContainer" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"Bar"
+
+[node name="Row" type="HBoxContainer" parent="Root/Layout/TopBar"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Back" type="Button" parent="Root/Layout/TopBar/Row"]
+custom_minimum_size = Vector2(48, 0)
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"BackButton"
+icon = ExtResource("4_back")
+icon_alignment = 1
+
+[node name="Title" type="Label" parent="Root/Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_type_variation = &"Title"
+text = "Shop"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Balance" type="HBoxContainer" parent="Root/Layout/TopBar/Row"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_type_variation = &"TotalRow"
+
+[node name="Coin" type="Control" parent="Root/Layout/TopBar/Row/Balance"]
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+script = ExtResource("5_coin")
+ThemeType = "TotalCoin"
+
+[node name="BalanceLabel" type="Label" parent="Root/Layout/TopBar/Row/Balance"]
+layout_mode = 2
+theme_type_variation = &"CoinLine"
+text = "0"
+
+[node name="Scroll" type="ScrollContainer" parent="Root/Layout"]
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Margin" type="MarginContainer" parent="Root/Layout/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/margin_left = 36
+theme_override_constants/margin_right = 36
+
+[node name="List" type="VBoxContainer" parent="Root/Layout/Scroll/Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="BottomPad" type="Control" parent="Root/Layout"]
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Sheet" type="Control" parent="Root"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("6_sheet")
+
+[node name="Wash" type="Panel" parent="Root/Sheet"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_type_variation = &"Wash"
+
+[node name="Sheet" type="PanelContainer" parent="Root/Sheet"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_type_variation = &"Sheet"
+
+[node name="Column" type="VBoxContainer" parent="Root/Sheet/Sheet"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"ResultsColumn"
+
+[node name="Title" type="Label" parent="Root/Sheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Title"
+text = "Theme"
+horizontal_alignment = 1
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="Preview" type="Control" parent="Root/Sheet/Sheet/Column"]
+clip_contents = true
+custom_minimum_size = Vector2(400, 400)
+layout_mode = 2
+size_flags_horizontal = 4
+mouse_filter = 2
+script = ExtResource("7_preview")
+
+[node name="Line" type="Label" parent="Root/Sheet/Sheet/Column"]
+layout_mode = 2
+theme_type_variation = &"Muted"
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="Buttons" type="HBoxContainer" parent="Root/Sheet/Sheet/Column"]
+layout_mode = 2
+mouse_filter = 2
+theme_type_variation = &"PillRow"
+
+[node name="Close" type="Button" parent="Root/Sheet/Sheet/Column/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillButton"
+text = "Close"
+
+[node name="Action" type="Button" parent="Root/Sheet/Sheet/Column/Buttons"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"PillPrimary"
+text = "Buy"
